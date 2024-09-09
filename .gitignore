@@ -1,0 +1,9 @@
+*.exe
+*.pyc
+*.config
+archive/
+icons/*
+output/*
+src/config/*
+src/binary/*
+src/__pycache__/*

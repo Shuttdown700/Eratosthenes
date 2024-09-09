@@ -1,0 +1,22 @@
+DEV Notes: Alexandria Media Manager
+
+- split main function into files by category (analytics, backup, scanning, etc.)
+- import modules locally
+- outsource hardcoded portions to json files
+- give option to add shows to primary if they are unexpectedly found on a backup drive (currently only option is to delete off backup)
+- detect seasons that are not present on primary drives but are on backup drives (give option to add to primary or delete from backup)
+- detect when file names are the same but file extensions are different (likely because the primary file was updated)
+- improve the process of detecting available space on backup drive, the exact size of the backup, and determining if there is enough backup space
+	- this process needs to conduct an integrity check to also detect file size changes following expected file rewrites
+- give suggestions (largest size, most polific backed up shows, or imdb rating) for deletion in backup drive to clear up space
+- find a different method of adding color to text (need more flexibility)
+- detect when shows on whitelist are not on the primary and delete them
+- switch anime drive from Echo to Appo
+
+
+DB APIs:
+TMDb -> 10953a1cc7c291cdbedd4890c9f02017
+OBDb ->
+AniList ->
+TVmaze ->
+MyAnimeList ->
