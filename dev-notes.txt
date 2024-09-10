@@ -12,6 +12,7 @@ DEV Notes: Alexandria Media Manager
 - find a different method of adding color to text (need more flexibility)
 - detect when shows on whitelist are not on the primary and delete them
 - switch anime drive from Echo to Appo
+- backup subtitles with main files
 
 
 DB APIs:

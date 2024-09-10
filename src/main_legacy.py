@@ -56,71 +56,9 @@ def get_time_elapsed(start_time):
     (t_min, t_sec) = divmod(t_sec,60)
     (t_hour,t_min) = divmod(t_min,60)
     if t_hour == 1: hour_name = 'hour'
-    if t_min == 1: min_name = 'minute'
+    if t_min == 1: min_name = 'msinute'
     if t_sec == 1: sec_name = 'second'
     print(f'\nThis process took: {t_hour} {hour_name}, {t_min} {min_name}, and {t_sec} {sec_name}')
-
-def does_drive_exist(letter):
-    """
-    Checks if a drive exists. 
-
-    Parameters
-    ----------
-    letter : str
-        Drive letter [A-Z] (Windows).
-
-    Returns
-    -------
-    bool
-        Returns TRUE if drive exists, otherwise returns FALSE.
-        
-    """
-    try: 
-        win32api.GetVolumeInformation(f"{letter}:/")
-        return True
-        # return (win32file.GetLogicalDrives() >> (ord(letter.upper()) - 65) & 1) != 0
-    except:
-        return False
-
-def get_drive_name(letter):
-    """
-    Gets drive name from letter.
-
-    Parameters
-    ----------
-    letter : str
-        Drive letter [A-Z] (Windows).
-
-    Returns
-    -------
-    str
-        Returns name of the drive, as displayed in file explorer.
-
-    """
-    if does_drive_exist(letter): 
-        return win32api.GetVolumeInformation(f"{letter}:/")[0]
-    else: 
-        return "None"
-
-def get_drive_letter(drive_name):
-    """
-    Gets drive letter from drive name.
-
-    Parameters
-    ----------
-    drive_name : str
-        Drive name.
-
-    Returns
-    -------
-    d : str
-        Drive letter [A-Z] (Windows).
-
-    """
-    drives = [drive[0] for drive in win32api.GetLogicalDriveStrings().split('\000')[:-1] if does_drive_exist(drive[0])]
-    for d in drives:
-        if get_drive_name(d) == drive_name:
-            return d
 
 def get_drive_size(letter):
     """

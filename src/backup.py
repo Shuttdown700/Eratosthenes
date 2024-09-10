@@ -2,52 +2,35 @@
 
 # define libraries
 libraries = [['os']]
-from utilities import import_libraries
+from utilities import read_alexandria_config, get_drive_letter, import_libraries
 import_libraries(libraries)
 
 from utilities import read_alexandria, read_json
 
-def determine_primary_drives(drive_hieracrchy):
-    """
-    Returns dictionarys identifying primary and backup drives by media type
-
-    Parameters
-    ----------
-    drive_hieracrchy : dict
-        Drive hierarchy dictionary item.
-
-    Returns
-    -------
-    primary_drives_dict : dict
-        Primary drives by media type.
-    backup_drives_dict : dict
-        Backup drives by media type.
-
-    """
-    primary_drives_dict = {}; backup_drives_dict = {}
-    for media_type in drive_hieracrchy:
-        primary_drives = drive_hieracrchy[media_type]['primary_drives']
-        primary_drives_dict.update({media_type:primary_drives})
-        backup_drives = drive_hieracrchy[media_type]['backup_drives']
-        backup_drives_dict.update({media_type:backup_drives})
-    return primary_drives_dict, backup_drives_dict
+def determine_movie_rating(data_filepath):
+    df_movie_ratings = []
+    return df_movie_ratings
 
 if __name__ == '__main__':
     import os
-    
     # define paths
     src_directory = os.path.dirname(os.path.abspath(__file__))
-    drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drive_hierarchy.json").replace('\\','/')
+    drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
     output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
-    # define variables
-    
-    
-    
-    
-    
-    
-    drive_hieracrchy = read_json(drive_hieracrchy_filepath)
-    primary_drives_dict, backup_drives_dict = determine_primary_drives(drive_hieracrchy)
+    drive_config = read_json(drive_hieracrchy_filepath)
+    # define primary & backup drives
+    primary_drives_dict, backup_drives_dict, extensions_dict = read_alexandria_config(drive_config)
+    primary_drive_letter_dict = {}; backup_drive_letter_dict = {}
+    for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
+    for key,value in backup_drives_dict.items(): backup_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
+    # define media types
+    media_types = list(primary_drives_dict.keys())
+    # define primary filepaths
+    primary_filepaths_dict = {}
+    for media_type in media_types:
+        primary_paths = [f'{x}:/{media_type}' for x in primary_drive_letter_dict[media_type]]
+        primary_filepaths = read_alexandria(primary_paths,extensions_dict[media_type])
+        primary_filepaths_dict[media_type] = primary_filepaths
 
 
 
@@ -55,10 +38,9 @@ if __name__ == '__main__':
 
 """
 SCHEME:
-    identify primary drives (from config file)
-    identify backup drives (from config file)
-    identify what to backup (type-by-drive, from config file)
-    read primary drives (all at beginning)
+    DONE --- identify primary drives (from config file)
+    DONE --- identify backup drives (from config file)
+    read the primary files (all at beginning of sequence)
     read backup drives (individually)
     identify missing files
     assess backup feasibility
