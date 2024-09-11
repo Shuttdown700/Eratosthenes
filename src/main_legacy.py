@@ -77,18 +77,6 @@ def get_drive_size(letter):
     """
     return shutil.disk_usage(f'{letter}:/')[0]/10**9
 
-def get_file_size(file_with_path):
-    try:
-        if file_with_path[-4] == '.': return os.path.getsize(file_with_path)/10**9
-        else: 
-            try:
-                return os.path.getsize(file_with_path+'.mp4')/10**9
-            except:
-                return os.path.getsize(file_with_path+'.mkv')/10**9
-    except FileNotFoundError:
-        if file_with_path[-4] == '.': return os.path.getsize(file_with_path[:-4]+'.mkv')/10**9
-        else: return os.path.getsize(file_with_path)/10**9
-
 def get_show_files(show):
     file_names, file_paths = read_alexandria([show_dir,anime_dir])
     show_files_with_path1 = [file_paths[i]+'/'+file_names[i] for i in range(len(file_paths)) if 'Movies' not in file_paths[i]]
@@ -100,15 +88,6 @@ def get_show_size(show_files_with_path):
     show_size = 0
     for sfwp in show_files_with_path: show_size += get_file_size(sfwp)  
     return round(show_size,2)
-
-def get_space_remaining(drive):
-    drives = [movie_dir[0],show_dir[0],anime_dir[0]]
-    if drive not in drives: drives.append(drive)
-    for i,d in enumerate(drives):
-        disk_obj = shutil.disk_usage(f'{d}:/')
-        gb_remaining = int(disk_obj[2]/10**9)
-        if i == 0: print(f'\n{gb_remaining:,} GB of space left on {drive_colors[d]}{Style.BRIGHT}{get_drive_name(d)}{Style.RESET_ALL}...')    
-        else: print(f'{gb_remaining:,} GB of space left on {drive_colors[d]}{Style.BRIGHT}{get_drive_name(d)}{Style.RESET_ALL}...')  
 
 def get_shows_list(drive):
     all_titles, all_paths = read_alexandria([f'{drive}:\\Shows\\',f'{drive}:\\Anime\\'])
@@ -218,14 +197,6 @@ def remove_empty_folders(drive,folders=['Movies','Anime Movies','Shows','Anime']
                 os.rmdir(sd)
 
 def backup(bd,no_movie_drives,uhd_movie_drives,music_drives,book_drives):
-    def backup_function(backup_tuples):
-        for bt in backup_tuples: 
-            sfile = fr'{bt[0]}'; dfile = fr'{"/".join(bt[1].split("/")[:-1])}'
-            file_title = sfile.split('/')[-1][:-4].strip()
-            if os.path.isfile(sfile): 
-                print(f'{Fore.YELLOW}{Style.BRIGHT}Backing up{Style.RESET_ALL} {file_title} from {drive_colors[sfile[0]]}{Style.BRIGHT}{get_drive_name(sfile[0])}{Style.RESET_ALL} to {drive_colors[dfile[0]]}{Style.BRIGHT}{get_drive_name(dfile[0])}{Style.RESET_ALL}')
-                cmd = fr'copy "{sfile}" "{dfile}/"'.replace('/','\\')
-                subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
     def integrity_assurance(bd,print_space_bool=False):
         if print_space_bool: print('\n')
         primary_items = [(primary_paths[i] + '/' +primary_titles[i])[1:] for i in range(len(primary_titles))]

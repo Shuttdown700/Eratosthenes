@@ -178,4 +178,13 @@ def get_drive_letter(drive_name):
             return d
     return ''
 
+def get_space_remaining(drive):
+    import shutil
+    disk_obj = shutil.disk_usage(f'{drive}:/')
+    gb_remaining = int(disk_obj[2]/10**9)
+    return gb_remaining
+
+def get_file_size(file_with_path):
+    import os
+    return os.path.getsize(file_with_path)/10**9
 
