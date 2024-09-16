@@ -25,7 +25,7 @@ def assess_backup_feasibility(tuple_filepaths_missing):
 def remove_excess_files(filepaths_excess):
     ui = ''
     if len(filepaths_excess) > 0:
-        print(f'\n{Back.RED}The following {len(filepaths_excess):,.2f} files are not in the primary drives:')
+        print(f'\n{Back.RED}The following {len(filepaths_excess)} {"file is" if len(filepaths_excess) == 1 else "files are"} not in the primary drives: {Style.RESET_ALL}')
         for excess_file in filepaths_excess:
             print(excess_file[1:])
         ui = ''
@@ -67,32 +67,54 @@ def backup_function(backup_tuples):
             if not os.path.exists(dpath):
                 os.makedirs(dpath)
             # backup the missing file
-            print(f'{Fore.YELLOW}{Style.BRIGHT}Backing up{Style.RESET_ALL} {file_title} from {Fore.BLUE}{Style.BRIGHT}{get_drive_name(sfile[0])}{Style.RESET_ALL} to {Fore.GREEN}{Style.BRIGHT}{get_drive_name(dfile[0])}{Style.RESET_ALL}')
+            print(f'{Fore.YELLOW}{Style.BRIGHT}Backing up{Style.RESET_ALL} {file_title} {Fore.RED}{Style.BRIGHT}|{Style.RESET_ALL} {Fore.BLUE}{Style.BRIGHT}{get_drive_name(sfile[0])}{Style.RESET_ALL} -> {Fore.GREEN}{Style.BRIGHT}{get_drive_name(dfile[0])}{Style.RESET_ALL}')
             cmd = fr'copy "{sfile}" "{dfile}"'.replace('/','\\')
             subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
 
-def backup(media_type, primary_filepaths_dict, backup_drive_letter_dict):
+def backup_mapper(media_type, primary_filepaths_dict, backup_drive_letter_dict):
+    import os
     # define primary filepaths
     filepaths_primary = primary_filepaths_dict[media_type]
     filepaths_primary_noLetter = [filepath[1:] for filepath in filepaths_primary]
     # define backup filepaths
     backup_paths = [f'{x}:/{media_type}' for x in backup_drive_letter_dict[media_type]]
+    [os.makedirs(directory, exist_ok=True) for directory in backup_paths]
     filepaths_backup = read_alexandria(backup_paths,extensions_dict[media_type])
     filepaths_backup_noLetter = [filepath[1:] for filepath in filepaths_backup]
-    # determine missing filepaths
+    # determine missing & existing backup filepaths
     tuple_filepaths_missing = []
+    tuple_filepaths_existing_backup = []
     for index_primary, primary_filepath in enumerate(filepaths_primary_noLetter):
         if primary_filepath not in filepaths_backup_noLetter:
             sfile = filepaths_primary[index_primary][0]+primary_filepath
-            dfile = filepaths_backup[-1][0]+primary_filepath
+            try:
+                dfile = filepaths_backup[-1][0]+primary_filepath
+            except IndexError:
+                dfile = backup_paths[-1][0]+primary_filepath
             backup_tuple = (sfile,dfile)
             tuple_filepaths_missing.append(backup_tuple)
+        else:
+            sfile = filepaths_primary[index_primary][0]+primary_filepath
+            try:
+                bfile = filepaths_backup[-1][0]+primary_filepath
+            except IndexError:
+                bfile = backup_paths[-1][0]+primary_filepath
+            backup_tuple = (sfile,bfile)
+            tuple_filepaths_existing_backup.append(backup_tuple)
     # determine excess filepaths
     filepaths_excess = []
     for index_backup, backup_filepath in enumerate(filepaths_backup_noLetter):
         if backup_filepath not in filepaths_primary_noLetter:
             filepaths_excess.append(filepaths_backup[index_backup][0]+backup_filepath)
-    return tuple_filepaths_missing, filepaths_excess
+    return tuple_filepaths_missing, filepaths_excess, tuple_filepaths_existing_backup
+
+def backup_integrity():
+    # assess if files are the same
+    
+    # determine which files need to be overwritten
+    
+    # overwrite backup file with current version
+    pass
 
 if __name__ == '__main__':
     import os
@@ -106,38 +128,49 @@ if __name__ == '__main__':
     primary_drive_letter_dict = {}; backup_drive_letter_dict = {}
     for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
     for key,value in backup_drives_dict.items(): backup_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
+    # define backup drives
+    backup_drive_letters = []
+    for drive in [x[1] for x in backup_drive_letter_dict.items()]: 
+        if '' not in drive: 
+            backup_drive_letters += drive
+    backup_drive_letters = sorted(list(set(backup_drive_letters)))
+    backup_drive_names = [get_drive_name(bdl) for bdl in backup_drive_letters]
     # define media types
     media_types = list(primary_drives_dict.keys())
-    # define primary filepaths
+    # init primary filepaths dict
     primary_filepaths_dict = {}
+    # loop through media types
     for media_type in media_types:
-        
-        " Need to loop through each identified backup drive one their own"
-        
-        
-        if media_type not in ["Books","Music","4K Movies","Movies","Anime Movies"]: continue
-        primary_paths = [f'{x}:/{media_type}' for x in primary_drive_letter_dict[media_type]]
-        primary_filepaths = read_alexandria(primary_paths,extensions_dict[media_type])
-        primary_filepaths_dict[media_type] = primary_filepaths
-        tuple_filepaths_missing, filepaths_excess = backup(media_type, primary_filepaths_dict, backup_drive_letter_dict)
-        remove_excess_files(filepaths_excess)
-        required_space, remaining_space = assess_backup_feasibility(tuple_filepaths_missing)
-        backup_function(tuple_filepaths_missing)
+        # TEMPORARY CONDITIONAL FOR DEVELOPMENT
+        if media_type not in ['Books','Music','Photos','Games','Youtube']: continue
+        # loop through backup drives
+        for drive_backup_letter in backup_drive_letters:
+            # assess if backup drive associates with this media type
+            if drive_backup_letter not in backup_drive_letter_dict[media_type]: continue
+            # determine backup drive name
+            drive_backup_name = get_drive_name(drive_backup_letter)
+            # determine primary parent paths for specific media type
+            primary_parent_paths = [f'{x}:/{media_type}' for x in primary_drive_letter_dict[media_type]]
+            # determine primary filepaths for specific media type
+            primary_filepaths = read_alexandria(primary_parent_paths,extensions_dict[media_type])
+            # add media-specific primary filepaths to primary filepath dict
+            primary_filepaths_dict[media_type] = primary_filepaths
+            # map the backup: determine missing and excess files in backup drive
+            tuple_filepaths_missing, filepaths_excess, tuple_filepaths_existing_backup = backup_mapper(media_type, primary_filepaths_dict, backup_drive_letter_dict)
+            # remove excess files (*requires user action)
+            remove_excess_files(filepaths_excess)
+            # assess required backup space and remain space on backup drive 
+            required_space, remaining_space = assess_backup_feasibility(tuple_filepaths_missing)
+            # determine if backup is feasible
+            if required_space > remaining_space:
+                print(f'\n{Back.RED}{Fore.RESET}The {media_type} backup to the {drive_backup_name} ({drive_backup_letter}) drive is {abs(int(remaining_space-required_space))} GB too large{Style.RESET_ALL}')
+            # excecute backup function
+            backup_function(tuple_filepaths_missing)
+            # determine backup file integrity
+            tuple_filepaths_existing_backup(tuple_filepaths_existing_backup)
         
 
 """
-SCHEME:
-    DONE --- identify primary drives (from config file)
-    DONE --- identify backup drives (from config file)
-    DONE --- read the primary files (all at beginning of sequence)
-    DONE --- read backup drives (individually)
-    identify missing files
-    assess backup feasibility
-    backup missing files
-    identify updated files
-    assess update feasibility
-    replace updated files
-    loop to next drive / conclude
 
 """
 
