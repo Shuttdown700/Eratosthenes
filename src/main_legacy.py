@@ -93,29 +93,6 @@ def get_shows_list(drive):
     all_titles, all_paths = read_alexandria([f'{drive}:\\Shows\\',f'{drive}:\\Anime\\'])
     return sorted(list(set([' '.join(at.split()[:-1]) for at in all_titles])))
 
-def get_imdb_minimum(drive):
-    """
-    Returns the IMDb minimum rating for a movie
-    
-    Parameters
-    ----------
-    drive : string
-        Letter of backup drive.
-
-    Returns
-    -------
-    float
-        Returns the minimum IMDB rating of movies to be backed up on the drive.
-
-    """
-    imdb_min_path = rf'{os.path.dirname(__file__)}\imdb_drive_minimums.txt'
-    with open(imdb_min_path,mode='r',encoding='utf-8') as imdb_file:
-        lines = imdb_file.readlines()
-    imdb_dict = {}
-    for l in lines:
-        imdb_dict.update({l.split('|')[0].strip():float(l.split('|')[1].strip())})
-    return imdb_dict.get(get_drive_name(drive),5.99)
-
 def order_txt_doc(txt_file):
     try:
         if txt_file[-4:] != '.txt': txt_file += '.txt'

@@ -68,6 +68,29 @@ def read_alexandria(parent_dirs,extensions = ['.mp4','.mkv','.pdf','.mp3']) -> l
                 all_filepaths.append((parent_path+'/'+f).replace('\\','/'))
     return all_filepaths
 
+def files_are_identical(file1, file2) -> bool:
+    """
+    Determines if two files are the same
+
+    Parameters
+    ----------
+    file1 : str
+        Filepath to file 1.
+    file2 : str
+        Filepath to file 2.
+
+    Returns
+    -------
+    bool
+        Returns TRUE if the input files are identical.
+
+    """
+    import os
+    # Check if the file sizes are different
+    if os.path.getsize(file1) != os.path.getsize(file2):
+        return False # files are different
+    else:
+        return True # files are identical
 
 
 def read_json(filepath):
@@ -85,6 +108,27 @@ def write_to_csv(output_filepath,data_array,header):
         writer.writerow(header)
         # Write the data
         writer.writerows(data_array)
+
+def read_csv(file_path: str) -> list[dict]:
+    """
+    Reads a csv file
+
+    Parameters
+    ----------
+    file_path : str
+        File path to csv file.
+
+    Returns
+    -------
+    csv_data : list of dict rows
+        list of rows, with each row in dict form.
+
+    """
+    import csv
+    with open(file_path, mode='r', newline='',encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        csv_data = [row for row in reader]
+    return csv_data
         
 def read_alexandria_config(drive_hieracrchy):
     """
