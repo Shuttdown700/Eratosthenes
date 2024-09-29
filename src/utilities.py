@@ -30,7 +30,7 @@ def import_libraries(libraries):
         for sl in s[1]:
             exec(f'from {s[0]} import {sl}')
 
-def read_alexandria(parent_dirs,extensions = ['.mp4','.mkv','.pdf','.mp3']) -> list[list[str], list[str]]:
+def read_alexandria(parent_dirs : list,extensions = ['.mp4','.mkv','.pdf','.mp3']) -> list[list[str], list[str]]:
     """
     Returns all files of a given extension from a list of parent directories
 
@@ -68,7 +68,7 @@ def read_alexandria(parent_dirs,extensions = ['.mp4','.mkv','.pdf','.mp3']) -> l
                 all_filepaths.append((parent_path+'/'+f).replace('\\','/'))
     return all_filepaths
 
-def files_are_identical(file1, file2) -> bool:
+def files_are_identical(file1 : str, file2 : str) -> bool:
     """
     Determines if two files are the same
 
@@ -92,12 +92,20 @@ def files_are_identical(file1, file2) -> bool:
     else:
         return True # files are identical
 
-
 def read_json(filepath):
     import json
     with open(filepath, 'r', encoding='utf8') as json_file:
         json_data = json.load(json_file)
     return json_data
+
+def get_json_file_list(directory):
+    import os
+    list_json_files = []
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith('.json'):
+                list_json_files.append(os.path.join(root, file))
+    return list_json_files
 
 def write_to_csv(output_filepath,data_array,header):
     import csv
@@ -125,9 +133,12 @@ def read_csv(file_path: str) -> list[dict]:
 
     """
     import csv
-    with open(file_path, mode='r', newline='',encoding='utf-8') as file:
-        reader = csv.DictReader(file)
-        csv_data = [row for row in reader]
+    try:
+        with open(file_path, mode='r', newline='',encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            csv_data = [row for row in reader]
+    except FileNotFoundError:
+        return []
     return csv_data
         
 def read_alexandria_config(drive_hieracrchy):
@@ -222,6 +233,84 @@ def get_drive_letter(drive_name):
             return d
     return ''
 
+def get_drive_size(letter):
+    """
+    Gets size of drive.
+
+    Parameters
+    ----------
+    letter : str
+        Drive letter [A-Z] (Windows).
+
+    Returns
+    -------
+    float
+        Size of drive in GB.
+
+    """
+    import shutil
+    return shutil.disk_usage(f'{letter}:/')[0]/10**9
+
+def get_time():
+    """
+    Returns current time.
+    
+    Returns
+    -------
+    curr_time: str
+        Time in 'TTTT on DDMMMYYYY' format.
+        
+    """
+    import time
+    time_dict = {'dotw':time.ctime().split()[0],'month':time.ctime().split()[1],'day':time.ctime().split()[2],
+                 'hour_24_clock':time.ctime().split()[3].split(':')[0],'minute':time.ctime().split()[3].split(':')[1],
+                 'second':time.ctime().split()[3].split(':')[2],'year':time.ctime().split()[4]}
+    if len(time_dict["minute"]) < 2: time_dict['minute'] = '0'+time.ctime().split()[3].split(':')[1]
+    if len(time_dict["day"]) < 2: time_dict['day'] = '0'+time.ctime().split()[2]
+    curr_time = f'{time_dict["hour_24_clock"]}{time_dict["minute"]} on {time_dict["day"]}{time_dict["month"].upper()}{time_dict["year"][2:]}'
+    return curr_time
+
+def get_time_elapsed(start_time):
+    """
+    Prints the elapsed time since the input time.
+    
+    Parameters
+    ----------
+    start_time : float
+        Time as a floating pouint number in seconds.
+
+    Returns
+    -------
+    None.
+    
+    """
+    import time
+    hour_name, min_name, sec_name = 'hours', 'minutes', 'seconds'
+    t_sec = round(time.time() - start_time)
+    (t_min, t_sec) = divmod(t_sec,60)
+    (t_hour,t_min) = divmod(t_min,60)
+    if t_hour == 1: hour_name = 'hour'
+    if t_min == 1: min_name = 'msinute'
+    if t_sec == 1: sec_name = 'second'
+    print(f'\nThis process took: {t_hour} {hour_name}, {t_min} {min_name}, and {t_sec} {sec_name}')
+
+def order_file_contents(file_path, numeric=False):
+    # Read the file content
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+    # Remove any leading/trailing whitespace from each line (including newlines)
+    lines = [line.strip() for line in lines]
+    # Sort the lines numerically or alphabetically
+    if numeric:
+        lines.sort(key=lambda x: float(x) if x.replace('.', '', 1).isdigit() else x)
+    else:
+        lines.sort()
+    # Write the sorted content back to the file
+    with open(file_path, 'w') as file:
+        for line in lines:
+            file.write(f"{line}\n")
+    print(f"Contents of '{file_path}' have been ordered.")
+
 def get_space_remaining(drive):
     import shutil
     disk_obj = shutil.disk_usage(f'{drive}:/')
@@ -232,3 +321,27 @@ def get_file_size(file_with_path):
     import os
     return os.path.getsize(file_with_path)/10**9
 
+def write_list_to_txt_file(file_path, items, bool_append = False):
+    flag = 'a' if bool_append else 'w'
+    with open(file_path, flag,encoding='utf-8') as file:
+        for i, item in enumerate(items):
+            if i < len(items) - 1:
+                file.write(f"{item}\n")
+            else:
+                file.write(f"{item}")
+
+def read_file_as_list(file_path):
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+    return [line.strip() for line in lines]
+
+def remove_empty_folders(directories):
+    import os
+    for directory in directories:
+        # Walk through all subdirectories and delete any that are empty
+        for root, dirs, files in os.walk(directory, topdown=False):
+            for dir in dirs:
+                subdirectory_path = os.path.join(root, dir)
+                if not os.listdir(subdirectory_path):  # Check if the directory is empty
+                    os.rmdir(subdirectory_path)
+                    print(f"Deleted empty subdirectory: {subdirectory_path}")
