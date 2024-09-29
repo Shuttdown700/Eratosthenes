@@ -130,5 +130,5 @@ if __name__ == '__main__':
     # instantiate API handler
     api_handler = API()
     # api_handler.tmdb_movies_fetch()
-    api_handler.tmdb_movies_pull_popular()
+    # api_handler.tmdb_movies_pull_popular()
     # api_handler.tvdb_shows_fetch()
