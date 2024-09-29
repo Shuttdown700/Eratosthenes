@@ -126,7 +126,7 @@ if __name__ == '__main__':
     import requests
     from colorama import Fore, Back, Style
     # import utility methods
-    from utilities import write_list_to_txt_file, write_to_csv, read_csv, read_json, read_file_as_list
+    from utilities import write_list_to_txt_file, write_to_csv, read_csv, read_file_as_list
     # instantiate API handler
     api_handler = API()
     # api_handler.tmdb_movies_fetch()

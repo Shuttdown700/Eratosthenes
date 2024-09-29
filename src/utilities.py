@@ -343,5 +343,57 @@ def remove_empty_folders(directories):
             for dir in dirs:
                 subdirectory_path = os.path.join(root, dir)
                 if not os.listdir(subdirectory_path):  # Check if the directory is empty
-                    os.rmdir(subdirectory_path)
-                    print(f"Deleted empty subdirectory: {subdirectory_path}")
+                    subdirectory_path = subdirectory_path.replace('\\','/')
+                    if '/Games/' not in subdirectory_path:
+                        os.rmdir(subdirectory_path)
+                        print(f"Deleted empty subdirectory: {subdirectory_path}")
+
+def hide_metadata(drive_config):
+    import ctypes, stat, win32con, win32api
+    from alive_progress import alive_bar
+    extensions_list = ['.jpg','.nfo','.png']
+    primary_drives_dict, backup_drives_dict = read_alexandria_config(drive_config)[:2]
+    dirs_base_all = []
+    for key,val in primary_drives_dict.items():
+        dirs_base_all += [f'{get_drive_letter(v)}:/{key}' for v in val]
+    for key,val in backup_drives_dict.items():
+        dirs_base_all += [f'{get_drive_letter(v)}:/{key}' for v in val]    
+    filepaths = read_alexandria(dirs_base_all,extensions=extensions_list)
+    if len(filepaths) > 0:
+        with alive_bar(len(filepaths),ctrl_c=False,dual_line=False,title=f'Hiding {", ".join(extensions_list)} files',bar='classic',spinner='classic') as bar:
+            for filepath in filepaths:
+                if '/Photos/' not in filepath.replace('\\','/'): # if not in /Photos/
+                    fa = os.stat(filepath).st_file_attributes
+                    if bool(fa & stat.FILE_ATTRIBUTE_HIDDEN): # if hidden, skip
+                        bar()
+                        continue
+                    print(f'Hiding: {filepath}')
+                    win32api.SetFileAttributes(filepath,win32con.FILE_ATTRIBUTE_HIDDEN)
+                    bar()
+                else: # if in /Photos/
+                    if ctypes.windll.kernel32.GetFileAttributesW(filepath) & 2: # if hidden, unhide it
+                        print(f'Unhiding photo file: {filepath}')
+                        attrs = ctypes.windll.kernel32.GetFileAttributesW(filepath)
+                        ctypes.windll.kernel32.SetFileAttributesW(filepath, attrs & ~2)
+                        bar()
+                        continue
+                    bar()
+    else:
+        print(f'No {", ".join(extensions_list)} files in any of the {len(dirs_base_all)} {"drive" if len(dirs_base_all) == 1 else "drives"}!')
+
+if __name__ == '__main__':
+    # define paths
+    import os
+    src_directory = os.path.dirname(os.path.abspath(__file__))
+    drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
+    output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
+    drive_config = read_json(drive_hieracrchy_filepath)
+    primary_drives_dict, backup_drives_dict = read_alexandria_config(drive_config)[:2]
+    dirs_base_all = []; dirs_base_primary = []; dirs_base_backup = []
+    for key,val in primary_drives_dict.items():
+        dirs_base_primary += [f'{get_drive_letter(v)}:/{key}' for v in val]
+    for key,val in backup_drives_dict.items():
+        dirs_base_backup += [f'{get_drive_letter(v)}:/{key}' for v in val]
+    dirs_base_all = dirs_base_primary + dirs_base_backup
+    hide_metadata(drive_config)
+    remove_empty_folders(dirs_base_all)

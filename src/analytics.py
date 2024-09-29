@@ -55,6 +55,9 @@ if __name__ == '__main__':
     primary_drive_letter_dict = {}; backup_drive_letter_dict = {}
     for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
     for key,value in backup_drives_dict.items(): backup_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
+
+    
+
     # movie_titles_with_year = update_movie_list(primary_drive_letter_dict)
     # movies_suggested = suggest_movie_downloads()
     # update_movie_data()
