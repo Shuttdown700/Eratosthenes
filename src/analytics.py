@@ -19,27 +19,47 @@ def update_movie_list(primary_drive_letter_dict : dict) -> list:
     return movie_titles_with_year
 
 def suggest_movie_downloads():
+    # import utility methods
     from utilities import read_csv, read_file_as_list, write_list_to_txt_file
+    # import API (handler) class
     from api import API
+    # instantiate API class
     api_handler = API()
+    # define paths
     src_directory = os.path.dirname(os.path.abspath(__file__))
     filepath_movie_list = ("\\".join(src_directory.split('\\')[:-1])+"/output/").replace('\\','/')+'movie_list.txt'
+    # read current movie list
     list_movies = read_file_as_list(filepath_movie_list)
     list_movies = [x.lower() for x in list_movies]
+    # get top rated movies from TMDb
     data_top_rated = read_csv(api_handler.filepath_tmdb_top_rated_csv)
     list_top_rated_movies = [f"{movie['Title_TMDb'].replace(': ',' - ')} ({movie['Release_Year']})" for movie in data_top_rated]
+    # determine what movies are not currently downloaded
     movies_suggested = []
     for movie in list_top_rated_movies:
         if movie.lower() not in list_movies:
             movies_suggested.append(movie)
+    # write suggested movie downloads to file
     output_filepath = ("\\".join(src_directory.split('\\')[:-1])+"/output/").replace('\\','/')+'movies_suggested.txt'
     write_list_to_txt_file(output_filepath,movies_suggested)
     return movies_suggested
 
-def update_movie_data():
+def update_show_list():
     pass
 
-def update_show_data():
+def update_movie_file_metadata():
+    pass
+
+def update_show_file_metadata():
+    pass
+
+def update_all_statistics():
+    pass
+
+def update_figures():
+    pass
+
+def assess_backup_surface_area():
     pass
 
 if __name__ == '__main__':
