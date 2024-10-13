@@ -21,6 +21,9 @@ class API(object):
         self.tvdb_api_key = self.api_config['tvdb']['api_key']
         
     def tmdb_movies_fetch(self):
+        import requests
+        from colorama import Fore, Back, Style
+        from utilities import read_csv, read_file_as_list, write_list_to_txt_file, write_to_csv
         # read current movie list
         movie_list = read_file_as_list(self.filepath_movie_list)
         # read current movies in local tmdb database
@@ -124,11 +127,21 @@ import os
 if __name__ == '__main__':
     # import libraries
     import requests
+    from analytics import update_movie_list
     from colorama import Fore, Back, Style
+    from utilities import get_drive_letter
     # import utility methods
-    from utilities import write_list_to_txt_file, write_to_csv, read_csv, read_file_as_list
+    from utilities import write_list_to_txt_file, write_to_csv, read_alexandria_config, read_csv, read_file_as_list, read_json
+    src_directory = os.path.dirname(os.path.abspath(__file__))
+    drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
+    drive_config = read_json(drive_hieracrchy_filepath)
+    primary_drives_dict, backup_drives_dict, extensions_dict = read_alexandria_config(drive_config)
+    primary_drive_letter_dict = {}; backup_drive_letter_dict = {}
+    for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
+    update_movie_list(primary_drive_letter_dict)
+
     # instantiate API handler
     api_handler = API()
-    # api_handler.tmdb_movies_fetch()
+    api_handler.tmdb_movies_fetch()
     # api_handler.tmdb_movies_pull_popular()
     # api_handler.tvdb_shows_fetch()

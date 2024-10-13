@@ -12,10 +12,11 @@ DEV Notes: Alexandria Media Manager
 - switch anime drive from Echo to Appo
 - backup subtitles with main files
 - add ytdl to youtube functionality
-
-DB APIs:
-TMDb -> 
-OBDb ->
-AniList ->
-TVmaze ->
-MyAnimeList ->
+- necessary output files:
+    movies not backed up | backed up once | multi backups
+    shows not backed up | backed up once | multi backups
+    shoe details (size, num of seasons, num of episodes, rating)
+    entire listings of shows & movies
+- show space remaining on all drives
+- show backup surface area on all connected drives
+- show backup surface area on all whtielist files

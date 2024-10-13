@@ -54,7 +54,7 @@ def read_alexandria(parent_dirs : list,extensions = ['.mp4','.mkv','.pdf','.mp3'
     # assert correction arguments
     assert isinstance(parent_dirs,list) and isinstance(extensions,list), "One or more arguments are not in list type."
     all_filepaths = []
-    for p in parent_dirs:
+    for idx_p,p in enumerate(parent_dirs):
         walk = sorted(list([x for x in os.walk(p) if x[2] != []]))
         for w in walk:
             # identify parent dir in filepath
@@ -62,9 +62,13 @@ def read_alexandria(parent_dirs : list,extensions = ['.mp4','.mkv','.pdf','.mp3'
             # correct hanging slash error
             if parent_path[-1] == '/' or parent_path[-1] == '\\': parent_path = parent_path[:-1]
             # generate file list of specific extensions
-            file_list = [f for f in w[-1] if '.'+f.split('.')[-1] in extensions]
+            if isinstance(extensions[0],list) and len(extensions) >= idx_p+1:
+                extension_list = extensions[idx_p]
+            else:
+                extension_list = extensions
+            file_list = [f for f in w[-1] if '.'+f.split('.')[-1] in extension_list]
             # generate list of filepaths
-            for i,f in enumerate(file_list):
+            for idx_f,f in enumerate(file_list):
                 all_filepaths.append((parent_path+'/'+f).replace('\\','/'))
     return all_filepaths
 
@@ -331,22 +335,26 @@ def write_list_to_txt_file(file_path, items, bool_append = False):
                 file.write(f"{item}")
 
 def read_file_as_list(file_path):
-    with open(file_path, 'r') as file:
+    with open(file_path, 'r',encoding='utf-8') as file:
         lines = file.readlines()
     return [line.strip() for line in lines]
 
 def remove_empty_folders(directories):
+    from colorama import Fore, Back, Style
     import os
     for directory in directories:
         # Walk through all subdirectories and delete any that are empty
         for root, dirs, files in os.walk(directory, topdown=False):
             for dir in dirs:
-                subdirectory_path = os.path.join(root, dir)
-                if not os.listdir(subdirectory_path):  # Check if the directory is empty
-                    subdirectory_path = subdirectory_path.replace('\\','/')
-                    if '/Games/' not in subdirectory_path:
-                        os.rmdir(subdirectory_path)
-                        print(f"Deleted empty subdirectory: {subdirectory_path}")
+                try:
+                    subdirectory_path = os.path.join(root, dir)
+                    if not os.listdir(subdirectory_path):  # Check if the directory is empty
+                        subdirectory_path = subdirectory_path.replace('\\','/')
+                        if '/Games/' not in subdirectory_path:
+                            os.rmdir(subdirectory_path)
+                            print(f"{Fore.RED}{Style.BRIGHT}Deleted empty subdirectory:{Style.RESET_ALL} {subdirectory_path}")
+                except Exception as e:
+                    print(f"Error: {e}")
 
 def hide_metadata(drive_config):
     import ctypes, stat, win32con, win32api
@@ -362,7 +370,7 @@ def hide_metadata(drive_config):
     if len(filepaths) > 0:
         with alive_bar(len(filepaths),ctrl_c=False,dual_line=False,title=f'Hiding {", ".join(extensions_list)} files',bar='classic',spinner='classic') as bar:
             for filepath in filepaths:
-                if '/Photos/' not in filepath.replace('\\','/'): # if not in /Photos/
+                if '/Photos/' not in filepath.replace('\\','/') and '/Courses/' not in filepath.replace('\\','/'): # if not in /Photos/
                     fa = os.stat(filepath).st_file_attributes
                     if bool(fa & stat.FILE_ATTRIBUTE_HIDDEN): # if hidden, skip
                         bar()
@@ -370,7 +378,7 @@ def hide_metadata(drive_config):
                     print(f'Hiding: {filepath}')
                     win32api.SetFileAttributes(filepath,win32con.FILE_ATTRIBUTE_HIDDEN)
                     bar()
-                else: # if in /Photos/
+                else: # if in /Photos/ or /Courses/
                     if ctypes.windll.kernel32.GetFileAttributesW(filepath) & 2: # if hidden, unhide it
                         print(f'Unhiding photo file: {filepath}')
                         attrs = ctypes.windll.kernel32.GetFileAttributesW(filepath)
@@ -381,12 +389,36 @@ def hide_metadata(drive_config):
     else:
         print(f'No {", ".join(extensions_list)} files in any of the {len(dirs_base_all)} {"drive" if len(dirs_base_all) == 1 else "drives"}!')
 
-if __name__ == '__main__':
+def rewrite_whitelists_with_year(directory_whitelist,primary_drives_dict):
+    filepaths_whitelists = []
+    # Iterate through all files in the directory
+    primary_drives_shows = list(set([f'{get_drive_letter(x)}:/Shows/' for x in primary_drives_dict['Shows']]))
+    show_list = sorted(list(set([filepath.split('/')[2] for filepath in read_alexandria(primary_drives_shows)])))
+    primary_drives_anime = list(set([f'{get_drive_letter(x)}:/Anime/' for x in primary_drives_dict['Anime']]))
+    anime_list = sorted(list(set([filepath.split('/')[2] for filepath in read_alexandria(primary_drives_anime)])))
+    for file_name in os.listdir(directory_whitelist):
+        if file_name.endswith(".txt") and 'whitelist' in file_name.lower():
+            filepaths_whitelists.append(os.path.join(directory_whitelist,file_name).replace('\\','/'))
+    for filepath_whitelist in filepaths_whitelists:
+        whitelist_items = []
+        whitelist = read_file_as_list(filepath_whitelist)
+        for wl_item in whitelist:
+            for anime in anime_list:
+                if wl_item in anime:
+                    whitelist_items.append(anime.strip())
+            for show in show_list:
+                if wl_item in show:
+                    whitelist_items.append(show.strip())
+        whitelist_items = sorted(list(set(whitelist_items)))
+        write_list_to_txt_file(filepath_whitelist,whitelist_items)
+
+def main():      
     # define paths
     import os
     src_directory = os.path.dirname(os.path.abspath(__file__))
     drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
     output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
+    directory_whitelist = (src_directory+"/config/show_whitelists").replace('\\','/')
     drive_config = read_json(drive_hieracrchy_filepath)
     primary_drives_dict, backup_drives_dict = read_alexandria_config(drive_config)[:2]
     dirs_base_all = []; dirs_base_primary = []; dirs_base_backup = []
@@ -395,5 +427,9 @@ if __name__ == '__main__':
     for key,val in backup_drives_dict.items():
         dirs_base_backup += [f'{get_drive_letter(v)}:/{key}' for v in val]
     dirs_base_all = dirs_base_primary + dirs_base_backup
-    hide_metadata(drive_config)
+    # rewrite_whitelists_with_year(directory_whitelist,primary_drives_dict)
+    # hide_metadata(drive_config)
     remove_empty_folders(dirs_base_all)
+
+if __name__ == '__main__':
+    main()
