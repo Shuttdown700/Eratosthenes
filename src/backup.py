@@ -441,6 +441,7 @@ def backup_mapper(media_type:str,drive_backup_letter:str,primary_filepaths_dict:
 
 def main():
     import os
+    print(f'\n{"#"*10}\n\n{Fore.MAGENTA}{Style.BRIGHT}Initiating Alexandria Backup...{Style.RESET_ALL}\n\n{"#"*10}')
     # define paths
     src_directory = os.path.dirname(os.path.abspath(__file__))
     drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
@@ -462,14 +463,14 @@ def main():
     media_types = list(primary_drives_dict.keys())
     # init primary filepaths dict
     primary_filepaths_dict = {}
-    # loop through media types
-    for media_type in media_types:
-        # loop through backup drives
-        for drive_backup_letter in backup_drive_letters:
+    # loop through backup drives
+    for drive_backup_letter in backup_drive_letters:
+        drive_backup_name = get_drive_name(drive_backup_letter)
+        print(f'\n### {Fore.GREEN}{Style.BRIGHT}{drive_backup_name} ({drive_backup_letter.upper()} drive){Style.RESET_ALL} ###')
+        # loop through media types
+        for media_type in media_types:
             # assess if backup drive associates with this media type
             if drive_backup_letter not in backup_drive_letter_dict[media_type]: continue
-            # determine backup drive name
-            drive_backup_name = get_drive_name(drive_backup_letter)
             print(f'\nAssessing {Fore.YELLOW}{Style.BRIGHT}{media_type}{Style.RESET_ALL} in backup drive: {Fore.GREEN}{Style.BRIGHT}{drive_backup_name} ({drive_backup_letter.upper()} drive){Style.RESET_ALL}')
             # determine primary parent paths for specific media type
             primary_parent_paths = [f'{x}:/{media_type}' for x in primary_drive_letter_dict[media_type]]
@@ -489,9 +490,9 @@ def main():
                 backup_function(tuple_filepaths_missing, tuple_filepaths_modified)
             # remove empty sub-directories
             remove_empty_folders(primary_parent_paths+[f'{drive_backup_letter}:/{media_type}'])
+        print(f'\n{Fore.MAGENTA}{Style.BRIGHT}Space remaining{Style.RESET_ALL} in {Fore.GREEN}{Style.BRIGHT}{drive_backup_name} ({drive_backup_letter.upper()} drive){Style.RESET_ALL}: {Fore.BLUE}{Style.BRIGHT}{get_space_remaining(drive_backup_letter)/1000:,.2f} TB{Style.RESET_ALL}')
+
     print(f'\n{"#"*10}\n\n{Fore.GREEN}{Style.BRIGHT}Alexandria Backup Complete{Style.RESET_ALL}\n\n{"#"*10}\n')
 
 if __name__ == '__main__':
-    from colorama import Fore, Back, Style
-    from analytics import update_statistics
     main()

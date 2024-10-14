@@ -146,7 +146,8 @@ def update_statistics(drive_config,filepath_statistics):
     # generate book statistics
     num_book_files = len(filepaths_books)
     size_GB_books = round(sum([get_file_size(filepath_book) for filepath_book in filepaths_books]),2)
-    dict_book_stats = {"Number of Books":num_book_files,"Total Size":f"{size_GB_books:,.2f} GB","Primary Filepaths":filepaths_books}
+    book_titles = sorted([os.path.splitext(os.path.basename(filepath_book))[0] for filepath_book in filepaths_books],reverse=True)
+    dict_book_stats = {"Number of Books":num_book_files,"Total Size":f"{size_GB_books:,.2f} GB","Book Titles":book_titles,"Primary Filepaths":filepaths_books}
     statistics_dict["Books"] = dict_book_stats
     # generate music statistics
     num_music_files = len(filepaths_music)
