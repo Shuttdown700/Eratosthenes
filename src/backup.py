@@ -489,9 +489,9 @@ def main():
                 backup_function(tuple_filepaths_missing, tuple_filepaths_modified)
             # remove empty sub-directories
             remove_empty_folders(primary_parent_paths+[f'{drive_backup_letter}:/{media_type}'])
-    
+    print(f'\n{"#"*10}\n\n{Fore.GREEN}{Style.BRIGHT}Alexandria Backup Complete{Style.RESET_ALL}\n\n{"#"*10}\n')
 
 if __name__ == '__main__':
     from colorama import Fore, Back, Style
+    from analytics import update_statistics
     main()
-    print(f'\n{"#"*10}\n\n{Fore.GREEN}{Style.BRIGHT}Alexandria Backup Complete{Style.RESET_ALL}\n\n{"#"*10}\n')

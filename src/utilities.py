@@ -357,7 +357,7 @@ def remove_empty_folders(directories):
                     print(f"Error: {e}")
 
 def hide_metadata(drive_config):
-    import ctypes, stat, win32con, win32api
+    import ctypes, os, stat, win32con, win32api
     from alive_progress import alive_bar
     extensions_list = ['.jpg','.nfo','.png']
     primary_drives_dict, backup_drives_dict = read_alexandria_config(drive_config)[:2]
@@ -390,6 +390,7 @@ def hide_metadata(drive_config):
         print(f'No {", ".join(extensions_list)} files in any of the {len(dirs_base_all)} {"drive" if len(dirs_base_all) == 1 else "drives"}!')
 
 def rewrite_whitelists_with_year(directory_whitelist,primary_drives_dict):
+    import os
     filepaths_whitelists = []
     # Iterate through all files in the directory
     primary_drives_shows = list(set([f'{get_drive_letter(x)}:/Shows/' for x in primary_drives_dict['Shows']]))
@@ -411,6 +412,29 @@ def rewrite_whitelists_with_year(directory_whitelist,primary_drives_dict):
                     whitelist_items.append(show.strip())
         whitelist_items = sorted(list(set(whitelist_items)))
         write_list_to_txt_file(filepath_whitelist,whitelist_items)
+
+def delete_metadata_wip(drive,file_extensions = ['.jpg','.nfo','.png','.jpeg','.info','.srt']):
+    import os
+    from alive_progress import alive_bar
+    for e in file_extensions:
+        file_names, file_paths = read_alexandria([f'{drive}:/Movies/',f'{drive}:/Shows/',f'{drive}:/Anime/',f'{drive}:/4K Movies/'],extensions = [e])
+        file_names_with_path = [file_paths[i]+'/'+file_names[i] for i in range(len(file_paths))]
+        if len(file_names_with_path) > 0:
+            with alive_bar(len(file_names_with_path),ctrl_c=False,dual_line=False,title=f'Deleting {e} files',bar='classic',spinner='classic') as bar:
+                for fnwp in file_names_with_path:
+                    os.remove(fnwp)
+                    bar()
+        else:
+            print(f'No {e} files in {drive} drive!')
+
+def get_shows_not_on_drive_wip():
+    pass
+
+def get_sizes_of_shows():
+    pass
+
+def search_for_duplicate_show_files():
+    pass
 
 def main():      
     # define paths

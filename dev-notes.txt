@@ -20,3 +20,4 @@ DEV Notes: Alexandria Media Manager
 - show space remaining on all drives
 - show backup surface area on all connected drives
 - show backup surface area on all whtielist files
+- delete movie folders without any movie files in them
