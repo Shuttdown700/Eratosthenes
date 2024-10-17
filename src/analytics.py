@@ -141,7 +141,7 @@ def update_statistics(drive_config,filepath_statistics):
     uhd_movie_titles = sorted(list(set(([filepath_uhd_movie.split('/')[2].strip() for filepath_uhd_movie in filepaths_uhd_movies]))))
     num_uhd_movies = len(uhd_movie_titles)
     size_TB_uhd_movies = round(sum([get_file_size(filepath_uhd_movie) for filepath_uhd_movie in filepaths_uhd_movies])/10**3,2)
-    dict_uhd_movie_stats = {"Number of 4K Movies":num_uhd_movies,"Total Size":f"{size_TB_uhd_movies:,.2f} GB","4K Movie Titles":uhd_movie_titles,"Primary Filepaths":filepaths_uhd_movies}
+    dict_uhd_movie_stats = {"Number of 4K Movies":num_uhd_movies,"Total Size":f"{size_TB_uhd_movies:,.2f} TB","4K Movie Titles":uhd_movie_titles,"Primary Filepaths":filepaths_uhd_movies}
     statistics_dict["4K Movies"] = dict_uhd_movie_stats
     # generate book statistics
     num_book_files = len(filepaths_books)
@@ -455,9 +455,9 @@ def main():
     primary_drive_letter_dict = {}; backup_drive_letter_dict = {}
     for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
     for key,value in backup_drives_dict.items(): backup_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
-    # api_handler = API()
-    # update_movie_list(primary_drive_letter_dict)
-    # api_handler.tmdb_movies_fetch()
+    api_handler = API()
+    update_movie_list(primary_drive_letter_dict)
+    api_handler.tmdb_movies_fetch()
     update_statistics(drive_config,filepath_statistics)
 
     # movie_titles_with_year = update_movie_list(primary_drive_letter_dict)

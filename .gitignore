@@ -4,6 +4,7 @@
 archive/
 icons/*
 output/*
+keys/*
 src/config/*
 src/binary/*
 src/__pycache__/*

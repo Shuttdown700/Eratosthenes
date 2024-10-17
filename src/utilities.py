@@ -436,12 +436,73 @@ def get_sizes_of_shows():
 def search_for_duplicate_show_files():
     pass
 
+def generate_ssl_key_and_cert(key_directory):
+    import os
+    from cryptography import x509
+    from cryptography.x509.oid import NameOID
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.backends import default_backend
+    from datetime import datetime, timedelta, timezone
+
+    # Generate private key
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+        backend=default_backend()
+    )
+
+    # Write private key to a file
+    filepath_keyfile = os.path.join(key_directory,"keyfile.pem").replace('\\','/')
+    with open(filepath_keyfile, "wb") as f:
+        f.write(private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption(),
+        ))
+
+    # Subject and issuer details for the certificate
+    subject = issuer = x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, u"US"),
+        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"Georgia"),
+        x509.NameAttribute(NameOID.LOCALITY_NAME, u"Savannah"),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"Alexandria"),
+        x509.NameAttribute(NameOID.COMMON_NAME, u"www.alexandria.com"),
+    ])
+
+    # Create the certificate
+    certificate = x509.CertificateBuilder().subject_name(
+        subject
+    ).issuer_name(
+        issuer
+    ).public_key(
+        private_key.public_key()
+    ).serial_number(
+        x509.random_serial_number()
+    ).not_valid_before(
+        datetime.now(tz=timezone.utc)  # Updated for timezone-aware datetime
+    ).not_valid_after(
+        # Certificate is valid for 1 year
+        datetime.now(tz=timezone.utc) + timedelta(days=365)  # Updated for timezone-aware datetime
+    ).add_extension(
+        x509.SubjectAlternativeName([x509.DNSName(u"alexandria.com")]),
+        critical=False,
+    ).sign(private_key, hashes.SHA256(), default_backend())
+
+    # Write the certificate to a file
+    filepath_certfile = os.path.join(key_directory,"certfile.pem").replace('\\','/')
+    with open(filepath_certfile, "wb") as f:
+        f.write(certificate.public_bytes(serialization.Encoding.PEM))
+
+    print("SSL keyfile and certfile generated.")
+
 def main():      
     # define paths
     import os
     src_directory = os.path.dirname(os.path.abspath(__file__))
     drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
     output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
+    key_directory = ("\\".join(src_directory.split('\\')[:-1])+"/keys").replace('\\','/')
     directory_whitelist = (src_directory+"/config/show_whitelists").replace('\\','/')
     drive_config = read_json(drive_hieracrchy_filepath)
     primary_drives_dict, backup_drives_dict = read_alexandria_config(drive_config)[:2]
@@ -453,7 +514,8 @@ def main():
     dirs_base_all = dirs_base_primary + dirs_base_backup
     # rewrite_whitelists_with_year(directory_whitelist,primary_drives_dict)
     # hide_metadata(drive_config)
-    remove_empty_folders(dirs_base_all)
+    # remove_empty_folders(dirs_base_all)
+    generate_ssl_key_and_cert(key_directory)
 
 if __name__ == '__main__':
     main()
