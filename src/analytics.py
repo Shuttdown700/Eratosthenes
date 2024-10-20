@@ -172,9 +172,12 @@ def update_statistics(drive_config,filepath_statistics):
     print(f'{num_total_files:,} Primary Media Files ({Fore.GREEN}{Style.BRIGHT}{total_size_TB:,.2f} TB{Style.RESET_ALL})\n{Fore.BLUE}{Style.BRIGHT}{num_movie_files:,} BluRay Movies{Style.RESET_ALL} ({size_TB_movies:,} TB)\n{Fore.MAGENTA}{Style.BRIGHT}{num_uhd_movie_files:,} 4K Movies{Style.RESET_ALL} ({size_TB_uhd_movies:,} TB)\n{Fore.GREEN}{Style.BRIGHT}{num_shows:,} TV Shows{Style.RESET_ALL} ({num_show_files:,} TV Show Episodes, {size_TB_shows:,} TB)\n{Fore.RED}{Style.BRIGHT}{num_anime:,} Anime Shows{Style.RESET_ALL} ({num_anime_files:,} Anime Episodes, {size_TB_anime:,} TB)\n{Fore.CYAN}{Style.BRIGHT}{num_book_files:,} Books{Style.RESET_ALL} ({size_GB_books:,} GB)\n{Fore.LIGHTGREEN_EX}{Style.BRIGHT}{num_course_files:,} Course Videos{Style.RESET_ALL} ({size_GB_courses:,} GB)')
     print(f'\n{"#"*10}\n')
 
-def assess_backup_surface_area_wip(drive_config):
-    from utilities import does_drive_exist, get_drive_name
+def assess_backup_surface_area(drive_config,filepath_backup_surface_area):
+    import json, os
+    from collections import Counter
+    from utilities import does_drive_exist, get_drive_name, get_drive_letter, read_alexandria, read_alexandria_config, get_file_size
     # read Alexandria Config
+    extensions_dict = read_alexandria_config(drive_config)[2]
     movie_drives_primary = drive_config['Movies']['primary_drives']
     movie_drives_backup = drive_config['Movies']['backup_drives']
     uhd_movie_drives_primary = drive_config['4K Movies']['primary_drives']
@@ -185,13 +188,56 @@ def assess_backup_surface_area_wip(drive_config):
     anime_drives_backup = drive_config['Anime']['backup_drives']
     show_drives_primary = drive_config['Shows']['primary_drives']
     show_drives_backup = drive_config['Shows']['backup_drives']
-    book_drives_primary = drive_config['Books']['primary_drives']
-    book_drives_backup = drive_config['Books']['backup_drives']
-    music_drives_primary = drive_config['Music']['primary_drives']
-    music_drives_backup = drive_config['Music']['backup_drives']
+    # book_drives_primary = drive_config['Books']['primary_drives']
+    # book_drives_backup = drive_config['Books']['backup_drives']
+    # music_drives_primary = drive_config['Music']['primary_drives']
+    # music_drives_backup = drive_config['Music']['backup_drives']
+
+    backup_areas = (
+        ("Shows",show_drives_primary,show_drives_backup),
+        ("Anime",anime_drives_primary,anime_drives_backup),
+        ("Movies",movie_drives_primary,movie_drives_backup),
+        ("Anime Movies",anime_movie_drives_primary,anime_movie_drives_backup),
+        ("4K Movies",uhd_movie_drives_primary,uhd_movie_drives_backup)
+    )
+    backup_surface_area = {}
+    for media_type,primary_drives,backup_drives in backup_areas:
+        directories_primary = [f'{get_drive_letter(drive_name)}:/{media_type}/' for drive_name in primary_drives]
+        filepaths_primary = read_alexandria(directories_primary,extensions_dict[media_type])
+        directories_backup = [f'{get_drive_letter(drive_name)}:/{media_type}/' for drive_name in backup_drives]
+        filepaths_backup = read_alexandria(directories_backup,extensions_dict[media_type])
+        filepaths = filepaths_primary + filepaths_backup
+        for idx,filepath in enumerate(filepaths):
+            filepath_noLetter = filepath[1:]
+            title = os.path.splitext(os.path.basename(filepath))[0]
+            if title in backup_surface_area:
+                backup_surface_area[title]["Count"] += 1
+                backup_surface_area[title]["Drives (Letter)"].append(filepath[0]) 
+                backup_surface_area[title]["Drives (Name)"].append(get_drive_name(filepath[0]))
+            else:
+                backup_surface_area.update(
+                    {
+                        title: {
+                            "Count":1,
+                            "Size (GB)": get_file_size(filepath),
+                            "Media Type": media_type,
+                            "Drives (Letter)": [filepath[0]],
+                            "Drives (Name)": [get_drive_name(filepath[0])],
+                            "Filepath_noLetter":filepath_noLetter
+                        }
+                    }  
+                )
+    with open(filepath_backup_surface_area, 'w') as json_file:
+        json.dump(backup_surface_area, json_file, indent=4)
     """
-    read all filepaths, count (no Letter) paths, save results, print results
+    Write no backup titles to text doc, give stats on backup %s
+    
     """
+
+
+
+
+
 
 def analyze_metadata_wip():
     import pandas as pd
@@ -449,16 +495,18 @@ def main():
     drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
     output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
     filepath_statistics = os.path.join(output_directory,"alexandria_media_statistics.json").replace('\\','/')
+    filepath_backup_surface_area = os.path.join(output_directory,"alexandria_media_backup.json").replace('\\','/')
     drive_config = read_json(drive_hieracrchy_filepath)
     # define primary & backup drives
     primary_drives_dict, backup_drives_dict, extensions_dict = read_alexandria_config(drive_config)
     primary_drive_letter_dict = {}; backup_drive_letter_dict = {}
     for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
     for key,value in backup_drives_dict.items(): backup_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
-    api_handler = API()
-    update_movie_list(primary_drive_letter_dict)
-    api_handler.tmdb_movies_fetch()
-    update_statistics(drive_config,filepath_statistics)
+    # api_handler = API()
+    # update_movie_list(primary_drive_letter_dict)
+    # api_handler.tmdb_movies_fetch()
+    # update_statistics(drive_config,filepath_statistics)
+    assess_backup_surface_area(drive_config,filepath_backup_surface_area)
 
     # movie_titles_with_year = update_movie_list(primary_drive_letter_dict)
     # movies_suggested = suggest_movie_downloads()
