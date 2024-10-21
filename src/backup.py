@@ -491,7 +491,10 @@ def main():
             # remove empty sub-directories
             remove_empty_folders(primary_parent_paths+[f'{drive_backup_letter}:/{media_type}'])
         print(f'\n{Fore.MAGENTA}{Style.BRIGHT}Space remaining{Style.RESET_ALL} in {Fore.GREEN}{Style.BRIGHT}{drive_backup_name} ({drive_backup_letter.upper()} drive){Style.RESET_ALL}: {Fore.BLUE}{Style.BRIGHT}{get_space_remaining(drive_backup_letter)/1000:,.2f} TB{Style.RESET_ALL}')
-
+    """
+    Show space remaining on each drive
+    Show backup statisics (% of each media type, number shows/movies not backed up)
+    """
     print(f'\n{"#"*10}\n\n{Fore.GREEN}{Style.BRIGHT}Alexandria Backup Complete{Style.RESET_ALL}\n\n{"#"*10}\n')
 
 if __name__ == '__main__':

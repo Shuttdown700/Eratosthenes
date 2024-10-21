@@ -515,7 +515,7 @@ def main():
     # rewrite_whitelists_with_year(directory_whitelist,primary_drives_dict)
     # hide_metadata(drive_config)
     # remove_empty_folders(dirs_base_all)
-    generate_ssl_key_and_cert(key_directory)
+    # generate_ssl_key_and_cert(key_directory)
 
 if __name__ == '__main__':
     main()

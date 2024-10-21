@@ -54,7 +54,7 @@ def update_movie_file_metadata(drive_config):
 def update_show_file_metadata():
     pass
 
-def update_statistics(drive_config,filepath_statistics):
+def update_server_statistics(drive_config,filepath_statistics):
     import json, os, shutil
     from colorama import Fore, Back, Style
     from utilities import read_alexandria, read_alexandria_config, get_drive_letter, get_file_size
@@ -172,10 +172,88 @@ def update_statistics(drive_config,filepath_statistics):
     print(f'{num_total_files:,} Primary Media Files ({Fore.GREEN}{Style.BRIGHT}{total_size_TB:,.2f} TB{Style.RESET_ALL})\n{Fore.BLUE}{Style.BRIGHT}{num_movie_files:,} BluRay Movies{Style.RESET_ALL} ({size_TB_movies:,} TB)\n{Fore.MAGENTA}{Style.BRIGHT}{num_uhd_movie_files:,} 4K Movies{Style.RESET_ALL} ({size_TB_uhd_movies:,} TB)\n{Fore.GREEN}{Style.BRIGHT}{num_shows:,} TV Shows{Style.RESET_ALL} ({num_show_files:,} TV Show Episodes, {size_TB_shows:,} TB)\n{Fore.RED}{Style.BRIGHT}{num_anime:,} Anime Shows{Style.RESET_ALL} ({num_anime_files:,} Anime Episodes, {size_TB_anime:,} TB)\n{Fore.CYAN}{Style.BRIGHT}{num_book_files:,} Books{Style.RESET_ALL} ({size_GB_books:,} GB)\n{Fore.LIGHTGREEN_EX}{Style.BRIGHT}{num_course_files:,} Course Videos{Style.RESET_ALL} ({size_GB_courses:,} GB)')
     print(f'\n{"#"*10}\n')
 
-def assess_backup_surface_area(drive_config,filepath_backup_surface_area):
+def get_video_media_info(filepath):
+    import ffmpeg, os, sys
+    RESET = "\033[0m"
+    RED = "\033[31m"
+    src_directory = os.path.dirname(os.path.abspath(__file__))
+    filepath_ffprobe = os.path.join(src_directory,'bin','ffprobe.exe')
+
+    from utilities import get_file_size
+    if not os.path.exists(filepath): raise FileNotFoundError(f"The file at {filepath} does not exist or is not accessible.")
+    try:
+        probe = ffmpeg.probe(filepath,cmd=filepath_ffprobe)
+    except:
+        print(f'{RED}Error reading media info:{RESET} {filepath}')
+        media_info = {
+        'filepath' : filepath,
+        'file_size_GB': '',
+        'video_codec': '',
+        'video_bitrate_Mbps': '',
+        'video_minutes': '',
+        'video_height': '',
+        'video_width': '',
+        'audio_codec': '',
+        'audio_num_tracks': '',
+        'audio_num_channels': '',
+        'audio_channel_layout': '',
+        }
+        return media_info
+    
+    # File size
+    file_size_GB = get_file_size(filepath)
+    
+    # Video stream information
+    video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
+    if video_stream:
+        video_codec = video_stream['codec_name']
+        video_bitrate = video_stream.get('bit_rate', 'N/A')
+        try:
+            video_bitrate_Mbps = float(video_bitrate)/10**6
+        except:
+            video_bitrate_Mbps = video_bitrate
+        video_minutes = float(video_stream['duration']) / 60 if 'duration' in video_stream else 'N/A'
+        video_height = video_stream['height']
+        video_width = video_stream['width']
+    else:
+        video_codec = video_bitrate = video_minutes = video_height = video_width = 'N/A'
+    
+    # Audio stream information
+    audio_streams = [stream for stream in probe['streams'] if stream['codec_type'] == 'audio']
+    audio_num_tracks = len(audio_streams)
+    
+    # Assuming the first audio track to get audio properties
+    if audio_num_tracks > 0:
+        audio_codec = audio_streams[0]['codec_name']
+        audio_num_channels = audio_streams[0]['channels']
+        audio_channel_layout = audio_streams[0].get('channel_layout', 'N/A')
+    else:
+        audio_codec = audio_num_channels = audio_channel_layout = 'N/A'
+    media_info = {
+        'filepath' : filepath,
+        'file_size_GB': file_size_GB,
+        'video_codec': video_codec.upper() if type(video_codec) is str else video_codec,
+        'video_bitrate_Mbps': video_bitrate_Mbps,
+        'video_minutes': video_minutes,
+        'video_height': video_height,
+        'video_width': video_width,
+        'audio_codec': audio_codec.upper() if type(audio_codec) is str else audio_codec,
+        'audio_num_tracks': audio_num_tracks,
+        'audio_num_channels': audio_num_channels,
+        'audio_channel_layout': audio_channel_layout,
+    }
+    return media_info
+
+def update_media_file_data(drive_config,filepath_backup_surface_area,overwrite_media_data=False):
     import json, os
-    from collections import Counter
-    from utilities import does_drive_exist, get_drive_name, get_drive_letter, read_alexandria, read_alexandria_config, get_file_size
+    from utilities import get_drive_name, get_drive_letter, read_alexandria, read_alexandria_config, read_json, get_file_size
+    RESET = "\033[0m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    try:
+        backup_surface_area_current = read_json(filepath_backup_surface_area)
+    except FileNotFoundError:
+        backup_surface_area_current = {}
     # read Alexandria Config
     extensions_dict = read_alexandria_config(drive_config)[2]
     movie_drives_primary = drive_config['Movies']['primary_drives']
@@ -192,6 +270,8 @@ def assess_backup_surface_area(drive_config,filepath_backup_surface_area):
     # book_drives_backup = drive_config['Books']['backup_drives']
     # music_drives_primary = drive_config['Music']['primary_drives']
     # music_drives_backup = drive_config['Music']['backup_drives']
+    # course_drives_primary = drive_config['Courses']['primary_drives']
+    # course_drives_backup = drive_config['Courses']['backup_drives']  
 
     backup_areas = (
         ("Shows",show_drives_primary,show_drives_backup),
@@ -211,280 +291,52 @@ def assess_backup_surface_area(drive_config,filepath_backup_surface_area):
             filepath_noLetter = filepath[1:]
             title = os.path.splitext(os.path.basename(filepath))[0]
             if title in backup_surface_area:
-                backup_surface_area[title]["Count"] += 1
+                print(f'{YELLOW}Backup copy:{RESET} {title}')
+                backup_surface_area[title]["Number of Copies"] += 1
                 backup_surface_area[title]["Drives (Letter)"].append(filepath[0]) 
                 backup_surface_area[title]["Drives (Name)"].append(get_drive_name(filepath[0]))
             else:
-                backup_surface_area.update(
-                    {
-                        title: {
-                            "Count":1,
-                            "Size (GB)": get_file_size(filepath),
-                            "Media Type": media_type,
-                            "Drives (Letter)": [filepath[0]],
-                            "Drives (Name)": [get_drive_name(filepath[0])],
-                            "Filepath_noLetter":filepath_noLetter
+                if overwrite_media_data or title not in backup_surface_area_current.keys():
+                    print(f'{GREEN}Fetching medio info:{RESET} {title}')
+                    media_info = get_video_media_info(filepath)
+                    backup_surface_area.update(
+                        {
+                            title: {
+                                "Number of Copies":1,
+                                "Size (GB)": get_file_size(filepath),
+                                "Media Type": media_type,
+                                "Drives (Letter)": [filepath[0]],
+                                "Drives (Name)": [get_drive_name(filepath[0])],
+                                "Filepath_noLetter": filepath_noLetter,
+                                "Extension": filepath_noLetter.split('.')[-1],
+                                "Video Codec": media_info['video_codec'],
+                                "Audio Codec": media_info['audio_codec'],
+                                "Length (min.)": media_info['video_minutes'],
+                                "Bitrate (Mbps)": media_info['video_bitrate_Mbps'],
+                                "Video Height": media_info['video_height'],
+                                "Video Width": media_info['video_width'],
+                                "Audio Tracks": media_info['audio_num_tracks'],
+                                "Audio Channels": media_info['audio_num_channels'],
+                                "Audio Channel Layout": media_info['audio_channel_layout']
+                            }
                         }
-                    }  
-                )
+                    )
+                else:
+                    print(f'{GREEN}Medio info already exisits:{RESET} {title}')
+                    entry = backup_surface_area_current[title]
+                    entry['Number of Copies'] = 1
+                    entry['Size (GB)'] = get_file_size(filepath)
+                    entry['Drives (Letter)'] = [filepath[0]]
+                    entry['Drives (Name)'] = [get_drive_name(filepath[0])]
+                    backup_surface_area[title] = entry
     with open(filepath_backup_surface_area, 'w') as json_file:
         json.dump(backup_surface_area, json_file, indent=4)
-    """
-    Write no backup titles to text doc, give stats on backup %s
-    
-    """
 
+def read_media_file_data(filepath_alexandria_media_details,bool_update=False,bool_print=True):
+    pass
 
-
-
-
-
-def analyze_metadata_wip():
-    import pandas as pd
-    import collections, math
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from matplotlib.ticker import PercentFormatter 
-    print('\n')
-    movie_df = pd.read_csv('G:/movie_metadata.csv')
-    movie_days = round(sum(movie_df['Duration (min)'].dropna())/60/24,2)
-    total_size = round(sum(movie_df['File Size (GB)'].dropna())/1000,2)
-    print(f'Cumulative length of Movies: {movie_days} days')
-    print(f'Total Size of Movies: {total_size} TB')
-    movie_percent_hevc = list(movie_df['Video Codec']).count('HEVC')/len(movie_df['Video Codec'])*100
-    print(f'Percent of Movies with HEVC (H.265) encoding: {movie_percent_hevc:.2f}%')
-    movie_percent_surround = list(movie_df['Audio Channels']).count(6)/len(movie_df['Channel Layout'])*100
-    print(f'Percent of Movies with Surround Sound: {movie_percent_surround:.2f}%')
-    c_movies = collections.Counter(list(movie_df['Year']))
-    c2_movies = sorted(c_movies.items(), key=lambda x: x[0], reverse=False)
-    years_movies = [x[0] for x in c2_movies]
-    quantity_movies = [x[1] for x in c2_movies]
-    plt.figure()
-    plt.bar(years_movies,quantity_movies)
-    plt.title(f'Quantity of Movies by Year ({len(movie_df):,} Movies)')
-    plt.ylabel('Quantity')
-    plt.xlabel('Year')
-    plt.show()
-    length_in_hours = [round(x/60,2) for x in list(movie_df['Duration (min)'])]
-    plt.figure()
-    plt.hist(length_in_hours, weights=np.ones(len(length_in_hours)) / len(length_in_hours), bins=50)
-    plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
-    plt.title(f'Movie Durations ({len(movie_df):,} Movies)')
-    plt.ylabel('Frequency (%)')
-    plt.xlabel('Hours')
-    plt.show()
-    ###
-    print('\n###\n')
-    show_df = pd.read_csv('R:/tv_metadata.csv')
-    show_days = round(sum(show_df['Duration (min)'].dropna())/60/24,2)
-    total_size = round(sum(show_df['File Size (GB)'].dropna())/1000,2)
-    print(f'Cumulative length of Shows: {show_days} days')
-    print(f'Total Size of Shows: {total_size} TB')
-    show_percent_hevc = list(show_df['Video Codec']).count('HEVC')/len(show_df['Video Codec'])*100
-    print(f'Percent of Shows with HEVC (H.265) encoding: {show_percent_hevc:.2f}%')
-    show_percent_surround = list(show_df['Audio Channels']).count(6)/len(show_df['Channel Layout'])*100
-    print(f'Percent of Shows with Surround Sound: {show_percent_surround:.2f}%')    
-    # c_shows = collections.Counter(list(show_df['Year']))
-    # c2_shows = sorted(c_shows.items(), key=lambda x: x[0], reverse=False)
-    # years_shows = [x[0] for x in c2_shows]
-    # quantity_shows = [x[1] for x in c2_shows]
-    # plt.figure()
-    # plt.bar(years_shows,quantity_shows)
-    # plt.title('Quantity of Show Episodes by Year')
-    # plt.ylabel('Quantity of Episodes')
-    # plt.xlabel('Year')
-    # plt.show()
-    length_in_mins_shows = sorted([round(x,2) for x in list(show_df['Duration (min)']) if not math.isnan(x)])[:int(-0.051*len(show_df))]
-    plt.figure()
-    plt.hist(length_in_mins_shows, weights=np.ones(len(length_in_mins_shows)) / len(length_in_mins_shows), bins=100)
-    plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
-    plt.title(f'TV Show Durations ({len(show_df):,} Show Episodes)')
-    plt.ylabel('Frequency (%)')
-    plt.xlabel('Minutes')
-    plt.show()
-    ###
-    print('\n###\n')
-    anime_df = pd.read_csv('E:/anime_metadata.csv')
-    anime_days = round(sum(anime_df['Duration (min)'].dropna())/60/24,2)
-    total_size = round(sum(anime_df['File Size (GB)'].dropna())/1000,2)
-    print(f'Cumulative length of Anime: {anime_days} days')
-    print(f'Total Size of Anime: {total_size} TB')
-    anime_percent_hevc = list(anime_df['Video Codec']).count('HEVC')/len(anime_df['Video Codec'])*100
-    print(f'Percent of Anime with HEVC (H.265) encoding: {anime_percent_hevc:.2f}%')
-    anime_percent_surround = list(anime_df['Audio Channels']).count(6)/len(anime_df['Channel Layout'])*100
-    print(f'Percent of Anime with Surround Sound: {anime_percent_surround:.2f}%')
-    anime_multi_audio = (len(anime_df['Number of Audio Tracks'])-list(anime_df['Number of Audio Tracks']).count(1))/len(anime_df['Number of Audio Tracks'])*100
-    print(f'Percent of Anime with Multiple Audio Tracks: {anime_multi_audio:.2f}%')  
-    # c_anime = collections.Counter(list(anime_df['Year']))
-    # c2_anime = sorted(c_anime.items(), key=lambda x: x[0], reverse=False)
-    # years_anime = [x[0] for x in c2_anime]
-    # quantity_anime = [x[1] for x in c2_anime]
-    # plt.figure()
-    # plt.bar(years_anime,quantity_anime)
-    # plt.title('Quantity of Anime Episodes by Year')
-    # plt.ylabel('Quantity of Episodes')
-    # plt.xlabel('Year')
-    # plt.show()
-    length_in_hours_anime = sorted([round(x/60,2) for x in list(anime_df['Duration (min)'])  if not math.isnan(x)])[:int(-0.005*len(show_df))]
-    plt.figure()
-    plt.hist(length_in_hours_anime, weights=np.ones(len(length_in_hours_anime)) / len(length_in_hours_anime), bins=100)
-    plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
-    plt.title(f'Anime Durations ({len(anime_df):,} Anime Episodes)')
-    plt.ylabel('Frequency (%)')
-    plt.xlabel('Hours')
-    plt.show()
-    ###
-    with open(r'G:/bluray_price_tracker.txt', mode = 'r', encoding='utf-8') as movie_tracker:
-        movie_tracker_data = movie_tracker.readlines()
-    video_ratings = []
-    audio_ratings = []
-    for mtd in movie_tracker_data:
-        video_val = mtd.split(',')[-3]
-        audio_val = mtd.split(',')[-2]
-        if len(video_val) > 0 and float(video_val) > 0:
-            video_ratings.append(float(video_val))
-        if len(audio_val) > 0 and float(video_val) > 0:
-            audio_ratings.append(float(audio_val))
-    plt.figure()
-    plt.hist(video_ratings, weights=np.ones(len(video_ratings)) / len(video_ratings), bins=30)
-    plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
-    plt.title(f'Movie Video Quality ({len(movie_tracker_data):,} Movies)')
-    plt.ylabel('Frequency (%)')
-    plt.xlabel('Quality (out of 5)')
-    plt.xticks(np.arange(0, 5, step=0.5))
-    plt.show()
-    plt.figure()
-    plt.hist(audio_ratings, weights=np.ones(len(audio_ratings)) / len(audio_ratings), bins=30)
-    plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
-    plt.title(f'Movie Audio Quality ({len(movie_tracker_data):,} Movies)')
-    plt.ylabel('Frequency (%)')
-    plt.xlabel('Quality (out of 5)')
-    plt.show()
-    min_total_price = 0
-    max_total_price = 0
-    no_data_movies = 0
-    for mtd in movie_tracker_data:
-        prices = []
-        for index in [-5,-6,-7]:
-            p = mtd.split(',')[index]
-            if p != '':
-                prices.append(float(p.split('$')[-1]))
-        if len(prices) > 0:
-            min_total_price += min(prices)
-            max_total_price += max(prices)
-        else:
-            no_data_movies += 1
-    print(f'\nEstimated (pre-tax, pre-S&H) value of {len(movie_tracker_data):,} bluRay movies: between ${min_total_price:,.2f} & ${max_total_price:,.2f} (with {no_data_movies:,} no-data movies)')
-    ###
-    with open(r'G:/4K_bluray_price_tracker.txt', mode = 'r', encoding='utf-8') as movie_tracker:
-        movie_tracker_data = movie_tracker.readlines()
-    video_ratings = []
-    audio_ratings = []
-    for mtd in movie_tracker_data:
-        video_val = mtd.split(',')[-3]
-        audio_val = mtd.split(',')[-2]
-        if len(video_val) > 0 and float(video_val) > 0:
-            video_ratings.append(float(video_val))
-        if len(audio_val) > 0 and float(video_val) > 0:
-            audio_ratings.append(float(audio_val))
-    plt.figure()
-    plt.hist(video_ratings, weights=np.ones(len(video_ratings)) / len(video_ratings), bins=30)
-    plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
-    plt.title(f'Movie Video Quality ({len(movie_tracker_data):,} Movies)')
-    plt.ylabel('Frequency (%)')
-    plt.xlabel('Quality (out of 5)')
-    plt.xticks(np.arange(0, 5, step=0.5))
-    plt.show()
-    plt.figure()
-    plt.hist(audio_ratings, weights=np.ones(len(audio_ratings)) / len(audio_ratings), bins=30)
-    plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
-    plt.title(f'Movie Audio Quality ({len(movie_tracker_data):,} Movies)')
-    plt.ylabel('Frequency (%)')
-    plt.xlabel('Quality (out of 5)')
-    plt.show()
-    min_total_price = 0
-    max_total_price = 0
-    no_data_movies = 0
-    for mtd in movie_tracker_data:
-        prices = []
-        for index in [-5,-6,-7]:
-            p = mtd.split(',')[index]
-            if p != '':
-                prices.append(float(p.split('$')[-1]))
-        if len(prices) > 0:
-            min_total_price += min(prices)
-            max_total_price += max(prices)
-        else:
-            no_data_movies += 1
-    print(f'\nEstimated (pre-tax, pre-S&H) value of {len(movie_tracker_data):,} 4K movies: between ${min_total_price:,.2f} & ${max_total_price:,.2f} (with {no_data_movies:,} no-data movies)')
-
-def video_metadata_wip(path_list=[],extensions_list=[],metadata_file_name=''):
-    import ffmpeg, os
-    from alive_progress import alive_bar
-    import pandas as pd
-    from utilities import read_alexandria
-    # file_names, file_paths = read_alexandria(path_list,extensions = extensions_list)   
-    # file_names, file_paths = read_alexandria(['G:/Movies/','G:/Anime Movies/'],extensions = ['.mkv','.mp4']); metadata_file_name = 'G:/movie_metadata.csv'
-    # file_names, file_paths = read_alexandria(['G:/4K Movies/'],extensions = ['.mkv','.mp4']); metadata_file_name = 'G:/4K_metadata.csv'
-    # file_names, file_paths = read_alexandria(['R:/Shows/'],extensions = ['.mkv','.mp4']); metadata_file_name = 'R:/tv_metadata.csv'
-    file_names, file_paths = read_alexandria(['A:/Anime/'],extensions = ['.mkv','.mp4']); metadata_file_name = 'A:/anime_metadata.csv'
-    df_data = []; columns = ['File','Folder','Year','File Size (GB)','Video Codec','Channel Layout','Duration (min)','Bitrate (kbps)','Width','Height','Audio Codec','Audio Channels','Number of Audio Tracks']
-    with alive_bar(len(file_names),ctrl_c=False,dual_line=True,title=f'Collecting {file_paths[0].split("/")[1].strip()} Metadata',bar='classic',spinner='classic') as bar:
-        for i,fn in enumerate(file_names):
-            num_audio_tracks = 0
-            filepath = f'{file_paths[i]}/{fn}'
-            # ffmpeg executables need to be in src directory
-            try:
-                details = ffmpeg.probe(filepath)['streams']
-            except:
-                continue
-            folder = file_paths[i].split('/')[1]
-            try:
-                if '4K' in file_paths[i]:
-                    year = float('nan')
-                elif 'Movies' in file_paths[i]:
-                    year = int(fn.split('(')[-1][:4])
-                else:
-                    year = int(file_paths[i].split('/')[-2].split('(')[-1][:4])
-            except ValueError:
-                year = float('nan')
-            for c in range(len(details)):
-                if details[c]['codec_type'] == 'video' and details[c]['codec_name'].upper() != 'MJPEG':
-                    video_codec = details[c]['codec_name'].upper()
-                    try:
-                        video_bitrate = int(f"{int(details[c]['bit_rate'])/(1*10**3):.0f}")
-                        video_minutes = float(f"{float(details[c]['duration'])/60:.2f}") # in minutes
-                        file_size = os.path.getsize(f'{file_paths[i]}/{fn}')/(1*10**9)
-                    except KeyError:
-                        try:
-                            video_bitrate = int(details[c]['tags']['BPS'])//1000
-                            duration_array = details[c]['tags']['DURATION'].split('.')[0].split(':')
-                            video_minutes = int(duration_array[0])*60+int(duration_array[1])+int(duration_array[2])/60 # in minutes
-                            file_size = os.path.getsize(f'{file_paths[i]}/{fn}')/(1*10**9)
-                        except:
-                            video_bitrate = float('nan')
-                            video_minutes = float('nan')
-                    video_height = details[c]['coded_height']
-                    video_width = details[c]['coded_width']
-                elif details[c]['codec_type'] == 'audio': # count number of audio tracks
-                    if num_audio_tracks > 0:
-                        pass
-                    else:
-                        audio_codec = details[c]['codec_name'].upper()
-                        num_channels = details[c]['channels']
-                        channel_layout = details[c]['channel_layout'].upper()
-                        if video_bitrate == 'nan':
-                            video_minutes = float(f"{float(details[c]['duration'])/60:.2f}") # in minutes
-                            video_bitrate = file_size*(1*10**9)*8/(video_minutes*60)/1000
-                    num_audio_tracks += 1
-            df_data.append([fn,folder,year,round(file_size,2),video_codec,channel_layout,video_minutes,video_bitrate,video_width,video_height,audio_codec,num_channels,num_audio_tracks])
-            bar()
-        df = pd.DataFrame(df_data,columns=columns).set_index('File',drop=True)
-        df.to_csv(metadata_file_name)
-        src_directory = os.path.realpath(os.path.dirname(os.path.abspath("__file__")))
-        output_directory = "\\".join(src_directory.split('\\')[:-1])+"\\output"
-        df.to_csv(rf'{output_directory}\{metadata_file_name.split("/")[-1]}')
-        return df
+def read_media_statistics(filepath_statistics,bool_update=False,bool_print=True):
+    pass
 
 def main():
     import os
@@ -495,23 +347,19 @@ def main():
     drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
     output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
     filepath_statistics = os.path.join(output_directory,"alexandria_media_statistics.json").replace('\\','/')
-    filepath_backup_surface_area = os.path.join(output_directory,"alexandria_media_backup.json").replace('\\','/')
+    filepath_alexandria_media_details = os.path.join(output_directory,"alexandria_media_details.json").replace('\\','/')
     drive_config = read_json(drive_hieracrchy_filepath)
     # define primary & backup drives
     primary_drives_dict, backup_drives_dict, extensions_dict = read_alexandria_config(drive_config)
     primary_drive_letter_dict = {}; backup_drive_letter_dict = {}
     for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
     for key,value in backup_drives_dict.items(): backup_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
-    # api_handler = API()
-    # update_movie_list(primary_drive_letter_dict)
-    # api_handler.tmdb_movies_fetch()
-    # update_statistics(drive_config,filepath_statistics)
-    assess_backup_surface_area(drive_config,filepath_backup_surface_area)
-
-    # movie_titles_with_year = update_movie_list(primary_drive_letter_dict)
+    api_handler = API()
+    movie_titles_with_year = update_movie_list(primary_drive_letter_dict)
+    api_handler.tmdb_movies_fetch()
+    # update_server_statistics(drive_config,filepath_statistics)
+    # update_media_file_data(drive_config,filepath_alexandria_media_details)
     # movies_suggested = suggest_movie_downloads()
-    
-    # update_show_data()
 
 if __name__ == '__main__':
     main()
