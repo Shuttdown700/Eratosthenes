@@ -113,18 +113,17 @@ def rename_OTSs(ost_soundtrack):
     from mutagen.mp3 import MP3  
     from mutagen.easyid3 import EasyID3  
     from mutagen.id3 import ID3, TIT2, TIT3, TALB, TPE1, TRCK, TYER  
-    files, paths = read_alexandria([ost_soundtrack],extensions=['.mp3'])
+    filepaths = sorted(read_alexandria([ost_soundtrack],extensions=['.mp3']))
     num_track = 1
-    with alive_bar(len(files),ctrl_c=False,dual_line=True,title='Progress',bar='classic',spinner='classic') as bar:
-        for index,path in enumerate(paths):
-            album_from_path = path.split('/')[3].strip()
-            filepath = path+'/'+files[index]
-            name = files[index].split('.')[-2].strip()
+    with alive_bar(len(filepaths),ctrl_c=False,dual_line=True,title='Progress',bar='classic',spinner='classic') as bar:
+        for index,filepath in enumerate(filepaths):
+            album_from_path = filepath.split('/')[3].strip()
+            name = filepath.split('/')[-1].split('.')[-2].strip()
             mp3file = MP3(filepath, ID3=EasyID3)
             mp3file['title'] = [name]
             mp3file['album'] = [album_from_path]
-            mp3file['artist'] = ['Various Artists']
-            mp3file['albumartist'] = ['Various Artists']  
+            mp3file['artist'] = ['John Williams']
+            mp3file['albumartist'] = ['John Williams']  
             mp3file['tracknumber'] = str(num_track)
             mp3file.save() 
             num_track += 1
@@ -134,7 +133,7 @@ def encode_multiple_bitrates():
     import os
     os.chdir(rf'{os.path.realpath(os.path.dirname(__file__))}')
     from main import read_alexandria, import_libraries
-    from alexandria_utilities import remove_empty_folders
+    from utilities import remove_empty_folders
     libraries = [['os'],['subprocess']]
     import_libraries(libraries)
     import subprocess
@@ -175,14 +174,14 @@ def encode_multiple_bitrates():
     remove_empty_folders('W',['Music'])    
 
 
-music_temp_dir = 'W:/Temp/MP3s_320_Essentials/'
-rename_essentials_albums(music_temp_dir)
-music_320_dir = 'W:/Music/MP3s_320/'
+# music_temp_dir = 'W:/Temp/MP3s_320_Essentials/'
+# rename_essentials_albums(music_temp_dir)
+# music_320_dir = 'W:/Music/MP3s_320/'
 # identify_popular_artists_without_albums(music_320_dir)
 # music_playlist_dir = 'W:/Temp/MP3_320_Playlist_Albums'
 # rename_playlist_albums(music_playlist_dir)
-# ost_soundtrack = 'W:/Temp/OSTs/Fallout 4 OST/'
-# rename_OTSs(ost_soundtrack)
+ost_soundtrack = 'W:/Temp/OSTs/Star Wars OST/'
+rename_OTSs(ost_soundtrack)
 
 
 """

@@ -46,15 +46,10 @@ def suggest_movie_downloads():
     write_list_to_txt_file(output_filepath,movies_suggested)
     return movies_suggested
 
-def update_movie_file_metadata(drive_config):
-    movie_drives_primary = drive_config['Movies']['primary_drives']
-    uhd_movie_drives_primar = drive_config['4K Movies']['primary_drives']
-    anime_movie_drives_primary = drive_config['Anime Movies']['primary_drives']
-
-def update_show_file_metadata():
+def update_show_statistics():
     pass
 
-def update_server_statistics(drive_config,filepath_statistics):
+def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     import json, os, shutil
     from colorama import Fore, Back, Style
     from utilities import read_alexandria, read_alexandria_config, get_drive_letter, get_file_size
@@ -166,11 +161,12 @@ def update_server_statistics(drive_config,filepath_statistics):
     with open(filepath_statistics, 'w') as json_file:
         json.dump(statistics_dict, json_file, indent=4)
     # print statistics
-    print(f'\n{"#"*10}\n\n{Fore.YELLOW}{Style.BRIGHT}Server Stats:{Style.RESET_ALL}')
-    print(f'Total Available Server Storage: {Fore.BLUE}{Style.BRIGHT}{space_TB_available:,} TB{Style.RESET_ALL}\nUsed Server Storage: {Fore.RED}{Style.BRIGHT}{space_TB_used:,} TB{Style.RESET_ALL}\nFree Server Storage: {Fore.GREEN}{Style.BRIGHT}{space_TB_unused:,} TB{Style.RESET_ALL}')
-    print(f'\n{Fore.YELLOW}{Style.BRIGHT}Primary Database Stats:{Style.RESET_ALL}')
-    print(f'{num_total_files:,} Primary Media Files ({Fore.GREEN}{Style.BRIGHT}{total_size_TB:,.2f} TB{Style.RESET_ALL})\n{Fore.BLUE}{Style.BRIGHT}{num_movie_files:,} BluRay Movies{Style.RESET_ALL} ({size_TB_movies:,} TB)\n{Fore.MAGENTA}{Style.BRIGHT}{num_uhd_movie_files:,} 4K Movies{Style.RESET_ALL} ({size_TB_uhd_movies:,} TB)\n{Fore.GREEN}{Style.BRIGHT}{num_shows:,} TV Shows{Style.RESET_ALL} ({num_show_files:,} TV Show Episodes, {size_TB_shows:,} TB)\n{Fore.RED}{Style.BRIGHT}{num_anime:,} Anime Shows{Style.RESET_ALL} ({num_anime_files:,} Anime Episodes, {size_TB_anime:,} TB)\n{Fore.CYAN}{Style.BRIGHT}{num_book_files:,} Books{Style.RESET_ALL} ({size_GB_books:,} GB)\n{Fore.LIGHTGREEN_EX}{Style.BRIGHT}{num_course_files:,} Course Videos{Style.RESET_ALL} ({size_GB_courses:,} GB)')
-    print(f'\n{"#"*10}\n')
+    if bool_print: 
+        print(f'\n{"#"*10}\n\n{Fore.YELLOW}{Style.BRIGHT}Server Stats:{Style.RESET_ALL}')
+        print(f'Total Available Server Storage: {Fore.BLUE}{Style.BRIGHT}{space_TB_available:,} TB{Style.RESET_ALL}\nUsed Server Storage: {Fore.RED}{Style.BRIGHT}{space_TB_used:,} TB{Style.RESET_ALL}\nFree Server Storage: {Fore.GREEN}{Style.BRIGHT}{space_TB_unused:,} TB{Style.RESET_ALL}')
+        print(f'\n{Fore.YELLOW}{Style.BRIGHT}Primary Database Stats:{Style.RESET_ALL}')
+        print(f'{num_total_files:,} Primary Media Files ({Fore.GREEN}{Style.BRIGHT}{total_size_TB:,.2f} TB{Style.RESET_ALL})\n{Fore.BLUE}{Style.BRIGHT}{num_movie_files:,} BluRay Movies{Style.RESET_ALL} ({size_TB_movies:,} TB)\n{Fore.MAGENTA}{Style.BRIGHT}{num_uhd_movie_files:,} 4K Movies{Style.RESET_ALL} ({size_TB_uhd_movies:,} TB)\n{Fore.GREEN}{Style.BRIGHT}{num_shows:,} TV Shows{Style.RESET_ALL} ({num_show_files:,} TV Show Episodes, {size_TB_shows:,} TB)\n{Fore.RED}{Style.BRIGHT}{num_anime:,} Anime Shows{Style.RESET_ALL} ({num_anime_files:,} Anime Episodes, {size_TB_anime:,} TB)\n{Fore.CYAN}{Style.BRIGHT}{num_book_files:,} Books{Style.RESET_ALL} ({size_GB_books:,} GB)\n{Fore.LIGHTGREEN_EX}{Style.BRIGHT}{num_course_files:,} Course Videos{Style.RESET_ALL} ({size_GB_courses:,} GB)')
+        print(f'\n{"#"*10}\n')
 
 def get_video_media_info(filepath):
     import ffmpeg, os, sys
@@ -244,7 +240,7 @@ def get_video_media_info(filepath):
     }
     return media_info
 
-def update_media_file_data(drive_config,filepath_backup_surface_area,overwrite_media_data=False):
+def update_media_file_data(drive_config,filepath_backup_surface_area,bool_print = False, overwrite_media_data=False):
     import json, os
     from utilities import get_drive_name, get_drive_letter, read_alexandria, read_alexandria_config, read_json, get_file_size
     RESET = "\033[0m"
@@ -291,13 +287,13 @@ def update_media_file_data(drive_config,filepath_backup_surface_area,overwrite_m
             filepath_noLetter = filepath[1:]
             title = os.path.splitext(os.path.basename(filepath))[0]
             if title in backup_surface_area:
-                print(f'{YELLOW}Backup copy:{RESET} {title}')
+                if bool_print: print(f'{YELLOW}Backup copy:{RESET} {title}')
                 backup_surface_area[title]["Number of Copies"] += 1
                 backup_surface_area[title]["Drives (Letter)"].append(filepath[0]) 
                 backup_surface_area[title]["Drives (Name)"].append(get_drive_name(filepath[0]))
             else:
                 if overwrite_media_data or title not in backup_surface_area_current.keys():
-                    print(f'{GREEN}Fetching medio info:{RESET} {title}')
+                    if bool_print: print(f'{GREEN}Fetching medio info:{RESET} {title}')
                     media_info = get_video_media_info(filepath)
                     backup_surface_area.update(
                         {
@@ -322,7 +318,7 @@ def update_media_file_data(drive_config,filepath_backup_surface_area,overwrite_m
                         }
                     )
                 else:
-                    print(f'{GREEN}Medio info already exisits:{RESET} {title}')
+                    if bool_print: print(f'{GREEN}Medio info already exisits:{RESET} {title}')
                     entry = backup_surface_area_current[title]
                     entry['Number of Copies'] = 1
                     entry['Size (GB)'] = get_file_size(filepath)
@@ -332,14 +328,16 @@ def update_media_file_data(drive_config,filepath_backup_surface_area,overwrite_m
     with open(filepath_backup_surface_area, 'w') as json_file:
         json.dump(backup_surface_area, json_file, indent=4)
 
-def read_media_file_data(filepath_alexandria_media_details,bool_update=False,bool_print=True):
-    pass
-
 def read_media_statistics(filepath_statistics,bool_update=False,bool_print=True):
+    import os
     from utilities import read_json
     from colorama import Fore, Style, init
     init(autoreset=True)
-    if bool_update: update_server_statistics(filepath_statistics)
+    if bool_update: 
+        src_directory = os.path.dirname(os.path.abspath(__file__))
+        drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
+        drive_config = read_json(drive_hieracrchy_filepath)
+        update_server_statistics(drive_config, filepath_statistics)
     data = read_json(filepath_statistics)
     num_shows = data["TV Shows"]["Number of Shows"]
     num_show_episodes = data["TV Shows"]["Number of Episodes"]
@@ -369,7 +367,121 @@ def read_media_statistics(filepath_statistics,bool_update=False,bool_print=True)
         print(f"{Fore.BLUE}{Style.BRIGHT}Music: {Style.NORMAL}{num_songs:,} songs | {size_music}")
         print(f"{Fore.RED}{Style.BRIGHT}Courses: {Style.NORMAL}{num_course_videos:,} course videos | {size_courses}")
         print(f'\n{"#"*10}\n')
-        
+    return data
+
+def get_show_size(show_title_with_year, filepath_alexandria_media_details):
+    from utilities import read_json
+    data = read_json(filepath_alexandria_media_details)
+    size_GB = 0
+    for val in data.values():
+        if val['Media Type'] in ['Shows','Anime']:
+            if show_title_with_year in val['Filepath_noLetter']:
+                size_GB += val['Size (GB)']
+    return size_GB
+
+def get_media_type_size(media_type, filepath_alexandria_media_details):
+    from utilities import read_json
+    data = read_json(filepath_alexandria_media_details)
+    size_GB = 0
+    for val in data.values():
+        if val['Media Type'] == media_type:
+            size_GB += val['Size (GB)']
+    size_TB = size_GB / 1000
+    return size_TB
+
+def read_media_file_data(filepath_alexandria_media_details,bool_update=False,bool_print_backup_data=True):
+    import json, os
+    from utilities import read_json
+    from colorama import Fore, Style, init
+    init(autoreset=True)
+    src_directory = os.path.dirname(os.path.abspath(__file__))
+    if bool_update: 
+        drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
+        drive_config = read_json(drive_hieracrchy_filepath)
+        update_media_file_data(drive_config, filepath_alexandria_media_details)
+    data = read_json(filepath_alexandria_media_details)
+    media_order_values = {"Shows":1,"Anime":2,"Movies":3,"Anime Movies":4,"4k Movies":5}
+    media_types = sorted(list(set([item[1]["Media Type"] for item in data.items()])),key= lambda x: media_order_values.get(x,10))
+    backup_count_dict = {media_type: {} for media_type in media_types}
+    backup_list_dict = {media_type: {} for media_type in media_types}
+    for idx,item in enumerate(data.items()):
+        media_data = item[1]
+        media_type = media_data["Media Type"]
+        num_backups = media_data["Number of Copies"] - 1
+        key_string_backup_dict = f'{num_backups} backup copy' if num_backups == 1 else f'{num_backups} backup copies'
+        # update backup counters
+        if key_string_backup_dict in backup_count_dict[media_type].keys():
+            backup_count_dict[media_type][key_string_backup_dict] += 1
+        else:
+            backup_count_dict[media_type][key_string_backup_dict] = 1
+        # update title lists by backup count
+        media_name = media_data["Filepath_noLetter"].split('/')[2]
+        if key_string_backup_dict in backup_list_dict[media_type].keys():
+            backup_list_dict[media_type][key_string_backup_dict].append(media_name)
+        else:
+            backup_list_dict[media_type][key_string_backup_dict] = [media_name]
+    # remove duplicates in the title lists
+    for key_media_type, val_backup_list_name in backup_list_dict.items():
+        for key_list in val_backup_list_name.keys():
+            val_backup_list_name[key_list] = sorted(list(set(val_backup_list_name[key_list])))
+    backup_count_dict = {outer_key: dict(sorted(inner_dict.items())) for outer_key, inner_dict in backup_count_dict.items()}
+    backup_list_dict = {outer_key: dict(sorted(inner_dict.items())) for outer_key, inner_dict in backup_list_dict.items()}
+    if bool_print_backup_data: print(f'\n{"#"*10}\n')
+    if bool_print_backup_data: print("Backup Statistics")
+    
+    """
+    
+    Print some overall backup statisics
+    
+    """
+
+
+    
+    for media_type in media_types:
+        backup_count_dict_for_media_type = backup_count_dict[media_type]
+        total = sum([count for count in backup_count_dict_for_media_type.values()])
+        count_no_backups = backup_count_dict_for_media_type.get("0 backup copies",0)
+        count_one_backup = backup_count_dict_for_media_type.get("1 backup copy",0)
+        count_multiple_backups = total - count_no_backups - count_one_backup
+        prop_no_backups = count_no_backups/total
+        prop_one_backup = count_one_backup/total
+        prop_multiple_backups = count_multiple_backups/total
+        media_type_size_TB = get_media_type_size(media_type, filepath_alexandria_media_details)
+        if bool_print_backup_data:
+            print(f'\n{Fore.YELLOW}{Style.BRIGHT}{media_type}{Style.RESET_ALL}: {total:,} total files ({media_type_size_TB:,.2f} TB)')
+            print(f'\t{Fore.RED}{Style.BRIGHT}Without backup{Style.RESET_ALL}: {prop_no_backups*100:.1f}% ({media_type_size_TB*prop_no_backups:,.2f} TB)')
+            print(f'\t{Fore.YELLOW}{Style.BRIGHT}With one backup{Style.RESET_ALL}: {prop_one_backup*100:.1f}% ({media_type_size_TB*prop_one_backup:,.2f} TB)')
+            print(f'\t{Fore.GREEN}{Style.BRIGHT}With multiple backups{Style.RESET_ALL}: {prop_multiple_backups*100:.1f}% ({media_type_size_TB*prop_multiple_backups:,.2f} TB)')
+        print_line = '\t'; num_titles_per_line = 3
+        if "0 backup copies" in backup_list_dict[media_type].keys():
+            for idx,title in enumerate(backup_list_dict[media_type]["0 backup copies"]):
+                if idx == 0 and bool_print_backup_data: print(f'\n{Fore.RED}{Style.BRIGHT}{media_type} without backups:\n')
+                if media_type in ['Shows','Anime']:
+                    size_GB = get_show_size(title, filepath_alexandria_media_details)
+                    size_print_portion = f'{Fore.GREEN}| {Fore.BLUE}{size_GB:.1f} GB{Style.RESET_ALL}'
+                else:
+                    try:
+                        size_GB = data[title]["Size (GB)"]
+                        size_print_portion = f'{Fore.GREEN}| {Fore.BLUE}{size_GB:.1f} GB{Style.RESET_ALL}'
+                    except KeyError:
+                        size_print_portion = ''
+                print_line += f'{Fore.RED}[{idx+1:02}]{Style.RESET_ALL} {title} {size_print_portion}'.strip()
+                if idx % num_titles_per_line == 0 and idx != 0:
+                    if bool_print_backup_data: print(print_line)
+                    print_line = '\t'
+                else:
+                    print_line += f'{Fore.RED}, {Style.RESET_ALL}'
+            if print_line != '\t' and bool_print_backup_data: print(', '.join(print_line.strip()[:-1].split(',')).strip())
+    if bool_print_backup_data: print(f'\n{"#"*10}\n')
+    # save statistics to output file
+    output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
+    filepath_backup_metrics = os.path.join(output_directory,"alexandria_backup_metrics.json").replace('\\','/')
+    with open(filepath_backup_metrics, 'w') as json_file:
+        json.dump(backup_count_dict, json_file, indent=4)
+    filepath_backup_lists = os.path.join(output_directory,"alexandria_backup_lists.json").replace('\\','/')
+    with open(filepath_backup_lists, 'w') as json_file:
+        json.dump(backup_list_dict, json_file, indent=4)
+    return data
 
 def main():
     import os
@@ -393,7 +505,8 @@ def main():
     # update_server_statistics(drive_config,filepath_statistics)
     # update_media_file_data(drive_config,filepath_alexandria_media_details)
     # movies_suggested = suggest_movie_downloads()
-    read_media_statistics(filepath_statistics)
+    # data_media_statistics = read_media_statistics(filepath_statistics)
+    read_media_file_data(filepath_alexandria_media_details)
 
 if __name__ == '__main__':
     main()

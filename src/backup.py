@@ -441,13 +441,14 @@ def backup_mapper(media_type:str,drive_backup_letter:str,primary_filepaths_dict:
 
 def main():
     import os
-    from analytics import read_media_statistics
+    from analytics import read_media_statistics, read_media_file_data
     print(f'\n{"#"*10}\n\n{Fore.MAGENTA}{Style.BRIGHT}Initiating Alexandria Backup...{Style.RESET_ALL}\n\n{"#"*10}')
     # define paths
     src_directory = os.path.dirname(os.path.abspath(__file__))
     drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
     output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
     filepath_statistics = os.path.join(output_directory,"alexandria_media_statistics.json")
+    filepath_alexandria_media_details = os.path.join(output_directory,"alexandria_media_details.json").replace('\\','/')
     drive_config = read_json(drive_hieracrchy_filepath)
     # define primary & backup drives
     primary_drives_dict, backup_drives_dict, extensions_dict = read_alexandria_config(drive_config)
@@ -473,7 +474,7 @@ def main():
         for media_type in media_types:
             # assess if backup drive associates with this media type
             if drive_backup_letter not in backup_drive_letter_dict[media_type]: continue
-            print(f'\nAssessing {Fore.YELLOW}{Style.BRIGHT}{media_type}{Style.RESET_ALL} in backup drive: {Fore.GREEN}{Style.BRIGHT}{drive_backup_name} ({drive_backup_letter.upper()} drive){Style.RESET_ALL}')
+            print(f'\n\tAssessing {Fore.YELLOW}{Style.BRIGHT}{media_type}{Style.RESET_ALL} in backup drive: {Fore.GREEN}{Style.BRIGHT}{drive_backup_name} ({drive_backup_letter.upper()} drive){Style.RESET_ALL}')
             # determine primary parent paths for specific media type
             primary_parent_paths = [f'{x}:/{media_type}' for x in primary_drive_letter_dict[media_type]]
             # determine space remaining on primary drive(s)
@@ -502,13 +503,11 @@ def main():
         })
         print(f'\n{Fore.MAGENTA}{Style.BRIGHT}Space remaining{Style.RESET_ALL} in {Fore.GREEN}{Style.BRIGHT}{drive_backup_name} ({drive_backup_letter.upper()} drive){Style.RESET_ALL}: {Fore.BLUE}{Style.BRIGHT}{space_remaining_TB:,.2f} TB{Style.RESET_ALL}')
     drive_stats_dict = dict(sorted(drive_stats_dict.items(), key=lambda item: item[0].title()))
-    read_media_statistics(filepath_statistics)
+    read_media_statistics(filepath_statistics,bool_update=True)
+    read_media_file_data(filepath_alexandria_media_details,bool_update=True)
     for idx,item in enumerate(drive_stats_dict.items()):
         if idx == 0: print(f'{Fore.MAGENTA}{Style.BRIGHT}Space Remaining on Drives{Style.RESET_ALL}\n')
         print(f'{Fore.GREEN}{Style.BRIGHT}{item[0]}:{Style.RESET_ALL} {item[1]["Space Remaining (TB)"]:,.2f} TB')
-    """
-    Show backup statisics (% of each media type, number shows/movies not backed up)
-    """
     print(f'\n{"#"*10}\n\n{Fore.GREEN}{Style.BRIGHT}Alexandria Backup Complete{Style.RESET_ALL}\n\n{"#"*10}\n')
 
 if __name__ == '__main__':
