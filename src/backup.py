@@ -444,6 +444,30 @@ def backup_mapper(media_type:str,drive_backup_letter:str,primary_filepaths_dict:
     tuple_filepaths_modified = backup_integrity(tuple_filepaths_existing_backup)
     return tuple_filepaths_missing, tuple_filepaths_modified, filepaths_backup_current, filepaths_backup_excess
 
+def backup_output_files(outout_dir):
+    import os
+    import shutil
+    from datetime import datetime
+    # Define source directory and backup directory
+    backup_dir = os.path.join(outout_dir, 'backups')
+    # Get current date in YYYYMMDD format
+    current_date = datetime.now().strftime('%Y%m%d')
+    # Create backups directory if it doesn't exist
+    backup_dir = os.path.join(backup_dir, current_date)
+    if not os.path.exists(backup_dir):
+        os.makedirs(backup_dir)
+    # Loop through all files in the source directory
+    for filename in os.listdir(outout_dir):
+        # Build full file path
+        file_path = os.path.join(outout_dir, filename)
+        # Skip directories, process only files
+        if os.path.isfile(file_path):
+            # Build new filename with " - backup YYYYMMDD"
+            backup_filename = f"{os.path.splitext(filename)[0]} - backup {current_date}{os.path.splitext(filename)[1]}"
+            backup_file_path = os.path.join(backup_dir, backup_filename)
+            # Copy file to the backup directory with the new name
+            shutil.copy2(file_path, backup_file_path)
+
 def main():
     import os
     from analytics import read_media_statistics, read_media_file_data
@@ -471,11 +495,8 @@ def main():
     media_types = list(primary_drives_dict.keys())
     # init primary filepaths dict
     primary_filepaths_dict = {}; drive_stats_dict = {}
+    backup_output_files(output_directory)
     # loop through backup drives
-    """
-    Do I want to query the online DBs for update metadata? No, have that be a feature seperate from backups
-    
-    """
     for drive_backup_letter in backup_drive_letters:
         drive_backup_name = get_drive_name(drive_backup_letter)
         print(f'\n### {Fore.GREEN}{Style.BRIGHT}{drive_backup_name} ({drive_backup_letter.upper()} drive){Style.RESET_ALL} ###')

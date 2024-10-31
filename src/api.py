@@ -79,7 +79,7 @@ class API(object):
                     csv_rows.append(csv_row)
         csv_rows = sorted(csv_rows, key= lambda x: x[0], reverse=False)
         if csv_rows != [list(x.values()) for x in read_csv(self.filepath_tmdb_csv)]: write_to_csv(self.filepath_tmdb_csv,csv_rows,csv_headers)
-        write_list_to_txt_file(self.filepath_movie_list_tmdb_not_found, movie_list_not_found, bool_append=False)
+        # write_list_to_txt_file(self.filepath_movie_list_tmdb_not_found, movie_list_not_found, bool_append=False)
 
     def tmdb_movies_pull_popular(self):
         csv_headers = ['Title_TMDb','Release_Date','Release_Year','Rating','Overview','TMDb_ID']

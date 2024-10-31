@@ -11,3 +11,4 @@ DEV Notes: Alexandria Media Manager
 - delete movie folders without any movie files in them, but that may have images or subtitle files (issue on Vaughn)
 - add an api feature that determines if all the episodes for a show are in alexandria
 - edit backup list output to save shows in key-value pairs with key fields Title, Year, num episodes, size (to get show specific file data)
+- backup output files to backup folder
