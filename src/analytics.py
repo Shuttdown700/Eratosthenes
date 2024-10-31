@@ -46,13 +46,11 @@ def suggest_movie_downloads():
     write_list_to_txt_file(output_filepath,movies_suggested)
     return movies_suggested
 
-def update_show_statistics():
-    pass
-
 def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     import json, os, shutil
     from colorama import Fore, Back, Style
-    from utilities import read_alexandria, read_alexandria_config, get_drive_letter, get_file_size
+    from utilities import read_alexandria, read_alexandria_config, get_drive_letter, get_file_size, write_list_to_txt_file
+    directory_output = os.path.dirname(filepath_statistics)
     # read Alexandria Config
     movie_drives_primary = drive_config['Movies']['primary_drives']
     movie_drives_backup = drive_config['Movies']['backup_drives']
@@ -70,7 +68,7 @@ def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     music_drives_backup = drive_config['Music']['backup_drives']
     # identify drives
     drive_names = list(set(movie_drives_primary+movie_drives_backup+uhd_movie_drives_primary+uhd_movie_drives_backup+anime_movie_drives_primary+anime_movie_drives_backup+anime_drives_primary+anime_drives_backup+show_drives_primary+show_drives_backup+book_drives_primary+book_drives_backup+music_drives_primary+music_drives_backup))
-    drive_names.remove('')
+    if '' in drive_names: drive_names.remove('')
     drive_letters = [get_drive_letter(drive_name) for drive_name in drive_names]
     primary_drives_dict, backup_drives_dict, extensions_dict = read_alexandria_config(drive_config)
     primary_drive_letter_dict = {}; backup_drive_letter_dict = {}
@@ -106,6 +104,8 @@ def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     # generate tv show statistics
     num_show_files = len(filepaths_tv_shows)
     show_titles = sorted(list(set(([f.split('/')[2].strip() for f in filepaths_tv_shows]))))
+    filepath_show_list = os.path.join(directory_output,'show_list.txt')
+    write_list_to_txt_file(filepath_show_list, show_titles)
     num_shows = len(show_titles)
     size_TB_shows = round(sum([get_file_size(filepath_tv_show) for filepath_tv_show in filepaths_tv_shows])/10**3,2)
     dict_show_stats = {"Number of Shows":num_shows,"Number of Episodes":num_show_files,"Total Size":f"{size_TB_shows:,.2f} TB","Show Titles":show_titles,"Primary Filepaths":filepaths_tv_shows}
@@ -113,6 +113,8 @@ def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     # generate anime statistics
     num_anime_files = len(filepaths_anime)
     anime_titles = sorted(list(set(([filepath_anime.split('/')[2].strip() for filepath_anime in filepaths_anime]))))
+    filepath_anime_list = os.path.join(directory_output,'anime_list.txt')
+    write_list_to_txt_file(filepath_anime_list, anime_titles)
     num_anime = len(anime_titles)
     size_TB_anime = round(sum([get_file_size(filepath_anime) for filepath_anime in filepaths_anime])/10**3,2)
     dict_anime_stats = {"Number of Anime":num_anime,"Number of Episodes":num_anime_files,"Total Size":f"{size_TB_anime:,.2f} TB","Anime Titles":anime_titles,"Primary Filepaths":filepaths_anime}
@@ -120,6 +122,8 @@ def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     # generate movie statistics
     num_movie_files = len(filepaths_movies)
     movie_titles = sorted(list(set(([filepath_movie.split('/')[2].strip() for filepath_movie in filepaths_movies]))))
+    filepath_movie_list = os.path.join(directory_output,'movie_list.txt')
+    write_list_to_txt_file(filepath_movie_list, movie_titles)
     num_movies = len(movie_titles)
     size_TB_movies = round(sum([get_file_size(filepath_movie) for filepath_movie in filepaths_movies])/10**3,2)
     dict_movie_stats = {"Number of Movies":num_movies,"Total Size":f"{size_TB_movies:,.2f} TB","Movie Titles":movie_titles,"Primary Filepaths":filepaths_movies}
@@ -127,6 +131,8 @@ def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     # generate anime movie statistics
     num_anime_movie_files = len(filepaths_anime_movies)
     anime_movie_titles = sorted(list(set(([filepath_anime_movie.split('/')[2].strip() for filepath_anime_movie in filepaths_anime_movies]))))
+    filepath_anime_movie_list = os.path.join(directory_output,'anime_movie_list.txt')
+    write_list_to_txt_file(filepath_anime_movie_list, anime_movie_titles)
     num_anime_movies = len(anime_movie_titles)
     size_GB_anime_movies = round(sum([get_file_size(filepath_anime_movie) for filepath_anime_movie in filepaths_anime_movies]),2)
     dict_anime_movie_stats = {"Number of Anime Movies":num_anime_movies,"Total Size":f"{size_GB_anime_movies:,.2f} GB","Anime Movie Titles":anime_movie_titles,"Primary Filepaths":filepaths_anime_movies}
@@ -449,9 +455,9 @@ def read_media_file_data(filepath_alexandria_media_details,bool_update=False,boo
         media_type_size_TB = get_media_type_size(media_type, filepath_alexandria_media_details)
         if bool_print_backup_data:
             print(f'\n{Fore.YELLOW}{Style.BRIGHT}{media_type}{Style.RESET_ALL}: {total:,} total files ({media_type_size_TB:,.2f} TB)')
-            print(f'\t{Fore.RED}{Style.BRIGHT}Without backup{Style.RESET_ALL}: {prop_no_backups*100:.1f}% ({media_type_size_TB*prop_no_backups:,.2f} TB)')
-            print(f'\t{Fore.YELLOW}{Style.BRIGHT}With one backup{Style.RESET_ALL}: {prop_one_backup*100:.1f}% ({media_type_size_TB*prop_one_backup:,.2f} TB)')
-            print(f'\t{Fore.GREEN}{Style.BRIGHT}With multiple backups{Style.RESET_ALL}: {prop_multiple_backups*100:.1f}% ({media_type_size_TB*prop_multiple_backups:,.2f} TB)')
+            print(f'\t{Fore.RED}{Style.BRIGHT}Without backup{Style.RESET_ALL}: {prop_no_backups*100:.1f}% ({media_type_size_TB*prop_no_backups:,.2f} TB, {count_no_backups:,} backups)')
+            print(f'\t{Fore.YELLOW}{Style.BRIGHT}With one backup{Style.RESET_ALL}: {prop_one_backup*100:.1f}% ({media_type_size_TB*prop_one_backup:,.2f} TB, {count_one_backup:,} backups)')
+            print(f'\t{Fore.GREEN}{Style.BRIGHT}With multiple backups{Style.RESET_ALL}: {prop_multiple_backups*100:.1f}% ({media_type_size_TB*prop_multiple_backups:,.2f} TB, {count_multiple_backup:,} backups)')
         print_line = '\t'; num_titles_per_line = 3
         if "0 backup copies" in backup_list_dict[media_type].keys():
             for idx,title in enumerate(backup_list_dict[media_type]["0 backup copies"]):
@@ -471,7 +477,7 @@ def read_media_file_data(filepath_alexandria_media_details,bool_update=False,boo
                     print_line = '\t'
                 else:
                     print_line += f'{Fore.RED}, {Style.RESET_ALL}'
-            if print_line != '\t' and bool_print_backup_data: print(', '.join(print_line.strip()[:-1].split(',')).strip())
+            if print_line != '\t' and bool_print_backup_data: print(', '.join(print_line.split(',')[:-1]).rstrip())
     if bool_print_backup_data: print(f'\n{"#"*10}\n')
     # save statistics to output file
     output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
@@ -499,14 +505,14 @@ def main():
     primary_drive_letter_dict = {}; backup_drive_letter_dict = {}
     for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
     for key,value in backup_drives_dict.items(): backup_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
-    # api_handler = API()
-    # movie_titles_with_year = update_movie_list(primary_drive_letter_dict)
-    # api_handler.tmdb_movies_fetch()
-    # update_server_statistics(drive_config,filepath_statistics)
+    api_handler = API()
+    movie_titles_with_year = update_movie_list(primary_drive_letter_dict)
+    api_handler.tmdb_movies_fetch()
+    update_server_statistics(drive_config,filepath_statistics)
     # update_media_file_data(drive_config,filepath_alexandria_media_details)
     # movies_suggested = suggest_movie_downloads()
     # data_media_statistics = read_media_statistics(filepath_statistics)
-    read_media_file_data(filepath_alexandria_media_details)
+    # read_media_file_data(filepath_alexandria_media_details)
 
 if __name__ == '__main__':
     main()

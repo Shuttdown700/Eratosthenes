@@ -1,23 +1,13 @@
 DEV Notes: Alexandria Media Manager
 
-- import modules locally
-- outsource hardcoded portions to json files
-- give option to add shows to primary if they are unexpectedly found on a backup drive (currently only option is to delete off backup)
+- give option to add files to primary if they are unexpectedly found on a backup drive (currently only option is to delete off backup)
 - detect seasons that are not present on primary drives but are on backup drives (give option to add to primary or delete from backup)
 - detect when file names are the same but file extensions are different (likely because the primary file was updated)
-- this process needs to conduct an integrity check to also detect file size changes following expected file rewrites
 - give suggestions (largest size, most polific backed up shows, or imdb rating) for deletion in backup drive to clear up space
-- find a different method of adding color to text (need more flexibility)
-- detect when shows on whitelist are not on the primary and delete them
-- switch anime drive from Echo to Appo
-- backup subtitles with main files
-- add ytdl to youtube functionality
+- detect when shows on whitelist are not on the primary and delete them from the whitelist
 - necessary output files:
-    movies not backed up | backed up once | multi backups
-    shows not backed up | backed up once | multi backups
     shoe details (size, num of seasons, num of episodes, rating)
-    entire listings of shows & movies
 - show space remaining on all drives
-- show backup surface area on all connected drives
-- show backup surface area on all whtielist files
-- delete movie folders without any movie files in them
+- delete movie folders without any movie files in them, but that may have images or subtitle files (issue on Vaughn)
+- add an api feature that determines if all the episodes for a show are in alexandria
+- edit backup list output to save shows in key-value pairs with key fields Title, Year, num episodes, size (to get show specific file data)

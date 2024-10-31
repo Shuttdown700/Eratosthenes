@@ -48,7 +48,11 @@ def apply_movie_backup_filters(drive_config: dict,media_type: str,backup_filepat
     # loop through backup drive letters
     for drive in drives_backup:
         # determine and save the drive's minimum IMDb rating
-        imdb_min = float(drive_config[media_type]["backup_drive_imdb_minimums"][drive_config[media_type]["backup_drives"].index(get_drive_name(drive))])
+        try:
+            imdb_min = float(drive_config[media_type]["backup_drive_imdb_minimums"][drive_config[media_type]["backup_drives"].index(get_drive_name(drive))])
+        except ValueError as e:
+            print(f'{Fore.RED}Error in filter function:{Style.RESET_ALL} {e}')
+            imdb_min = 10
         imdb_mins[drive] = imdb_min
         # determine and save the drive's backup action if the IMDb rating is not found
         backup_unknown_imdb = ast.literal_eval(drive_config[media_type]["backup_unknown_imdb_scores"][drive_config[media_type]["backup_drives"].index(get_drive_name(drive))])
@@ -249,18 +253,19 @@ def remove_excess_files(filepaths_backup_excess, updated_block_list=False):
         # wait until there's a valid user response
         while ui != 'n' and ui != 'y':
             if len(filepaths_backup_excess) > 1:
-                ui = input(f'\nDo you want to delete these {Fore.RED}{Style.BRIGHT}{len(filepaths_backup_excess)} items ({int(size_GB_files_excess):,} GB){Style.RESET_ALL}? [Y/N] {Style.RESET_ALL}').lower()
+                ui = input(f'\nDo you want to delete these {Fore.RED}{Style.BRIGHT}{len(filepaths_backup_excess):,} items ({int(size_GB_files_excess):,} GB){Style.RESET_ALL}? [Y/N] {Style.RESET_ALL}').lower()
             else:
                 ui = input(f'\nDo you want to delete this item? [Y/N] {Style.RESET_ALL}').lower()
         # assess if the user wishes to delete excess files
         if ui.lower() == 'y':
             # delete all excess filepaths
             for excess_file in filepaths_backup_excess:
+                if '$Recycle' in excess_file: continue
                 print(f'{Fore.RED}{Style.BRIGHT}Deleting:{Style.RESET_ALL} {excess_file}')
                 try:
                     os.remove(excess_file)
                 except Exception as e:
-                    print(f'Error: {e}')
+                    print(f'{Fore.YELLOW}Error:{Style.RESET_ALL} {e}')
                 num_files_deleted += 1
             return num_files_deleted
         return 0
@@ -288,7 +293,7 @@ def backup_function(backup_tuples,modified_tuples):
     if len(backup_tuples) > 0:
         size_GB_backup = sum([get_file_size(x[0]) for x in backup_tuples])
         size_GB_remaining = get_space_remaining(backup_tuples[0][1][0]) - size_GB_backup
-        print(f'\nBacking up {Fore.RED}{Style.BRIGHT}{len(backup_tuples):,} {"files" if len(backup_tuples) != 1 else "file"}{Style.RESET_ALL} ({Fore.YELLOW}{Style.BRIGHT}{int(size_GB_backup):,} GB backup{Style.RESET_ALL}, {Fore.GREEN}{Style.BRIGHT}{int(size_GB_remaining):,} GB of space will remain{Style.RESET_ALL}):')
+        print(f'\n\t\tBacking up {Fore.RED}{Style.BRIGHT}{len(backup_tuples):,} {"files" if len(backup_tuples) != 1 else "file"}{Style.RESET_ALL} ({Fore.YELLOW}{Style.BRIGHT}{int(size_GB_backup):,} GB backup{Style.RESET_ALL}, {Fore.GREEN}{Style.BRIGHT}{int(size_GB_remaining):,} GB of space will remain{Style.RESET_ALL}):')
     for bt in backup_tuples:
         # reading backup tuple
         sfile = fr'{bt[0]}'
@@ -300,10 +305,10 @@ def backup_function(backup_tuples,modified_tuples):
             if not os.path.exists(dpath):
                 os.makedirs(dpath)
             # backup the missing file
-            print(f'{Fore.YELLOW}{Style.BRIGHT}Backing up{Style.RESET_ALL} {file_title} {Fore.RED}{Style.BRIGHT}|{Style.RESET_ALL} {Fore.BLUE}{Style.BRIGHT}{get_drive_name(sfile[0])}{Style.RESET_ALL} -> {Fore.GREEN}{Style.BRIGHT}{get_drive_name(dfile[0])}{Style.RESET_ALL}')
+            print(f'{Fore.YELLOW}{Style.BRIGHT}\t\tBacking up{Style.RESET_ALL} {file_title} {Fore.RED}{Style.BRIGHT}|{Style.RESET_ALL} {Fore.BLUE}{Style.BRIGHT}{get_drive_name(sfile[0])}{Style.RESET_ALL} -> {Fore.GREEN}{Style.BRIGHT}{get_drive_name(dfile[0])}{Style.RESET_ALL}')
             cmd = fr'copy "{sfile}" "{dfile}"'.replace('/','\\')
             subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
-    if len(modified_tuples) > 0: print(f'\nUpdating {Fore.RED}{Style.BRIGHT}{len(modified_tuples)}{Style.RESET_ALL} {"files" if len(modified_tuples) != 1 else "file"}:')
+    if len(modified_tuples) > 0: print(f'\n\t\tUpdating {Fore.RED}{Style.BRIGHT}{len(modified_tuples)}{Style.RESET_ALL} {"files" if len(modified_tuples) != 1 else "file"}:')
     for mt in modified_tuples:
         # reading backup tuple
         sfile = fr'{mt[0]}'
@@ -315,7 +320,7 @@ def backup_function(backup_tuples,modified_tuples):
             if not os.path.exists(dpath):
                 os.makedirs(dpath)
             # backup the missing file
-            print(f'{Fore.YELLOW}{Style.BRIGHT}Updating File{Style.RESET_ALL} {file_title} {Fore.RED}{Style.BRIGHT}|{Style.RESET_ALL} {Fore.BLUE}{Style.BRIGHT}{get_drive_name(sfile[0])}{Style.RESET_ALL} -> {Fore.GREEN}{Style.BRIGHT}{get_drive_name(dfile[0])}{Style.RESET_ALL}')
+            print(f'{Fore.YELLOW}{Style.BRIGHT}\t\tUpdating File{Style.RESET_ALL} {file_title} {Fore.RED}{Style.BRIGHT}|{Style.RESET_ALL} {Fore.BLUE}{Style.BRIGHT}{get_drive_name(sfile[0])}{Style.RESET_ALL} -> {Fore.GREEN}{Style.BRIGHT}{get_drive_name(dfile[0])}{Style.RESET_ALL}')
             cmd = fr'copy "{sfile}" "{dfile}"'.replace('/','\\')
             subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
 
@@ -400,7 +405,7 @@ def backup_mapper(media_type:str,drive_backup_letter:str,primary_filepaths_dict:
         else:
             sfile = filepaths_primary[index_primary][0]+primary_filepath_noLetter
             index_backup = filepaths_backup_noLetter.index(primary_filepath_noLetter)
-            bfile = filepaths_backup_noLetter[index_backup]
+            bfile = drive_backup_letter+filepaths_backup_noLetter[index_backup]
             backup_tuple = (sfile,bfile)
             tuple_filepaths_existing_backup.append(backup_tuple)
     # if the media type is a movie, filter existing & missing filepaths by rating & keywords
@@ -467,13 +472,25 @@ def main():
     # init primary filepaths dict
     primary_filepaths_dict = {}; drive_stats_dict = {}
     # loop through backup drives
+    """
+    Do I want to query the online DBs for update metadata? No, have that be a feature seperate from backups
+    
+    """
     for drive_backup_letter in backup_drive_letters:
         drive_backup_name = get_drive_name(drive_backup_letter)
         print(f'\n### {Fore.GREEN}{Style.BRIGHT}{drive_backup_name} ({drive_backup_letter.upper()} drive){Style.RESET_ALL} ###')
         # loop through media types
         for media_type in media_types:
             # assess if backup drive associates with this media type
-            if drive_backup_letter not in backup_drive_letter_dict[media_type]: continue
+            if drive_backup_letter not in backup_drive_letter_dict[media_type] and drive_backup_letter not in primary_drive_letter_dict[media_type]:
+                # detect non-directed backups
+                root_path = f'{drive_backup_letter}:/{media_type}'
+                undirected_backup_filepaths = read_alexandria([root_path],extensions_dict[media_type])
+                if len(undirected_backup_filepaths) == 0: continue
+                num_files_deleted = remove_excess_files(undirected_backup_filepaths)
+                remove_empty_folders([root_path])
+                continue
+            if drive_backup_letter in primary_drive_letter_dict[media_type]: continue
             print(f'\n\tAssessing {Fore.YELLOW}{Style.BRIGHT}{media_type}{Style.RESET_ALL} in backup drive: {Fore.GREEN}{Style.BRIGHT}{drive_backup_name} ({drive_backup_letter.upper()} drive){Style.RESET_ALL}')
             # determine primary parent paths for specific media type
             primary_parent_paths = [f'{x}:/{media_type}' for x in primary_drive_letter_dict[media_type]]

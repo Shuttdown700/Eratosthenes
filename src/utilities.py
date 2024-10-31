@@ -342,6 +342,7 @@ def read_file_as_list(file_path):
 def remove_empty_folders(directories):
     from colorama import Fore, Back, Style
     import os
+    assert isinstance(directories, list), "Input is not a list"
     for directory in directories:
         # Walk through all subdirectories and delete any that are empty
         for root, dirs, files in os.walk(directory, topdown=False):
