@@ -7,8 +7,15 @@ DEV Notes: Alexandria Media Manager
 - detect when shows on whitelist are not on the primary and delete them from the whitelist
 - necessary output files:
     shoe details (size, num of seasons, num of episodes, rating)
-- show space remaining on all drives
-- delete movie folders without any movie files in them, but that may have images or subtitle files (issue on Vaughn)
-- add an api feature that determines if all the episodes for a show are in alexandria
+- **delete movie folders without any movie files in them, but that may have images or subtitle files (issue on Vaughn)
+- add an api feature that determines if all the episodes for a show are in alexandria (mimic Statistics plugin in Emby)
 - edit backup list output to save shows in key-value pairs with key fields Title, Year, num episodes, size (to get show specific file data)
-- backup output files to backup folder
+- add a minimum year field to the backup config (removes old movies)
+- create an analytics that identifies the X number of highest rated movies of a decade / category
+- add a max size field to the backup config (prevents backup of oversized files)
+- detect movie files saved in folders that do not share the exact same name
+- *Gree has shows but isn't a designated backup drive???
+- add genre whitelist & blacklist for the movie backups
+- do show backup analysis on how many drives allegedly have copies of shows
+- when reading file details, determine if there are 'N/A' values currently saved and seek to resolve them
+- create a function that generate the print statement for sizes, automatically shifting between TB & GB

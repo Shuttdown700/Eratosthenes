@@ -14,6 +14,8 @@ class API(object):
         self.tmdb_api_url_base_query = self.api_config['tmdb']['api_url_base_query']
         self.tmdb_api_url_base_discover = self.api_config['tmdb']['api_url_base_discover']
         self.tmdb_api_key = self.api_config['tmdb']['api_key']
+        self.emby_api_key = self.api_config['emby']['api_key']
+        self.emby_url = self.api_config['emby']['api_url']
         self.headers_tmdb = {
             "accept": "application/json",
             "Authorization": f"Bearer {self.tmdb_api_key}"
@@ -35,7 +37,7 @@ class API(object):
         csv_rows = [list(x.values()) for x in read_csv(self.filepath_tmdb_csv)]
         movie_list_not_found = []
         for movie_with_year in movie_list_adjusted:
-            print(f'Downloading data for {Fore.BLUE}{Style.BRIGHT}{movie_with_year}{Style.RESET_ALL}')
+            print(f'{Fore.GREEN}{Style.BRIGHT}Downloading data{Style.RESET_ALL} for {Fore.BLUE}{Style.BRIGHT}{movie_with_year}{Style.RESET_ALL}')
             movie = '('.join(movie_with_year.split('(')[:-1])
             year = movie_with_year.split('(')[-1].split(')')[0]
             params_tmdb_movie_query = {
@@ -122,6 +124,71 @@ class API(object):
         series_extended = tvdb.get_series_extended(series_num)
         series_episodes_info = tvdb.get_series_episodes(series_num, page=0)
         print(series_episodes_info)
+
+    def emby_api(self):
+        import requests
+        # Set your Emby server information and API key
+        emby_url = self.emby_url
+        api_key = self.emby_api_key
+        # Example: Get all items from your Emby server
+        endpoint = f'{emby_url}/emby/Items'
+        headers = {
+            'X-Emby-Token': api_key
+        }
+        response = requests.get(endpoint, headers=headers)
+        # Check if the request was successful
+        if response.status_code == 200:
+            data = response.json()
+            for item in data['Items']:
+                print(f"Title: {item['Name']}, Type: {item['Type']}")
+        else:
+            print(f"Error: {response.status_code} - {response.text}")
+
+        ###
+
+        import requests
+
+        # Replace with the actual item ID of the actor and the path to the new image
+        actor_item_id = 'ACTOR-ITEM-ID'
+        image_path = 'path/to/actor-image.jpg'
+
+        # Endpoint for updating the actor image
+        endpoint = f'{emby_url}/emby/Items/{actor_item_id}/Images?Type=Primary'
+
+        # Read the image file
+        with open(image_path, 'rb') as image_file:
+            image_data = image_file.read()
+
+        # Headers with your API key
+        headers = {
+            'X-Emby-Token': api_key,
+            'Content-Type': 'image/jpeg'
+        }
+
+        # Make the POST request to update the image
+        response = requests.post(endpoint, headers=headers, data=image_data)
+
+        if response.status_code == 204:
+            print(f"Actor image updated successfully!")
+        else:
+            print(f"Failed to update actor image: {response.status_code} - {response.text}")
+
+        ###
+
+        actor_name = 'ACTOR-NAME'
+        # Search for the actor by name
+        search_endpoint = f'{emby_url}/emby/Persons?searchTerm={actor_name}'
+        response = requests.get(search_endpoint, headers=headers)
+
+        if response.status_code == 200:
+            data = response.json()
+            if data['Items']:
+                actor_item_id = data['Items'][0]['Id']
+                print(f"Found actor {actor_name} with ItemId: {actor_item_id}")
+            else:
+                print(f"Actor {actor_name} not found.")
+        else:
+            print(f"Error: {response.status_code} - {response.text}")
 
 import os 
 if __name__ == '__main__':

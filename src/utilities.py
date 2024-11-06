@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-def import_libraries(libraries):
+def import_libraries(libraries : list) -> None:
     """
     Helps load/install required libraries when running from cmd prompt
 
@@ -30,7 +30,7 @@ def import_libraries(libraries):
         for sl in s[1]:
             exec(f'from {s[0]} import {sl}')
 
-def read_alexandria(parent_dirs : list,extensions = ['.mp4','.mkv','.pdf','.mp3']) -> list[list[str], list[str]]:
+def read_alexandria(parent_dirs : list,extensions = ['.mp4','.mkv','.pdf','.mp3']) -> list:
     """
     Returns all files of a given extension from a list of parent directories
 
@@ -96,13 +96,13 @@ def files_are_identical(file1 : str, file2 : str) -> bool:
     else:
         return True # files are identical
 
-def read_json(filepath):
+def read_json(filepath : str) -> dict:
     import json
     with open(filepath, 'r', encoding='utf8') as json_file:
         json_data = json.load(json_file)
     return json_data
 
-def get_json_file_list(directory):
+def get_json_file_list(directory : str) -> list:
     import os
     list_json_files = []
     for root, dirs, files in os.walk(directory):
@@ -111,7 +111,7 @@ def get_json_file_list(directory):
                 list_json_files.append(os.path.join(root, file))
     return list_json_files
 
-def write_to_csv(output_filepath,data_array,header):
+def write_to_csv(output_filepath : str,data_array : list,header : str) -> None:
     import csv
     # Writing to CSV file
     with open(output_filepath, mode='w', newline='', encoding='utf8') as file:
@@ -428,12 +428,6 @@ def delete_metadata_wip(drive,file_extensions = ['.jpg','.nfo','.png','.jpeg','.
         else:
             print(f'No {e} files in {drive} drive!')
 
-def get_shows_not_on_drive_wip():
-    pass
-
-def get_sizes_of_shows():
-    pass
-
 def search_for_duplicate_show_files():
     pass
 
@@ -496,6 +490,57 @@ def generate_ssl_key_and_cert(key_directory):
         f.write(certificate.public_bytes(serialization.Encoding.PEM))
 
     print("SSL keyfile and certfile generated.")
+
+def delete_empty_dirs(root_dir, approved_extensions, dry_run=False, confirm_deletion=True):
+    """
+    Delete directories that do not contain files with approved extensions.  
+
+    Parameters:
+    ----------
+    root_dir : str
+        The root directory to start the analysis.
+    approved_extensions : list 
+        A list of approved file extensions (e.g., ['.txt', '.jpg']).
+    dry_run : bool 
+        If True, only print the directories that would be deleted.
+    confirm_deletion : bool
+        If True, ask the user to confirm each deletion.
+    
+    Returns
+    -------
+    None.
+    """
+    import os, shutil
+    dirs_to_delete = []
+    # Traverse the directory tree from the bottom up to safely remove directories
+    for dirpath, dirnames, filenames in os.walk(root_dir, topdown=False):
+        # Check if there are files with approved extensions
+        has_approved_files = any(
+            os.path.splitext(filename)[1].lower() in approved_extensions 
+            for filename in filenames
+        )
+        # If no approved files are found and the directory is not the root, add to the list
+        if not has_approved_files and dirpath != root_dir:
+            dirs_to_delete.append(dirpath)
+    if dry_run:
+        print("Dry run mode: The following directories would be deleted:")
+        for dirpath in dirs_to_delete:
+            print(dirpath)
+        return
+    # If not dry run, proceed with deletion (with optional confirmation)
+    for dirpath in dirs_to_delete:
+        if confirm_deletion:
+            response = ''
+            while True:
+                response = input(f"Do you want to delete the directory: {dirpath}? (y/n): ").strip().lower()
+                if response == 'n':
+                    print(f"Skipping directory: {dirpath}")
+                    break
+                elif response == 'y':
+                    print(f"Deleting directory: {dirpath}")
+                    shutil.rmtree(dirpath)
+                    break
+                print('\nInvalid response\n')
 
 def main():      
     # define paths
