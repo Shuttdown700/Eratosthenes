@@ -223,7 +223,7 @@ def assess_backup_feasibility(tuple_filepaths_missing,tuple_filepaths_modified):
         required_space += get_file_size(filepath_primary)
     return required_space, remaining_space
 
-def remove_excess_files(filepaths_backup_excess, updated_block_list=False):
+def remove_excess_files(filepaths_backup_excess, updated_block_list=False, non_configured_backup=False):
     """
     Function to remove excess files in the backup drives
 
@@ -240,10 +240,12 @@ def remove_excess_files(filepaths_backup_excess, updated_block_list=False):
     num_files_deleted = 0; size_GB_files_excess = 0
     # assess if there are excess files
     if len(filepaths_backup_excess) > 0:
-        if not updated_block_list:
-            print(f'\n{Back.RED}The following {len(filepaths_backup_excess)} {"file is" if len(filepaths_backup_excess) == 1 else "files are"} not in the primary drives:{Style.RESET_ALL}')
+        if updated_block_list:
+            print(f'\n{Back.RED}The following {len(filepaths_backup_excess):,} {"file is" if len(filepaths_backup_excess) == 1 else "files are"} blocked by backup config settings:{Style.RESET_ALL}')
+        elif non_configured_backup:
+            print(f'\n{Back.RED}The following {len(filepaths_backup_excess):,} {"file is" if len(filepaths_backup_excess) == 1 else "files are"} not expected to be backed up on this drive:{Style.RESET_ALL}')
         else:
-            print(f'\n{Back.RED}The following {len(filepaths_backup_excess)} {"file is" if len(filepaths_backup_excess) == 1 else "files are"} blocked with the updated backup config:{Style.RESET_ALL}')
+            print(f'\n{Back.RED}The following {len(filepaths_backup_excess):,} {"file is" if len(filepaths_backup_excess) == 1 else "files are"} not in the primary drives:{Style.RESET_ALL}')           
         # loop through excess filepaths
         for filepath_excess in filepaths_backup_excess:
             print(filepath_excess)
@@ -293,7 +295,7 @@ def backup_function(backup_tuples,modified_tuples):
     if len(backup_tuples) > 0:
         size_GB_backup = sum([get_file_size(x[0]) for x in backup_tuples])
         size_GB_remaining = get_space_remaining(backup_tuples[0][1][0]) - size_GB_backup
-        print(f'\n\t\tBacking up {Fore.RED}{Style.BRIGHT}{len(backup_tuples):,} {"files" if len(backup_tuples) != 1 else "file"}{Style.RESET_ALL} ({Fore.YELLOW}{Style.BRIGHT}{int(size_GB_backup):,} GB backup{Style.RESET_ALL}, {Fore.GREEN}{Style.BRIGHT}{int(size_GB_remaining):,} GB of space will remain{Style.RESET_ALL}):')
+        print(f'\n\t\tBacking up {Fore.RED}{Style.BRIGHT}{len(backup_tuples):,} {"files" if len(backup_tuples) != 1 else "file"}{Style.RESET_ALL} ({Fore.YELLOW}{Style.BRIGHT}{int(size_GB_backup):,} GB backup{Style.RESET_ALL}, {Fore.GREEN}{Style.BRIGHT}{int(size_GB_remaining):,} GB {Style.RESET_ALL}of space will remain):')
     for bt in backup_tuples:
         # reading backup tuple
         sfile = fr'{bt[0]}'
@@ -489,6 +491,12 @@ def main():
     for drive in [x[1] for x in backup_drive_letter_dict.items()]: 
         if '' not in drive: 
             backup_drive_letters += drive
+    # define primary drives
+    primary_drive_letters = []
+    for drive in [x[1] for x in primary_drive_letter_dict.items()]: 
+        if '' not in drive: 
+            primary_drive_letters += drive
+    all_drives = sorted(list(set(primary_drive_letters + backup_drive_letters)))
     backup_drive_letters = sorted(list(set(backup_drive_letters)))
     backup_drive_names = [get_drive_name(bdl) for bdl in backup_drive_letters]
     # define media types
@@ -497,7 +505,7 @@ def main():
     primary_filepaths_dict = {}; drive_stats_dict = {}
     backup_output_files(output_directory)
     # loop through backup drives
-    for drive_backup_letter in backup_drive_letters:
+    for drive_backup_letter in all_drives:
         drive_backup_name = get_drive_name(drive_backup_letter)
         print(f'\n### {Fore.GREEN}{Style.BRIGHT}{drive_backup_name} ({drive_backup_letter.upper()} drive){Style.RESET_ALL} ###')
         # loop through media types
@@ -508,7 +516,7 @@ def main():
                 root_path = f'{drive_backup_letter}:/{media_type}'
                 undirected_backup_filepaths = read_alexandria([root_path],extensions_dict[media_type])
                 if len(undirected_backup_filepaths) == 0: continue
-                num_files_deleted = remove_excess_files(undirected_backup_filepaths)
+                num_files_deleted = remove_excess_files(undirected_backup_filepaths,updated_block_list=False, non_configured_backup=True)
                 remove_empty_folders([root_path])
                 continue
             if drive_backup_letter in primary_drive_letter_dict[media_type]: continue

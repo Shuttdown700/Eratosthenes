@@ -54,12 +54,11 @@ def identify_popular_artists_without_albums(music_dir):
 
 def rename_essentials_albums(music_dir):
     buzzword_list = ['essentials','greatest songs','greatest hits']
-    files, paths = read_alexandria([music_dir],extensions=['.mp3'])
-    with alive_bar(len(files),ctrl_c=False,dual_line=True,title='Progress',bar='classic',spinner='classic') as bar:
-        for index,path in enumerate(paths):
-            artist_from_path = path.split('/')[3]
+    filepaths = read_alexandria([music_dir],extensions=['.mp3'])
+    with alive_bar(len(filepaths),ctrl_c=False,dual_line=True,title='Progress',bar='classic',spinner='classic') as bar:
+        for index,filepath in enumerate(filepaths):
+            artist_from_path = filepath.split('/')[3]
             # album_from_path = ')'.join(path.split('/')[4].split(')')[1:]).strip()
-            filepath = path+'/'+files[index]
             audiofile = MP3(filepath)
             # title = str(audiofile.get('TIT2','Unknown'))
             artist = str(audiofile.get('TPE1','Unknown'))
@@ -174,14 +173,14 @@ def encode_multiple_bitrates():
     remove_empty_folders('W',['Music'])    
 
 
-# music_temp_dir = 'W:/Temp/MP3s_320_Essentials/'
-# rename_essentials_albums(music_temp_dir)
+music_temp_dir = 'W:/Temp/MP3s_320_Essentials/'
+rename_essentials_albums(music_temp_dir)
 # music_320_dir = 'W:/Music/MP3s_320/'
 # identify_popular_artists_without_albums(music_320_dir)
 # music_playlist_dir = 'W:/Temp/MP3_320_Playlist_Albums'
 # rename_playlist_albums(music_playlist_dir)
-ost_soundtrack = 'W:/Temp/OSTs/Star Wars OST/'
-rename_OTSs(ost_soundtrack)
+# ost_soundtrack = 'W:/Temp/OSTs/Star Wars OST/'
+# rename_OTSs(ost_soundtrack)
 
 
 """

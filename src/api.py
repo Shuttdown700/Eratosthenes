@@ -35,8 +35,10 @@ class API(object):
         # define csv header and existing data
         csv_headers = ['Title_Alexandria','Title_TMDb','Release_Date','Release_Year','Runtime_Min','Runtime_Hrs','Rating','Budget','Revenue','Genres','Production_Companies','Overview','TMDb_ID','IMDb_ID']
         csv_rows = [list(x.values()) for x in read_csv(self.filepath_tmdb_csv)]
+        movie_list_bypass_list = ['Louis C.K. at the Dolby (2023)']
         movie_list_not_found = []
         for movie_with_year in movie_list_adjusted:
+            if movie_with_year in movie_list_bypass_list: continue
             print(f'{Fore.GREEN}{Style.BRIGHT}Downloading data{Style.RESET_ALL} for {Fore.BLUE}{Style.BRIGHT}{movie_with_year}{Style.RESET_ALL}')
             movie = '('.join(movie_with_year.split('(')[:-1])
             year = movie_with_year.split('(')[-1].split(')')[0]

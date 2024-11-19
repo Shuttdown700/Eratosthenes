@@ -144,7 +144,7 @@ def read_csv(file_path: str) -> list[dict]:
     except FileNotFoundError:
         return []
     return csv_data
-        
+
 def read_alexandria_config(drive_hieracrchy):
     """
     Returns dictionarys identifying primary and backup drives by media type
