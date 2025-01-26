@@ -84,6 +84,7 @@ def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     space_TB_available = 0; space_TB_used = 0; space_TB_unused = 0
     # iterate through drives to determine overall usage
     for d in drive_letters:
+        if d == '': continue
         disk_obj = shutil.disk_usage(f'{d}:/')
         space_TB_available += int(disk_obj[0]/10**12)
         space_TB_used += int(disk_obj[1]/10**12)
@@ -198,63 +199,62 @@ def get_video_media_info(filepath):
     'audio_channel_layout': '',
     }
     try:
-        probe = ffmpeg.probe(filepath,cmd=filepath_ffprobe)
-    except:
-        print(f'{RED}Error reading media info:{RESET} {filepath}')
+        probe = ffmpeg.probe(filepath, cmd=filepath_ffprobe)
+    except ffmpeg.Error as e:
+        print(f"{RED}FFmpeg Error:{RESET} {e.stderr.decode('utf-8')}")
         return media_info
-    
+
     # File size
     file_size_GB = get_file_size(filepath)
-    
+
     # Video stream information
     video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
     if video_stream:
-        video_codec = video_stream['codec_name']
+        video_codec = video_stream.get('codec_name', 'N/A')
         video_bitrate = video_stream.get('bit_rate', 'N/A')
         try:
-            video_bitrate_Mbps = float(video_bitrate)/10**6
+            video_bitrate_Mbps = float(video_bitrate) / 10**6
         except:
             video_bitrate_Mbps = video_bitrate
-        video_minutes = float(video_stream['duration']) / 60 if 'duration' in video_stream else 'N/A'
-        video_height = video_stream['height']
-        video_width = video_stream['width']
+        video_minutes = float(video_stream.get('duration', probe['format'].get('duration', 0))) / 60
+        video_height = video_stream.get('height', 'N/A')
+        video_width = video_stream.get('width', 'N/A')
     else:
         video_codec = video_bitrate = video_minutes = video_height = video_width = 'N/A'
-    
+
     # Audio stream information
     audio_streams = [stream for stream in probe['streams'] if stream['codec_type'] == 'audio']
     audio_num_tracks = len(audio_streams)
-    
+
     # Assuming the first audio track to get audio properties
-    audio_bitrate_kbps = 'N/A'
     if audio_num_tracks > 0:
-        audio_codec = audio_streams[0]['codec_name']
+        audio_codec = audio_streams[0].get('codec_name', 'N/A')
         audio_bitrate = audio_streams[0].get('bit_rate', 'N/A')
         try:
-            audio_bitrate_kbps = float(audio_bitrate)/10**3
+            audio_bitrate_kbps = float(audio_bitrate) / 10**3
         except:
             audio_bitrate_kbps = audio_bitrate
-        audio_num_channels = audio_streams[0]['channels']
+        audio_num_channels = audio_streams[0].get('channels', 'N/A')
         audio_channel_layout = audio_streams[0].get('channel_layout', 'N/A')
     else:
-        audio_codec = audio_num_channels = audio_channel_layout = 'N/A'
-    try:
-        media_info = {
-            'filepath' : filepath,
-            'file_size_GB': file_size_GB,
-            'video_codec': video_codec.upper() if type(video_codec) is str else video_codec,
-            'video_bitrate_Mbps': video_bitrate_Mbps,
-            'video_minutes': video_minutes,
-            'video_height': video_height,
-            'video_width': video_width,
-            'audio_codec': audio_codec.upper() if type(audio_codec) is str else audio_codec,
-            'audio_bitrate_kbps': audio_bitrate_kbps,
-            'audio_num_tracks': audio_num_tracks,
-            'audio_num_channels': audio_num_channels,
-            'audio_channel_layout': audio_channel_layout,
-        }
-    except Exception as e:
-        print(f"{RED}Error:{RESET} {e}")
+        audio_codec = audio_bitrate_kbps = audio_num_channels = audio_channel_layout = 'N/A'
+
+    # Final media_info dictionary
+    media_info = {
+        'filepath': filepath,
+        'file_size_GB': file_size_GB,
+        'video_codec': video_codec.upper() if type(video_codec) is str else video_codec,
+        'video_bitrate_Mbps': video_bitrate_Mbps,
+        'video_minutes': video_minutes,
+        'video_height': video_height,
+        'video_width': video_width,
+        'audio_codec': audio_codec.upper() if type(audio_codec) is str else audio_codec,
+        'audio_bitrate_kbps': audio_bitrate_kbps,
+        'audio_num_tracks': audio_num_tracks,
+        'audio_num_channels': audio_num_channels,
+        'audio_channel_layout': audio_channel_layout,
+    }
+    print(media_info)
     return media_info
 
 def update_media_file_data(drive_config,filepath_backup_surface_area,bool_print = False, overwrite_media_data=False):
@@ -551,7 +551,7 @@ def main():
     movie_titles_with_year = update_movie_list(primary_drive_letter_dict)
     api_handler.tmdb_movies_fetch()
     # update_server_statistics(drive_config,filepath_statistics)
-    # update_media_file_data(drive_config,filepath_alexandria_media_details,bool_print=True)
+    update_media_file_data(drive_config,filepath_alexandria_media_details,bool_print=True)
     # movies_suggested = suggest_movie_downloads()
     # data_media_statistics = read_media_statistics(filepath_statistics)
     # read_media_file_data(filepath_alexandria_media_details)

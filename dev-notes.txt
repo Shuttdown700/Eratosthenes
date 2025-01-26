@@ -10,7 +10,7 @@ DEV Notes: Alexandria Media Manager
 - **delete movie folders without any movie files in them, but that may have images or subtitle files (issue on Vaughn)
 - add an api feature that determines if all the episodes for a show are in alexandria (mimic Statistics plugin in Emby)
 - edit backup list output to save shows in key-value pairs with key fields Title, Year, num episodes, size (to get show specific file data)
-- add a minimum year field to the backup config (removes old movies)
+- add a minimum year field to the backup config (block old movie backups)
 - create an analytics that identifies the X number of highest rated movies of a decade / category
 - add a max size field to the backup config (prevents backup of oversized files)
 - detect movie files saved in folders that do not share the exact same name
@@ -19,3 +19,14 @@ DEV Notes: Alexandria Media Manager
 - do show backup analysis on how many drives allegedly have copies of shows
 - when reading file details, determine if there are 'N/A' values currently saved and seek to resolve them
 - create a function that generate the print statement for sizes, automatically shifting between TB & GB
+- for movies, a config setting to backup all movies from a year and onward
+- add methods to quickly edit the config files
+- after deleting files from a backup drive, rescan the backup drive to get a current file list
+- add recent movie forced backup
+- add genre backup block
+- the get_video_media_info function in the analytics file does not work with mkv files!!!
+- duplicate values in media output file, example in "All About Eve"
+- add a zeroization feature
+- remove bitrates datapoints from details pull
+- find instances where multiple movie files are in the same movie folder
+- transition to a class-based backup feature to store/update persistant data

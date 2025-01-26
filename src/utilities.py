@@ -323,6 +323,7 @@ def get_space_remaining(drive):
 
 def get_file_size(file_with_path):
     import os
+    if not os.path.exists(file_with_path): return 0
     return os.path.getsize(file_with_path)/10**9
 
 def write_list_to_txt_file(file_path, items, bool_append = False):
@@ -541,6 +542,7 @@ def delete_empty_dirs(root_dir, approved_extensions, dry_run=False, confirm_dele
                     shutil.rmtree(dirpath)
                     break
                 print('\nInvalid response\n')
+
 
 def main():      
     # define paths

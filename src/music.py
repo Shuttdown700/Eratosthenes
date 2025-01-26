@@ -50,7 +50,6 @@ def identify_popular_artists_without_albums(music_dir):
     artists_without_albums = dict(sorted(artists_without_albums.items(),key=lambda x: x[1],reverse=True))
     with open('music_artists_without_albums.json','w') as json_file:
         json.dump(artists_without_albums,json_file,indent=4)
-    
 
 def rename_essentials_albums(music_dir):
     buzzword_list = ['essentials','greatest songs','greatest hits']
@@ -171,7 +170,6 @@ def encode_multiple_bitrates():
         re_encode_tracks(parent_dir,bitrate_desired=bd,desired_extension=extension_desired)
         copy_images(parent_dir,bd)
     remove_empty_folders('W',['Music'])    
-
 
 music_temp_dir = 'W:/Temp/MP3s_320_Essentials/'
 rename_essentials_albums(music_temp_dir)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 class API(object):
-    def __init__(self): # constructor method
+    def __init__(self):
         from utilities import read_json
         self.src_directory = os.path.dirname(os.path.abspath(__file__))
         self.filepath_movie_list = ("\\".join(self.src_directory.split('\\')[:-1])+"/output/").replace('\\','/')+'movie_list.txt'
@@ -117,15 +117,104 @@ class API(object):
                         csv_rows.append(csv_row)
         write_to_csv(self.filepath_tmdb_top_rated_csv,csv_rows,csv_headers)
     
-    def tvdb_shows_fetch(self):
+    def tvdb_show_fetch_ids(self,titles : list, filepath_series_ids = ''):
+        import tvdb_v4_official
+        from utilities import read_json
+        try:
+            series_ids = read_json(filepath_series_ids)
+        except:
+            series_ids = {}
+        current_series_titles = list(series_ids.keys())
+        tvdb = tvdb_v4_official.TVDB(self.tvdb_api_key)
+        for title_with_year in titles:
+            alexandria_title = " ".join(title_with_year.split()[:-1])
+            if alexandria_title in current_series_titles: continue
+            title = alexandria_title.replace(' - ', ': ')
+            year = title_with_year.split()[-1][1:-1]
+            search_result = tvdb.search(title)
+            if search_result:
+                index = 0
+                try:
+                    while True:
+                        data = search_result[index]
+                        id = data['id']
+                        if "series" in id.lower():
+                            try:
+                                series_year = data['year']
+                                print(index,series_year,year)
+                                if series_year == year:
+                                    id = id.split('-')[-1]
+                                    break
+                            except KeyError:
+                                pass
+                        index += 1
+                    series_ids[alexandria_title] = id
+                except IndexError:
+                    print(f"Correct version of {title_with_year} is not found")
+                    continue                
+            else:
+                print(f"{title_with_year} not found in search")
+        series_ids = dict(sorted(series_ids.items()))
+        if filepath_series_ids != '':
+            import json
+            with open(filepath_series_ids, 'w') as json_file:
+                json.dump(series_ids, json_file, indent=4)
+        return series_ids
+
+    def tvdb_show_fetch_info(self,series_num):
         import tvdb_v4_official
         tvdb = tvdb_v4_official.TVDB(self.tvdb_api_key)
-        # fetching a series
-        series_num = 121361
-        series = tvdb.get_series(series_num)
-        series_extended = tvdb.get_series_extended(series_num)
+        # series = tvdb.get_series(series_num)
+        # series_extended = tvdb.get_series_extended(series_num)
         series_episodes_info = tvdb.get_series_episodes(series_num, page=0)
-        print(series_episodes_info)
+        series_title = series_episodes_info['series']["name"]
+        series_overview = series_episodes_info['series']["overview"]
+        series_firstAired = series_episodes_info['series']['firstAired']
+        series_year = series_episodes_info['series']['year']
+        series_lastAired = series_episodes_info['series']['lastAired']
+        episode_list = series_episodes_info['episodes']
+        series_dict = {} ; series_episode_dict = {}
+        for episode in episode_list:
+            episode_dict = {}
+            episode_name = episode['name']
+            episode_aired_date = episode['aired']
+            episode_year = episode['year']
+            episode_runtime_min = episode['runtime']
+            episode_overview = episode['overview']
+            episode_image_url = episode['image']
+            episode_number = episode['number']
+            episode_absolute_number = episode['absoluteNumber']
+            season_number = episode['seasonNumber']
+            episode_id = episode['id']
+            filename = f"{series_title} ({series_year}) S{season_number:02d}E{episode_number:02d}"
+            episode_dict.update({
+                "Episode Name" : episode_name,
+                "Episode Air Date" : episode_aired_date,
+                "Episode Runtime (min.)" : episode_runtime_min,
+                "Episode Overview" : episode_overview,
+                "Episode Number" : episode_number,
+                "Episode Absolute Number" : episode_absolute_number,
+                "Season Number" : season_number,
+                "Episode Image URL" : episode_image_url,
+                "Episode ID" : episode_id
+            })
+            series_episode_dict.update({
+                filename : episode_dict
+            })
+        series_dict.update({
+            "Series Title" : series_title,
+            "Series First Airerd" : series_firstAired,
+            "Series Last Aired" : series_lastAired,
+            "Series Overview" : series_overview,
+            "Series Episodes" : series_episode_dict,
+            "Series ID" : series_num
+        })
+        return series_dict
+
+    def tvdb_fetch_all_series_info(self, series_ids):
+        list_series_ids = list(series_ids.values())
+        for series_id in list_series_ids:
+            self.tvdb_show_fetch_info(series_id)
 
     def emby_api(self):
         import requests
@@ -192,25 +281,34 @@ class API(object):
         else:
             print(f"Error: {response.status_code} - {response.text}")
 
-import os 
+import os
 if __name__ == '__main__':
     # import libraries
-    import requests
+    import json, requests
     from analytics import update_movie_list
     from colorama import Fore, Back, Style
-    from utilities import get_drive_letter
+    from utilities import get_drive_letter, read_json
     # import utility methods
     from utilities import write_list_to_txt_file, write_to_csv, read_alexandria_config, read_csv, read_file_as_list, read_json
     src_directory = os.path.dirname(os.path.abspath(__file__))
     drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
+    api_config_filepath = (src_directory+"/config/api.config").replace('\\','/')
+    output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
+    filepath_statistics = os.path.join(output_directory,"alexandria_media_statistics.json")
     drive_config = read_json(drive_hieracrchy_filepath)
     primary_drives_dict, backup_drives_dict, extensions_dict = read_alexandria_config(drive_config)
     primary_drive_letter_dict = {}; backup_drive_letter_dict = {}
     for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
     update_movie_list(primary_drive_letter_dict)
-
+    media_statistics = read_json(filepath_statistics)
+    list_tv_shows = media_statistics["TV Shows"]["Show Titles"]
+    list_anime = media_statistics["Anime"]["Anime Titles"]
+    list_series = list_tv_shows + list_anime
     # instantiate API handler
     api_handler = API()
-    api_handler.tmdb_movies_fetch()
+    filepath_series_ids = os.path.join(output_directory,"alexandria_series_ids.json").replace('\\','/')
+    series_ids = api_handler.tvdb_show_fetch_ids(list_series,filepath_series_ids)
+    # api_handler.tmdb_movies_fetch()
     # api_handler.tmdb_movies_pull_popular()
-    # api_handler.tvdb_shows_fetch()
+    # api_handler.tvdb_fetch_all_series_info(series_ids)
+    # api_handler.tvdb_show_fetch_info(series_ids[0])
