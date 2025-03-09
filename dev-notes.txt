@@ -30,3 +30,5 @@ DEV Notes: Alexandria Media Manager
 - remove bitrates datapoints from details pull
 - find instances where multiple movie files are in the same movie folder
 - transition to a class-based backup feature to store/update persistant data
+- movie imdb optimization if movies don't fit or to fill space (backup shows first)
+- check for .nfo or .srt files in movie dir that are not the same name as the movie file

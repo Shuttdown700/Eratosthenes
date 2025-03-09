@@ -306,9 +306,9 @@ if __name__ == '__main__':
     list_series = list_tv_shows + list_anime
     # instantiate API handler
     api_handler = API()
-    filepath_series_ids = os.path.join(output_directory,"alexandria_series_ids.json").replace('\\','/')
-    series_ids = api_handler.tvdb_show_fetch_ids(list_series,filepath_series_ids)
-    # api_handler.tmdb_movies_fetch()
+    # filepath_series_ids = os.path.join(output_directory,"alexandria_series_ids.json").replace('\\','/')
+    # series_ids = api_handler.tvdb_show_fetch_ids(list_series,filepath_series_ids)
+    api_handler.tmdb_movies_fetch()
     # api_handler.tmdb_movies_pull_popular()
     # api_handler.tvdb_fetch_all_series_info(series_ids)
     # api_handler.tvdb_show_fetch_info(series_ids[0])

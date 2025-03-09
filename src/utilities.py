@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-def import_libraries(libraries : list) -> None:
+def import_libraries(libraries: list) -> None:
     """
     Helps load/install required libraries when running from cmd prompt
 
@@ -30,7 +30,7 @@ def import_libraries(libraries : list) -> None:
         for sl in s[1]:
             exec(f'from {s[0]} import {sl}')
 
-def read_alexandria(parent_dirs : list,extensions = ['.mp4','.mkv','.pdf','.mp3']) -> list:
+def read_alexandria(parent_dirs : list,extensions: list[str] = ['.mp4','.mkv','.pdf','.mp3']) -> list:
     """
     Returns all files of a given extension from a list of parent directories
 
@@ -72,7 +72,7 @@ def read_alexandria(parent_dirs : list,extensions = ['.mp4','.mkv','.pdf','.mp3'
                 all_filepaths.append((parent_path+'/'+f).replace('\\','/'))
     return all_filepaths
 
-def files_are_identical(file1 : str, file2 : str) -> bool:
+def files_are_identical(file1 : str, file2: str) -> bool:
     """
     Determines if two files are the same
 
@@ -96,13 +96,13 @@ def files_are_identical(file1 : str, file2 : str) -> bool:
     else:
         return True # files are identical
 
-def read_json(filepath : str) -> dict:
+def read_json(filepath: str) -> dict:
     import json
     with open(filepath, 'r', encoding='utf8') as json_file:
         json_data = json.load(json_file)
     return json_data
 
-def get_json_file_list(directory : str) -> list:
+def get_json_file_list(directory: str) -> list:
     import os
     list_json_files = []
     for root, dirs, files in os.walk(directory):
@@ -111,7 +111,7 @@ def get_json_file_list(directory : str) -> list:
                 list_json_files.append(os.path.join(root, file))
     return list_json_files
 
-def write_to_csv(output_filepath : str,data_array : list,header : str) -> None:
+def write_to_csv(output_filepath: str,data_array: list,header: str) -> None:
     import csv
     # Writing to CSV file
     with open(output_filepath, mode='w', newline='', encoding='utf8') as file:
@@ -145,69 +145,31 @@ def read_csv(file_path: str) -> list[dict]:
         return []
     return csv_data
 
-def read_alexandria_config(drive_hieracrchy):
-    """
-    Returns dictionarys identifying primary and backup drives by media type
-
-    Parameters
-    ----------
-    drive_hieracrchy : dict
-        Drive hierarchy dictionary item.
-
-    Returns
-    -------
-    primary_drives_dict : dict
-        Primary drives by media type.
-    backup_drives_dict : dict
-        Backup drives by media type.
-
-    """
+def read_alexandria_config(drive_hieracrchy: dict) -> tuple[dict,dict,dict]:
+    """Returns dictionarys identifying primary and backup drives by media type."""
     primary_drives_dict = {}; backup_drives_dict = {}; extensions_dict = {}
     for media_type in drive_hieracrchy:
         primary_drives = drive_hieracrchy[media_type]['primary_drives']
         primary_drives_dict.update({media_type:primary_drives})
-        backup_drives = drive_hieracrchy[media_type]['backup_drives']
+        try:
+            backup_drives = sorted(drive_hieracrchy[media_type]['backup_drives'].keys())
+        except AttributeError:
+            backup_drives = drive_hieracrchy[media_type]['backup_drives']
         backup_drives_dict.update({media_type:backup_drives})
         extensions = drive_hieracrchy[media_type]['extensions']
         extensions_dict.update({media_type:extensions})
     return primary_drives_dict, backup_drives_dict, extensions_dict
 
-def get_drive_name(letter):
-    """
-    Gets drive name from letter.
-
-    Parameters
-    ----------
-    letter : str
-        Drive letter [A-Z] (Windows).
-
-    Returns
-    -------
-    str
-        Returns name of the drive, as displayed in file explorer.
-
-    """
+def get_drive_name(letter: str) -> str:
+    """Gets drive name from letter."""
     import win32api
     if does_drive_exist(letter): 
         return win32api.GetVolumeInformation(f"{letter}:/")[0]
     else: 
         return "None"
 
-def does_drive_exist(letter):
-    """
-    Checks if a drive exists. 
-
-    Parameters
-    ----------
-    letter : str
-        Drive letter [A-Z] (Windows).
-
-    Returns
-    -------
-    bool
-        Returns TRUE if drive exists, otherwise returns FALSE.
-        
-    """
+def does_drive_exist(letter: str) -> bool:
+    """Checks if a drive exists."""
     import win32api
     try: 
         win32api.GetVolumeInformation(f"{letter}:/")
@@ -215,21 +177,8 @@ def does_drive_exist(letter):
     except:
         return False
 
-def get_drive_letter(drive_name):
-    """
-    Gets drive letter from drive name.
-
-    Parameters
-    ----------
-    drive_name : str
-        Drive name.
-
-    Returns
-    -------
-    d : str
-        Drive letter [A-Z] (Windows).
-
-    """
+def get_drive_letter(drive_name: str) -> str:
+    """Gets drive letter from drive name."""
     import win32api
     drives = [drive[0] for drive in win32api.GetLogicalDriveStrings().split('\000')[:-1] if does_drive_exist(drive[0])]
     for d in drives:
@@ -237,34 +186,13 @@ def get_drive_letter(drive_name):
             return d
     return ''
 
-def get_drive_size(letter):
-    """
-    Gets size of drive.
-
-    Parameters
-    ----------
-    letter : str
-        Drive letter [A-Z] (Windows).
-
-    Returns
-    -------
-    float
-        Size of drive in GB.
-
-    """
+def get_drive_size(letter: str) -> float:
+    """Gets size of drive."""
     import shutil
     return shutil.disk_usage(f'{letter}:/')[0]/10**9
 
-def get_time():
-    """
-    Returns current time.
-    
-    Returns
-    -------
-    curr_time: str
-        Time in 'TTTT on DDMMMYYYY' format.
-        
-    """
+def get_time() -> str:
+    """Returns current time in 'TTTT on DDMMMYYYY' format."""
     import time
     time_dict = {'dotw':time.ctime().split()[0],'month':time.ctime().split()[1],'day':time.ctime().split()[2],
                  'hour_24_clock':time.ctime().split()[3].split(':')[0],'minute':time.ctime().split()[3].split(':')[1],
@@ -274,7 +202,7 @@ def get_time():
     curr_time = f'{time_dict["hour_24_clock"]}{time_dict["minute"]} on {time_dict["day"]}{time_dict["month"].upper()}{time_dict["year"][2:]}'
     return curr_time
 
-def get_time_elapsed(start_time):
+def get_time_elapsed(start_time: float) -> None:
     """
     Prints the elapsed time since the input time.
     
@@ -298,7 +226,8 @@ def get_time_elapsed(start_time):
     if t_sec == 1: sec_name = 'second'
     print(f'\nThis process took: {t_hour} {hour_name}, {t_min} {min_name}, and {t_sec} {sec_name}')
 
-def order_file_contents(file_path, numeric=False):
+def order_file_contents(file_path: str, numeric=False) -> None:
+    """Orders the contents of a file alphabetically or numerically."""
     # Read the file content
     with open(file_path, 'r') as file:
         lines = file.readlines()
@@ -315,18 +244,21 @@ def order_file_contents(file_path, numeric=False):
             file.write(f"{line}\n")
     print(f"Contents of '{file_path}' have been ordered.")
 
-def get_space_remaining(drive):
+def get_space_remaining(drive: str) -> int:
+    """Returns the remaining space on a drive in GB."""
     import shutil
     disk_obj = shutil.disk_usage(f'{drive}:/')
     gb_remaining = int(disk_obj[2]/10**9)
     return gb_remaining
 
-def get_file_size(file_with_path):
+def get_file_size(file_with_path: str) -> int:
+    """Returns the size of a file in GB."""
     import os
     if not os.path.exists(file_with_path): return 0
     return os.path.getsize(file_with_path)/10**9
 
-def write_list_to_txt_file(file_path, items, bool_append = False):
+def write_list_to_txt_file(file_path: str, items: list, bool_append: bool = False) -> None:
+    """Writes a list of items to a text file."""
     flag = 'a' if bool_append else 'w'
     with open(file_path, flag,encoding='utf-8') as file:
         for i, item in enumerate(items):
@@ -335,15 +267,18 @@ def write_list_to_txt_file(file_path, items, bool_append = False):
             else:
                 file.write(f"{item}")
 
-def read_file_as_list(file_path):
+def read_file_as_list(file_path: str) -> list:
+    """Reads a file and returns its contents as a list."""
     with open(file_path, 'r',encoding='utf-8') as file:
         lines = file.readlines()
     return [line.strip() for line in lines]
 
-def remove_empty_folders(directories):
+def remove_empty_folders(directories: list, print_line_prefix: str = "", print_header: str = "") -> None:
+    """Remove empty subdirectories from a list of directories."""
     from colorama import Fore, Back, Style
     import os
     assert isinstance(directories, list), "Input is not a list"
+    num_directories_removed = 0
     for directory in directories:
         # Walk through all subdirectories and delete any that are empty
         for root, dirs, files in os.walk(directory, topdown=False):
@@ -354,11 +289,15 @@ def remove_empty_folders(directories):
                         subdirectory_path = subdirectory_path.replace('\\','/')
                         if '/Games/' not in subdirectory_path:
                             os.rmdir(subdirectory_path)
-                            print(f"{Fore.RED}{Style.BRIGHT}Deleted empty subdirectory:{Style.RESET_ALL} {subdirectory_path}")
+                            if num_directories_removed == 0 and print_header:
+                                print(f"{print_header}")
+                            print(f"{print_line_prefix}{Fore.RED}{Style.BRIGHT}Deleted empty subdirectory:{Style.RESET_ALL} {subdirectory_path}")
+                            num_directories_removed += 1
                 except Exception as e:
                     print(f"Error: {e}")
 
-def hide_metadata(drive_config):
+def hide_metadata(drive_config: dict) -> None:
+    """Hides metadata files in the specified drives."""
     import ctypes, os, stat, win32con, win32api
     from alive_progress import alive_bar
     extensions_list = ['.jpg','.nfo','.png']
@@ -391,7 +330,8 @@ def hide_metadata(drive_config):
     else:
         print(f'No {", ".join(extensions_list)} files in any of the {len(dirs_base_all)} {"drive" if len(dirs_base_all) == 1 else "drives"}!')
 
-def rewrite_whitelists_with_year(directory_whitelist,primary_drives_dict):
+def rewrite_whitelists_with_year(directory_whitelist: str,primary_drives_dict: dict) -> None:
+    """Rewrites all whitelist files with the year in the show title."""
     import os
     filepaths_whitelists = []
     # Iterate through all files in the directory
@@ -415,7 +355,8 @@ def rewrite_whitelists_with_year(directory_whitelist,primary_drives_dict):
         whitelist_items = sorted(list(set(whitelist_items)))
         write_list_to_txt_file(filepath_whitelist,whitelist_items)
 
-def delete_metadata_wip(drive,file_extensions = ['.jpg','.nfo','.png','.jpeg','.info','.srt']):
+def delete_metadata_wip(drive: str,file_extensions: list[str] = ['.jpg','.nfo','.png','.jpeg','.info','.srt']) -> None:
+    """Deletes metadata files from a drive."""
     import os
     from alive_progress import alive_bar
     for e in file_extensions:
@@ -429,88 +370,8 @@ def delete_metadata_wip(drive,file_extensions = ['.jpg','.nfo','.png','.jpeg','.
         else:
             print(f'No {e} files in {drive} drive!')
 
-def search_for_duplicate_show_files():
-    pass
-
-def generate_ssl_key_and_cert(key_directory):
-    import os
-    from cryptography import x509
-    from cryptography.x509.oid import NameOID
-    from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import rsa
-    from cryptography.hazmat.backends import default_backend
-    from datetime import datetime, timedelta, timezone
-
-    # Generate private key
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-        backend=default_backend()
-    )
-
-    # Write private key to a file
-    filepath_keyfile = os.path.join(key_directory,"keyfile.pem").replace('\\','/')
-    with open(filepath_keyfile, "wb") as f:
-        f.write(private_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption(),
-        ))
-
-    # Subject and issuer details for the certificate
-    subject = issuer = x509.Name([
-        x509.NameAttribute(NameOID.COUNTRY_NAME, u"US"),
-        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"Georgia"),
-        x509.NameAttribute(NameOID.LOCALITY_NAME, u"Savannah"),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"Alexandria"),
-        x509.NameAttribute(NameOID.COMMON_NAME, u"www.alexandria.com"),
-    ])
-
-    # Create the certificate
-    certificate = x509.CertificateBuilder().subject_name(
-        subject
-    ).issuer_name(
-        issuer
-    ).public_key(
-        private_key.public_key()
-    ).serial_number(
-        x509.random_serial_number()
-    ).not_valid_before(
-        datetime.now(tz=timezone.utc)  # Updated for timezone-aware datetime
-    ).not_valid_after(
-        # Certificate is valid for 1 year
-        datetime.now(tz=timezone.utc) + timedelta(days=365)  # Updated for timezone-aware datetime
-    ).add_extension(
-        x509.SubjectAlternativeName([x509.DNSName(u"alexandria.com")]),
-        critical=False,
-    ).sign(private_key, hashes.SHA256(), default_backend())
-
-    # Write the certificate to a file
-    filepath_certfile = os.path.join(key_directory,"certfile.pem").replace('\\','/')
-    with open(filepath_certfile, "wb") as f:
-        f.write(certificate.public_bytes(serialization.Encoding.PEM))
-
-    print("SSL keyfile and certfile generated.")
-
-def delete_empty_dirs(root_dir, approved_extensions, dry_run=False, confirm_deletion=True):
-    """
-    Delete directories that do not contain files with approved extensions.  
-
-    Parameters:
-    ----------
-    root_dir : str
-        The root directory to start the analysis.
-    approved_extensions : list 
-        A list of approved file extensions (e.g., ['.txt', '.jpg']).
-    dry_run : bool 
-        If True, only print the directories that would be deleted.
-    confirm_deletion : bool
-        If True, ask the user to confirm each deletion.
-    
-    Returns
-    -------
-    None.
-    """
+def delete_empty_dirs(root_dir: str, approved_extensions: list, dry_run: bool = False, confirm_deletion: bool = True) -> None:
+    """Delete directories that do not contain files with approved extensions."""
     import os, shutil
     dirs_to_delete = []
     # Traverse the directory tree from the bottom up to safely remove directories
@@ -543,8 +404,8 @@ def delete_empty_dirs(root_dir, approved_extensions, dry_run=False, confirm_dele
                     break
                 print('\nInvalid response\n')
 
-
-def main():      
+def main() -> None:
+    """Main function to run the utility functions."""      
     # define paths
     import os
     src_directory = os.path.dirname(os.path.abspath(__file__))

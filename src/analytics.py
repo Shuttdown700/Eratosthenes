@@ -53,11 +53,11 @@ def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     directory_output = os.path.dirname(filepath_statistics)
     # read Alexandria Config
     movie_drives_primary = drive_config['Movies']['primary_drives']
-    movie_drives_backup = drive_config['Movies']['backup_drives']
+    movie_drives_backup = list(drive_config['Movies']['backup_drives'].keys())
     uhd_movie_drives_primary = drive_config['4K Movies']['primary_drives']
-    uhd_movie_drives_backup = drive_config['4K Movies']['backup_drives']
+    uhd_movie_drives_backup = list(drive_config['4K Movies']['backup_drives'].keys())
     anime_movie_drives_primary = drive_config['Anime Movies']['primary_drives']
-    anime_movie_drives_backup = drive_config['Anime Movies']['backup_drives']
+    anime_movie_drives_backup = list(drive_config['Anime Movies']['backup_drives'].keys())
     anime_drives_primary = drive_config['Anime']['primary_drives']
     anime_drives_backup = drive_config['Anime']['backup_drives']
     show_drives_primary = drive_config['Shows']['primary_drives']
@@ -188,12 +188,10 @@ def get_video_media_info(filepath):
     'filepath' : filepath,
     'file_size_GB': '',
     'video_codec': '',
-    'video_bitrate_Mbps': '',
     'video_minutes': '',
     'video_height': '',
     'video_width': '',
     'audio_codec': '',
-    'audio_bitrate_kbps': '',
     'audio_num_tracks': '',
     'audio_num_channels': '',
     'audio_channel_layout': '',
@@ -205,22 +203,17 @@ def get_video_media_info(filepath):
         return media_info
 
     # File size
-    file_size_GB = get_file_size(filepath)
+    file_size_GB = round(get_file_size(filepath),3)
 
     # Video stream information
     video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
     if video_stream:
         video_codec = video_stream.get('codec_name', 'N/A')
-        video_bitrate = video_stream.get('bit_rate', 'N/A')
-        try:
-            video_bitrate_Mbps = float(video_bitrate) / 10**6
-        except:
-            video_bitrate_Mbps = video_bitrate
-        video_minutes = float(video_stream.get('duration', probe['format'].get('duration', 0))) / 60
+        video_minutes = round(float(video_stream.get('duration', probe['format'].get('duration', 0))) / 60,2)
         video_height = video_stream.get('height', 'N/A')
         video_width = video_stream.get('width', 'N/A')
     else:
-        video_codec = video_bitrate = video_minutes = video_height = video_width = 'N/A'
+        video_codec = video_minutes = video_height = video_width = 'N/A'
 
     # Audio stream information
     audio_streams = [stream for stream in probe['streams'] if stream['codec_type'] == 'audio']
@@ -229,27 +222,20 @@ def get_video_media_info(filepath):
     # Assuming the first audio track to get audio properties
     if audio_num_tracks > 0:
         audio_codec = audio_streams[0].get('codec_name', 'N/A')
-        audio_bitrate = audio_streams[0].get('bit_rate', 'N/A')
-        try:
-            audio_bitrate_kbps = float(audio_bitrate) / 10**3
-        except:
-            audio_bitrate_kbps = audio_bitrate
         audio_num_channels = audio_streams[0].get('channels', 'N/A')
         audio_channel_layout = audio_streams[0].get('channel_layout', 'N/A')
     else:
-        audio_codec = audio_bitrate_kbps = audio_num_channels = audio_channel_layout = 'N/A'
+        audio_codec = audio_num_channels = audio_channel_layout = 'N/A'
 
     # Final media_info dictionary
     media_info = {
         'filepath': filepath,
         'file_size_GB': file_size_GB,
         'video_codec': video_codec.upper() if type(video_codec) is str else video_codec,
-        'video_bitrate_Mbps': video_bitrate_Mbps,
         'video_minutes': video_minutes,
         'video_height': video_height,
         'video_width': video_width,
         'audio_codec': audio_codec.upper() if type(audio_codec) is str else audio_codec,
-        'audio_bitrate_kbps': audio_bitrate_kbps,
         'audio_num_tracks': audio_num_tracks,
         'audio_num_channels': audio_num_channels,
         'audio_channel_layout': audio_channel_layout,
@@ -326,15 +312,12 @@ def update_media_file_data(drive_config,filepath_backup_surface_area,bool_print 
                                     "Size (GB)": get_file_size(filepath),
                                     "Media Type": media_type,
                                     "Series Title": filepath.split('/')[2].strip() if media_type in ['Shows','Anime'] else 'N/A',
-                                    "Drives (Letter)": [filepath[0]],
                                     "Drives (Name)": [get_drive_name(filepath[0])],
                                     "Filepath_noLetter": filepath_noLetter,
                                     "Extension": filepath_noLetter.split('.')[-1],
                                     "Video Codec": media_info['video_codec'],
                                     "Audio Codec": media_info['audio_codec'],
                                     "Length (min.)": media_info['video_minutes'],
-                                    "Video Bitrate (Mbps)": media_info['video_bitrate_Mbps'],
-                                    "Audio Bitrate (kbps)": media_info['audio_bitrate_kbps'],
                                     "Video Height": media_info['video_height'],
                                     "Video Width": media_info['video_width'],
                                     "Audio Tracks": media_info['audio_num_tracks'],
@@ -348,7 +331,6 @@ def update_media_file_data(drive_config,filepath_backup_surface_area,bool_print 
                         entry = backup_surface_area_current[media_type][title]
                         entry['Number of Copies'] = 1
                         entry['Size (GB)'] = get_file_size(filepath)
-                        entry['Drives (Letter)'] = [filepath[0]]
                         entry['Drives (Name)'] = [get_drive_name(filepath[0])]
                         media_dict[title] = entry
                 backup_surface_area.update({media_type : media_dict})
