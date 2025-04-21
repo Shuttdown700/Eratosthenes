@@ -1,5 +1,6 @@
 DEV Notes: Alexandria Media Manager
 
+- give option to remove media info for files not currently present instead of immediently removing that data
 - give option to add files to primary if they are unexpectedly found on a backup drive (currently only option is to delete off backup)
 - detect seasons that are not present on primary drives but are on backup drives (give option to add to primary or delete from backup)
 - detect when file names are the same but file extensions are different (likely because the primary file was updated)
@@ -32,3 +33,4 @@ DEV Notes: Alexandria Media Manager
 - transition to a class-based backup feature to store/update persistant data
 - movie imdb optimization if movies don't fit or to fill space (backup shows first)
 - check for .nfo or .srt files in movie dir that are not the same name as the movie file
+- analytic output that identifies what media exists on what drives, includes a timestamp

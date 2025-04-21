@@ -242,20 +242,59 @@ def order_file_contents(file_path: str, numeric=False) -> None:
     with open(file_path, 'w') as file:
         for line in lines:
             file.write(f"{line}\n")
-    print(f"Contents of '{file_path}' have been ordered.")
+    # print(f"Contents of '{file_path}' have been ordered.")
 
-def get_space_remaining(drive: str) -> int:
-    """Returns the remaining space on a drive in GB."""
+def get_space_remaining(drive: str, unit: str = "GB") -> float:
+    """
+    Returns the remaining space on a drive in the specified unit.
+    """
     import shutil
-    disk_obj = shutil.disk_usage(f'{drive}:/')
-    gb_remaining = int(disk_obj[2]/10**9)
-    return gb_remaining
+    unit = unit.upper()
+    units = {
+        'B': 1,
+        'KB': 10**3,
+        'MB': 10**6,
+        'GB': 10**9,
+        'TB': 10**12
+    }
+    if unit not in units:
+        raise ValueError(f"Invalid unit '{unit}'. Choose from {list(units.keys())}")
 
-def get_file_size(file_with_path: str) -> int:
-    """Returns the size of a file in GB."""
+    disk_obj = shutil.disk_usage(f'{drive}:/')
+    remaining = disk_obj.free / units[unit]
+    return remaining
+
+def get_file_size(file_with_path: str, unit: str = "GB") -> float:
+    """
+    Returns the size of a file in the specified unit.
+    """
     import os
-    if not os.path.exists(file_with_path): return 0
-    return os.path.getsize(file_with_path)/10**9
+    if not os.path.exists(file_with_path):
+        return 0.0
+    size_bytes = os.path.getsize(file_with_path)
+    unit = unit.upper()
+    units = {
+        'B': 1,
+        'KB': 10**3,
+        'MB': 10**6,
+        'GB': 10**9,
+        'TB': 10**12
+    }
+    if unit not in units:
+        raise ValueError(f"Invalid unit '{unit}'. Choose from {list(units.keys())}")
+    return size_bytes / units[unit]
+
+def format_file_size(size_bytes):
+    """Convert file size in bytes to a human-readable string."""
+    if size_bytes < 0:
+        raise ValueError("Size must be non-negative")
+
+    units = ['bytes', 'kB', 'MB', 'GB', 'TB']
+    index = 0
+    while size_bytes >= 1024 and index < len(units) - 1:
+        size_bytes /= 1024.0
+        index += 1
+    return f"{size_bytes:.2f} {units[index]}"
 
 def write_list_to_txt_file(file_path: str, items: list, bool_append: bool = False) -> None:
     """Writes a list of items to a text file."""
@@ -273,28 +312,54 @@ def read_file_as_list(file_path: str) -> list:
         lines = file.readlines()
     return [line.strip() for line in lines]
 
-def remove_empty_folders(directories: list, print_line_prefix: str = "", print_header: str = "") -> None:
-    """Remove empty subdirectories from a list of directories."""
-    from colorama import Fore, Back, Style
+def remove_empty_folders(
+    directories: list[str],
+    print_line_prefix: str = "",
+    print_header: str = ""
+) -> None:
+    """
+    Remove empty subdirectories from a list of directories.
+
+    Args:
+        directories (List[str]): List of directory paths to scan.
+        print_line_prefix (str, optional): Prefix for printed messages.
+        print_header (str, optional): Header to print before the first deletion message.
+
+    Raises:
+        ValueError: If 'directories' is not a list of strings.
+    """
     import os
-    assert isinstance(directories, list), "Input is not a list"
+    from pathlib import Path
+    from colorama import Fore, Style
+    # Validate input
+    if not isinstance(directories, list) or not all(isinstance(d, str) for d in directories):
+        raise ValueError("'directories' must be a list of directory paths as strings.")
+    
     num_directories_removed = 0
+
     for directory in directories:
-        # Walk through all subdirectories and delete any that are empty
-        for root, dirs, files in os.walk(directory, topdown=False):
-            for dir in dirs:
+        base_path = Path(directory)
+        if not base_path.exists() or not base_path.is_dir():
+            # print(f"{print_line_prefix}{Fore.YELLOW}Warning: Directory not found or not a directory:{Style.RESET_ALL} {directory}")
+            continue
+
+        # Walk from bottom up
+        for root, dirs, _ in os.walk(directory, topdown=False):
+            for dir_name in dirs:
                 try:
-                    subdirectory_path = os.path.join(root, dir)
-                    if not os.listdir(subdirectory_path):  # Check if the directory is empty
-                        subdirectory_path = subdirectory_path.replace('\\','/')
-                        if '/Games/' not in subdirectory_path:
-                            os.rmdir(subdirectory_path)
+                    sub_path = Path(root) / dir_name
+                    if not any(sub_path.iterdir()):  # Check if empty
+                        if '/Games/' not in str(sub_path).replace("\\", "/"):
+                            sub_path.rmdir()
                             if num_directories_removed == 0 and print_header:
-                                print(f"{print_header}")
-                            print(f"{print_line_prefix}{Fore.RED}{Style.BRIGHT}Deleted empty subdirectory:{Style.RESET_ALL} {subdirectory_path}")
+                                print(print_header)
+                            print(f"{print_line_prefix}{Fore.RED}{Style.BRIGHT}Deleted empty subdirectory:{Style.RESET_ALL} {sub_path}")
                             num_directories_removed += 1
                 except Exception as e:
-                    print(f"Error: {e}")
+                    print(f"{print_line_prefix}{Fore.YELLOW}Warning: Failed to delete {sub_path}: {e}{Style.RESET_ALL}")
+
+    if num_directories_removed == 0:
+        print(f"{print_line_prefix}{Fore.GREEN}No empty directories found.{Style.RESET_ALL}")
 
 def hide_metadata(drive_config: dict) -> None:
     """Hides metadata files in the specified drives."""

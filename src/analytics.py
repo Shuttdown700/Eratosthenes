@@ -46,6 +46,28 @@ def suggest_movie_downloads():
     write_list_to_txt_file(output_filepath,movies_suggested)
     return movies_suggested
 
+def update_movie_list(drive_config,output_directory):
+    import os
+    from utilities import get_drive_letter, read_alexandria, read_alexandria_config, write_list_to_txt_file
+    primary_drives_dict, backup_drives_dict, extensions_dict = read_alexandria_config(drive_config)
+    primary_drive_letter_dict = {}
+    for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
+    primary_parent_paths = []; primary_extensions = []
+    media_types = drive_config.keys()
+    for media_type in media_types:
+        primary_parent_paths += [f'{x}:/{media_type}' for x in primary_drive_letter_dict[media_type]]
+        for item in primary_drive_letter_dict[media_type]:
+            primary_extensions.append([x for x in extensions_dict[media_type]])
+    primary_filepaths = read_alexandria(primary_parent_paths,primary_extensions)
+    filepaths_movies = []
+    for i,f in enumerate(primary_filepaths):
+        if ':/Movies/' in f: filepaths_movies.append(f)
+        elif ':/Anime Movies/' in f: filepaths_movies.append(f)
+    filepath_movie_list = os.path.join(output_directory,'movie_list.txt')
+    movie_titles = sorted(list(set(([filepath_movie.split('/')[2].strip() for filepath_movie in filepaths_movies]))))
+    write_list_to_txt_file(filepath_movie_list, movie_titles)
+    return movie_titles
+
 def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     import json, os, shutil
     from colorama import Fore, Back, Style
@@ -109,7 +131,7 @@ def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     filepath_show_list = os.path.join(directory_output,'show_list.txt')
     write_list_to_txt_file(filepath_show_list, show_titles)
     num_shows = len(show_titles)
-    size_TB_shows = round(sum([get_file_size(filepath_tv_show) for filepath_tv_show in filepaths_tv_shows])/10**3,2)
+    size_TB_shows = round(sum([get_file_size(filepath_tv_show,"TB") for filepath_tv_show in filepaths_tv_shows]),2)
     dict_show_stats = {"Number of Shows":num_shows,"Number of Episodes":num_show_files,"Total Size":f"{size_TB_shows:,.2f} TB","Show Titles":show_titles,"Primary Filepaths":filepaths_tv_shows}
     statistics_dict["TV Shows"] = dict_show_stats
     # generate anime statistics
@@ -118,7 +140,7 @@ def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     filepath_anime_list = os.path.join(directory_output,'anime_list.txt')
     write_list_to_txt_file(filepath_anime_list, anime_titles)
     num_anime = len(anime_titles)
-    size_TB_anime = round(sum([get_file_size(filepath_anime) for filepath_anime in filepaths_anime])/10**3,2)
+    size_TB_anime = round(sum([get_file_size(filepath_anime,"TB") for filepath_anime in filepaths_anime]),2)
     dict_anime_stats = {"Number of Anime":num_anime,"Number of Episodes":num_anime_files,"Total Size":f"{size_TB_anime:,.2f} TB","Anime Titles":anime_titles,"Primary Filepaths":filepaths_anime}
     statistics_dict["Anime"] = dict_anime_stats
     # generate movie statistics
@@ -127,7 +149,7 @@ def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     filepath_movie_list = os.path.join(directory_output,'movie_list.txt')
     write_list_to_txt_file(filepath_movie_list, movie_titles)
     num_movies = len(movie_titles)
-    size_TB_movies = round(sum([get_file_size(filepath_movie) for filepath_movie in filepaths_movies])/10**3,2)
+    size_TB_movies = round(sum([get_file_size(filepath_movie,"TB") for filepath_movie in filepaths_movies]),2)
     dict_movie_stats = {"Number of Movies":num_movies,"Total Size":f"{size_TB_movies:,.2f} TB","Movie Titles":movie_titles,"Primary Filepaths":filepaths_movies}
     statistics_dict["Movies"] = dict_movie_stats
     # generate anime movie statistics
@@ -136,30 +158,30 @@ def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     filepath_anime_movie_list = os.path.join(directory_output,'anime_movie_list.txt')
     write_list_to_txt_file(filepath_anime_movie_list, anime_movie_titles)
     num_anime_movies = len(anime_movie_titles)
-    size_GB_anime_movies = round(sum([get_file_size(filepath_anime_movie) for filepath_anime_movie in filepaths_anime_movies]),2)
+    size_GB_anime_movies = round(sum([get_file_size(filepath_anime_movie,"GB") for filepath_anime_movie in filepaths_anime_movies]),2)
     dict_anime_movie_stats = {"Number of Anime Movies":num_anime_movies,"Total Size":f"{size_GB_anime_movies:,.2f} GB","Anime Movie Titles":anime_movie_titles,"Primary Filepaths":filepaths_anime_movies}
     statistics_dict["Anime Movies"] = dict_anime_movie_stats
     # generate 4K movie statistics
     num_uhd_movie_files = len(filepaths_uhd_movies)
     uhd_movie_titles = sorted(list(set(([filepath_uhd_movie.split('/')[2].strip() for filepath_uhd_movie in filepaths_uhd_movies]))))
     num_uhd_movies = len(uhd_movie_titles)
-    size_TB_uhd_movies = round(sum([get_file_size(filepath_uhd_movie) for filepath_uhd_movie in filepaths_uhd_movies])/10**3,2)
+    size_TB_uhd_movies = round(sum([get_file_size(filepath_uhd_movie,"TB") for filepath_uhd_movie in filepaths_uhd_movies]),2)
     dict_uhd_movie_stats = {"Number of 4K Movies":num_uhd_movies,"Total Size":f"{size_TB_uhd_movies:,.2f} TB","4K Movie Titles":uhd_movie_titles,"Primary Filepaths":filepaths_uhd_movies}
     statistics_dict["4K Movies"] = dict_uhd_movie_stats
     # generate book statistics
     num_book_files = len(filepaths_books)
-    size_GB_books = round(sum([get_file_size(filepath_book) for filepath_book in filepaths_books]),2)
+    size_GB_books = round(sum([get_file_size(filepath_book,"GB") for filepath_book in filepaths_books]),2)
     book_titles = sorted([os.path.splitext(os.path.basename(filepath_book))[0] for filepath_book in filepaths_books],reverse=True)
     dict_book_stats = {"Number of Books":num_book_files,"Total Size":f"{size_GB_books:,.2f} GB","Book Titles":book_titles,"Primary Filepaths":filepaths_books}
     statistics_dict["Books"] = dict_book_stats
     # generate music statistics
     num_music_files = len(filepaths_music)
-    size_GB_music = round(sum([get_file_size(filepath_music) for filepath_music in filepaths_music]),2)
+    size_GB_music = round(sum([get_file_size(filepath_music,"GB") for filepath_music in filepaths_music]),2)
     dict_music_stats = {"Number of Songs":num_music_files,"Total Size":f"{size_GB_music:,.2f} GB","Primary Filepaths":filepaths_music}
     statistics_dict["Music"] = dict_music_stats
     # generate course statistics
     num_course_files = len(filepaths_courses)
-    size_GB_courses = round(sum([get_file_size(filepath_course) for filepath_course in filepaths_courses]),2)
+    size_GB_courses = round(sum([get_file_size(filepath_course,"GB") for filepath_course in filepaths_courses]),2)
     dict_course_stats = {"Number of Course Videos":num_course_files,"Total Size":f"{size_GB_courses:,.2f} GB","Primary Filepaths":filepaths_courses}
     statistics_dict["Courses"] = dict_course_stats
     # aggregate statistics
@@ -178,10 +200,16 @@ def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
 
 def get_video_media_info(filepath):
     import ffmpeg, os, sys
-    RESET = "\033[0m"
-    RED = "\033[31m"
+    from colorama import Fore, Style
+    RESET = Style.RESET_ALL
+    BRIGHT = Style.BRIGHT
+    RED = Fore.RED
+    YELLOW = Fore.YELLOW
+    GREEN = Fore.GREEN
+
     src_directory = os.path.dirname(os.path.abspath(__file__))
     filepath_ffprobe = os.path.join(src_directory,'bin','ffprobe.exe')
+
     from utilities import get_file_size
     if not os.path.exists(filepath): raise FileNotFoundError(f"The file at {filepath} does not exist or is not accessible.")
     media_info = {
@@ -203,7 +231,7 @@ def get_video_media_info(filepath):
         return media_info
 
     # File size
-    file_size_GB = round(get_file_size(filepath),3)
+    file_size_GB = round(get_file_size(filepath,"GB"),3)
 
     # Video stream information
     video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
@@ -240,7 +268,7 @@ def get_video_media_info(filepath):
         'audio_num_channels': audio_num_channels,
         'audio_channel_layout': audio_channel_layout,
     }
-    print(media_info)
+    print(f'{GREEN}{BRIGHT}Downloading media info{RESET} for: {YELLOW}{BRIGHT}{os.path.splitext(os.path.basename(filepath))[0]}{RESET}')
     return media_info
 
 def update_media_file_data(drive_config,filepath_backup_surface_area,bool_print = False, overwrite_media_data=False):
@@ -299,7 +327,6 @@ def update_media_file_data(drive_config,filepath_backup_surface_area,bool_print 
                 if title in media_dict:
                     if bool_print: print(f'{YELLOW}Backup copy:{RESET} {title}')
                     media_dict[title]["Number of Copies"] += 1
-                    media_dict[title]["Drives (Letter)"].append(filepath[0]) 
                     media_dict[title]["Drives (Name)"].append(get_drive_name(filepath[0]))
                 else:
                     if overwrite_media_data or title not in backup_surface_area_current[media_type].keys():
@@ -309,7 +336,7 @@ def update_media_file_data(drive_config,filepath_backup_surface_area,bool_print 
                             {
                                 title: {
                                     "Number of Copies":1,
-                                    "Size (GB)": get_file_size(filepath),
+                                    "Size (GB)": get_file_size(filepath,"GB"),
                                     "Media Type": media_type,
                                     "Series Title": filepath.split('/')[2].strip() if media_type in ['Shows','Anime'] else 'N/A',
                                     "Drives (Name)": [get_drive_name(filepath[0])],
@@ -330,9 +357,10 @@ def update_media_file_data(drive_config,filepath_backup_surface_area,bool_print 
                         if bool_print: print(f'{GREEN}Medio info already exisits:{RESET} {title}')
                         entry = backup_surface_area_current[media_type][title]
                         entry['Number of Copies'] = 1
-                        entry['Size (GB)'] = get_file_size(filepath)
+                        entry['Size (GB)'] = get_file_size(filepath,"GB")
                         entry['Drives (Name)'] = [get_drive_name(filepath[0])]
                         media_dict[title] = entry
+                media_dict[title]["Drives (Name)"] = sorted(set(media_dict[title]["Drives (Name)"]))
                 backup_surface_area.update({media_type : media_dict})
     except Exception as e:
         print(f'{RED}Error:{RESET} {e}')
@@ -385,8 +413,8 @@ def read_media_statistics(filepath_statistics,bool_update=False,bool_print=True)
 def get_show_size(show_title_with_year, filepath_alexandria_media_details):
     from utilities import read_json
     data = read_json(filepath_alexandria_media_details)
-    show_data = data['Anime']
-    show_data.update(data['Shows'])
+    show_data = data['Shows']
+    show_data.update(data['Anime'])
     size_GB = 0
     for val in show_data.values():
         if val['Media Type'] in ['Shows','Anime']:
@@ -530,13 +558,18 @@ def main():
     for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
     for key,value in backup_drives_dict.items(): backup_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
     api_handler = API()
-    movie_titles_with_year = update_movie_list(primary_drive_letter_dict)
+    movie_titles_with_year = update_movie_list(drive_config,output_directory)
     api_handler.tmdb_movies_fetch()
     # update_server_statistics(drive_config,filepath_statistics)
-    update_media_file_data(drive_config,filepath_alexandria_media_details,bool_print=True)
+    # update_media_file_data(drive_config,filepath_alexandria_media_details,bool_print=True)
     # movies_suggested = suggest_movie_downloads()
     # data_media_statistics = read_media_statistics(filepath_statistics)
     # read_media_file_data(filepath_alexandria_media_details)
 
 if __name__ == '__main__':
     main()
+
+
+"""
+Check to ensure files in media stats still exisits and delete those not in primary drives anymore
+"""

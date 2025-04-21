@@ -4,11 +4,19 @@ class API(object):
     def __init__(self):
         from utilities import read_json
         self.src_directory = os.path.dirname(os.path.abspath(__file__))
-        self.filepath_movie_list = ("\\".join(self.src_directory.split('\\')[:-1])+"/output/").replace('\\','/')+'movie_list.txt'
-        self.filepath_tmdb_csv = ("\\".join(self.src_directory.split('\\')[:-1])+"/output/").replace('\\','/')+'tmdb.csv'
-        self.filepath_tmdb_top_rated_csv = ("\\".join(self.src_directory.split('\\')[:-1])+"/output/").replace('\\','/')+'tmdb_top_rated.csv'
-        self.filepath_movie_list_tmdb_not_found = ("\\".join(self.src_directory.split('\\')[:-1])+"/output/").replace('\\','/')+'movie_list_tdmb_not_found.txt'
-        self.filepath_api_config = (self.src_directory+"/config/api.config").replace('\\','/')
+        self.root_directory = os.path.abspath(os.path.join(self.src_directory, ".."))
+        self.output_directory = os.path.join(self.root_directory,"output")
+        self.filepath_movie_list = os.path.join(self.output_directory,'movie_list.txt')
+        self.filepath_tmdb_csv = os.path.join(self.output_directory,'tmdb.csv')
+        self.filepath_tmdb_top_rated_current_csv = os.path.join(self.output_directory,'tmdb_top_rated_existing.csv')
+        self.filepath_tmdb_top_rated_missing_csv = os.path.join(self.output_directory,'tmdb_top_rated_missing.csv')
+        self.filepath_tmdb_recent_current_csv = os.path.join(self.output_directory,'tmdb_recent_existing.csv')
+        self.filepath_tmdb_recent_missing_csv = os.path.join(self.output_directory,'tmdb_recent_missing.csv')
+        self.filepath_movie_list_tmdb_not_found = os.path.join(self.output_directory,'movie_list_tdmb_not_found.txt')
+        self.filepath_api_config = os.path.join(self.src_directory,"config","api.config")
+        self.filepath_movie_tmdb_ids = os.path.join(self.output_directory,"movie_tmdb_ids.json")
+        self.drive_hieracrchy_filepath = os.path.join(self.src_directory,"config","alexandria_drives.config")
+        self.drive_config = read_json(self.drive_hieracrchy_filepath)
         self.api_config = read_json(self.filepath_api_config)
         self.tmdb_api_url_base_search = self.api_config['tmdb']['api_url_base_search']
         self.tmdb_api_url_base_query = self.api_config['tmdb']['api_url_base_query']
@@ -21,20 +29,27 @@ class API(object):
             "Authorization": f"Bearer {self.tmdb_api_key}"
             }
         self.tvdb_api_key = self.api_config['tvdb']['api_key']
-        
+
     def tmdb_movies_fetch(self):
-        import requests
+        import json, requests
+        from analytics import update_movie_list
         from colorama import Fore, Back, Style
-        from utilities import read_csv, read_file_as_list, write_list_to_txt_file, write_to_csv
-        # read current movie list
-        movie_list = read_file_as_list(self.filepath_movie_list)
+        from utilities import read_csv, read_json, write_list_to_txt_file, write_to_csv
+        # update movie list
+        movie_list = update_movie_list(self.drive_config,self.output_directory)
         # read current movies in local tmdb database
         tmbd_current_movies = [x['Title_Alexandria'] for x in read_csv(self.filepath_tmdb_csv)]
         # generate list of movies to query
         movie_list_adjusted = [movie for movie in movie_list if movie not in tmbd_current_movies]
         # define csv header and existing data
-        csv_headers = ['Title_Alexandria','Title_TMDb','Release_Date','Release_Year','Runtime_Min','Runtime_Hrs','Rating','Budget','Revenue','Genres','Production_Companies','Overview','TMDb_ID','IMDb_ID']
-        csv_rows = [list(x.values()) for x in read_csv(self.filepath_tmdb_csv)]
+        csv_headers = ['Title_Alexandria','Title_TMDb','Release_Date','Release_Year','Parental Rating','Runtime_Min','Runtime_Hrs','Rating','Budget','Revenue','Genres','Production_Companies','Overview','TMDb_ID','IMDb_ID']
+        csv_rows = [list(x.values()) for x in read_csv(self.filepath_tmdb_csv) if x['Title_Alexandria'] in movie_list]
+        if os.path.exists(self.filepath_movie_tmdb_ids):
+            movie_tmdb_ids = read_json(self.filepath_movie_tmdb_ids)
+            current_movie_id_titles = list(movie_tmdb_ids.keys())
+        else:
+            movie_tmdb_ids = {}
+            current_movie_id_titles = []
         movie_list_bypass_list = ['Louis C.K. at the Dolby (2023)']
         movie_list_not_found = []
         for movie_with_year in movie_list_adjusted:
@@ -42,14 +57,21 @@ class API(object):
             print(f'{Fore.GREEN}{Style.BRIGHT}Downloading data{Style.RESET_ALL} for {Fore.BLUE}{Style.BRIGHT}{movie_with_year}{Style.RESET_ALL}')
             movie = '('.join(movie_with_year.split('(')[:-1])
             year = movie_with_year.split('(')[-1].split(')')[0]
-            params_tmdb_movie_query = {
-                'query': movie,
-                'include_adult': 'false',
-                'language': 'en-US',
-                'page': '1',
-                'primary_release_year': year
-            }
-            response_search = requests.get(self.tmdb_api_url_base_search, params=params_tmdb_movie_query, headers=self.headers_tmdb)
+            if movie_with_year not in current_movie_id_titles:
+                params_tmdb_movie_query = {
+                    'query': movie,
+                    'include_adult': 'false',
+                    'language': 'en-US',
+                    'page': '1',
+                    'primary_release_year': year
+                }
+                response_search = requests.get(self.tmdb_api_url_base_search, params=params_tmdb_movie_query, headers=self.headers_tmdb)
+            else:
+                params_tmdb_movie_query = {
+                    'language': 'en-US'
+                }
+                url = self.tmdb_api_url_base_query+str(movie_tmdb_ids[movie_with_year])+"?"
+                response_search = requests.get(url, params=params_tmdb_movie_query, headers=self.headers_tmdb)
             if response_search.status_code == 200:
                 data_search = response_search.json()
                 try:
@@ -58,6 +80,8 @@ class API(object):
                     print(f'{Fore.RED}{Style.BRIGHT}Error{Style.RESET_ALL} with {Fore.BLUE}{Style.BRIGHT}{movie_with_year}{Style.RESET_ALL}')
                     movie_list_not_found.append(movie_with_year)
                     continue
+                except KeyError:
+                    id_tmdb = data_search['id']
                 url_query = f"{self.tmdb_api_url_base_query}{id_tmdb}?language=en-US"
                 response_query = requests.get(url_query, headers=self.headers_tmdb)
                 if response_query.status_code == 200:
@@ -66,6 +90,7 @@ class API(object):
                     movie_data_title_tmdb = data_query['title']
                     movie_data_release_date = data_query['release_date'] # YYYY-MM-DD
                     movie_data_release_year = movie_data_release_date.split('-')[0]
+                    movie_data_rating_certification = self._fetch_parental_rating(id_tmdb).strip()
                     movie_data_runtime_min = data_query['runtime']
                     movie_data_runtime_hrs = f'{movie_data_runtime_min/60:.2f}'
                     movie_data_rating = data_query['vote_average']
@@ -77,20 +102,36 @@ class API(object):
                     movie_data_production_companies = [x['name'] for x in data_query['production_companies']]
                     movie_data_overview = data_query['overview']
                     csv_row = [movie_data_title_alexandria,movie_data_title_tmdb,movie_data_release_date,movie_data_release_year,
-                            movie_data_runtime_min,movie_data_runtime_hrs,movie_data_rating,
+                            movie_data_rating_certification, movie_data_runtime_min,movie_data_runtime_hrs,movie_data_rating,
                             movie_data_budget,movie_data_revenue,movie_data_genres,movie_data_production_companies,
                             movie_data_overview,movie_data_tmdb_id,movie_data_imdb_id]
                     csv_rows.append(csv_row)
         csv_rows = sorted(csv_rows, key= lambda x: x[0], reverse=False)
+        for row in csv_rows: 
+            if row[0] not in current_movie_id_titles and len(row) > 10:
+                movie_tmdb_ids[row[0]] = str(row[-2])
         if csv_rows != [list(x.values()) for x in read_csv(self.filepath_tmdb_csv)]: write_to_csv(self.filepath_tmdb_csv,csv_rows,csv_headers)
+        movie_tmdb_ids = dict(sorted(movie_tmdb_ids.items()))
+        with open(self.filepath_movie_tmdb_ids, 'w') as json_file:
+            json.dump(movie_tmdb_ids, json_file, indent=4)
+        print(f'{Fore.GREEN}{Style.BRIGHT}TMDb Movie data refreshed{Style.RESET_ALL}')
         # write_list_to_txt_file(self.filepath_movie_list_tmdb_not_found, movie_list_not_found, bool_append=False)
 
-    def tmdb_movies_pull_popular(self):
+    def tmdb_movies_pull_catalog(self,min_votes=200):
+
+        """
+        Add discriminator the saves files that I have in a different file than those that I don't have. Also, change file names. 
+        """
+        from colorama import Fore, Style
+        import requests
+        from utilities import read_csv
+        tmdb_csv = read_csv(self.filepath_tmdb_csv)
+        current_tmdb_titles_with_year = [x["Title_TMDb"]+f' ({x["Release_Year"]})' for x in tmdb_csv]
         csv_headers = ['Title_TMDb','Release_Date','Release_Year','Rating','Overview','TMDb_ID']
         csv_rows = []
         pages_min = 1; pages_max = 628
         for num_page in range(pages_min,pages_max+1):
-            print(f'Searching for movies in {Fore.RED}{Style.BRIGHT}Page {num_page}{Style.RESET_ALL}')
+            print(f'{Fore.GREEN}{Style.BRIGHT}Searching for movies{Style.RESET_ALL} in {Fore.YELLOW}{Style.BRIGHT}Page {num_page}{Style.RESET_ALL}')
             params_tmdb_movie_discover = {
                 'include_adult': 'false',
                 'include_video': 'false',
@@ -98,14 +139,14 @@ class API(object):
                 'page': num_page,
                 'sort_by': 'vote_average.desc',
                 'without_genres': '99,10755',
-                'vote_count.gte': '200'
+                'vote_count.gte': min_votes
             }
             response_search = requests.get(self.tmdb_api_url_base_discover, params=params_tmdb_movie_discover, headers=self.headers_tmdb)
             if response_search.status_code == 200:
                 results = response_search.json()['results']
                 for result in results:
                     if result['original_language'] == 'en':
-                        print(f'Storing {Fore.BLUE}{Style.BRIGHT}{result['title']}{Style.RESET_ALL}')
+                        print(f'{Fore.GREEN}{Style.BRIGHT}Storing: {Fore.BLUE}{Style.BRIGHT}{result['title']}{Style.RESET_ALL}')
                         movie_data_title_tmdb = result['title']
                         movie_data_release_date = result['release_date'] # YYYY-MM-DD
                         movie_data_release_year = result['release_date'].split('-')[0]
@@ -115,7 +156,21 @@ class API(object):
                         csv_row = [movie_data_title_tmdb,movie_data_release_date,movie_data_release_year,
                                 movie_data_rating,movie_data_overview,movie_data_tmdb_id]
                         csv_rows.append(csv_row)
-        write_to_csv(self.filepath_tmdb_top_rated_csv,csv_rows,csv_headers)
+        pulled_tmdb_titles_with_year = [f"{x[0]} ({x[2]})" for x in csv_rows]
+        existing_title_csv_rows = []; missing_title_csv_rows = []
+        for i,pttwy in enumerate(pulled_tmdb_titles_with_year):
+            if pttwy in current_tmdb_titles_with_year:
+                existing_title_csv_rows.append(csv_rows[i])
+            else:
+                missing_title_csv_rows.append(csv_rows[i])
+        existing_top_rated_csv_rows = sorted(existing_title_csv_rows, key=lambda x: x[3],reverse=True)
+        write_to_csv(self.filepath_tmdb_top_rated_current_csv,existing_top_rated_csv_rows,csv_headers)
+        missing_top_rated_csv_rows = sorted(missing_title_csv_rows, key=lambda x: x[3],reverse=True)
+        write_to_csv(self.filepath_tmdb_top_rated_missing_csv,missing_top_rated_csv_rows,csv_headers)
+        existing_recent_csv_rows = sorted(existing_title_csv_rows, key=lambda x: x[1],reverse=True)
+        write_to_csv(self.filepath_tmdb_recent_current_csv,existing_recent_csv_rows,csv_headers)
+        missing_recent_csv_rows = sorted(missing_title_csv_rows, key=lambda x: x[1],reverse=True)
+        write_to_csv(self.filepath_tmdb_recent_missing_csv,missing_recent_csv_rows,csv_headers)        
     
     def tvdb_show_fetch_ids(self,titles : list, filepath_series_ids = ''):
         import tvdb_v4_official
@@ -281,11 +336,55 @@ class API(object):
         else:
             print(f"Error: {response.status_code} - {response.text}")
 
+    def _fetch_parental_rating(self,tmdb_id):
+        import requests
+        from utilities import read_json
+        tmdb_api_key = self.tmdb_api_key
+        # url = f"https://api.themoviedb.org/3/tv/{tmdb_id}/content_ratings"
+        url = f'https://api.themoviedb.org/3/movie/{tmdb_id}/release_dates'
+        headers = {
+            "accept": "application/json",
+            "Authorization": f"Bearer {tmdb_api_key}"
+        }
+        preferred_countries = ['US', 'CA', 'GB', 'FR', 'GR', 'ES', 'DE', 'CH', 'JP']
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
+            data = response.json()
+
+            ratings = data.get('results', [])
+            if not ratings:
+                print("No parental ratings found.")
+                return None
+
+            # Try preferred countries first
+            for country in preferred_countries:
+                for rating in ratings:
+                    if rating.get('iso_3166_1') == country:
+                        rating_certification = rating.get('release_dates')[0]['certification']
+                        if rating_certification != '' and rating_certification != 'NR':
+                            print(f"Parental rating for TMDb ID {tmdb_id}: {rating_certification} ({country})")
+                            return rating_certification
+
+            # Fallback to any available rating if preferred countries not found
+            first_certification = ratings[0].get('release_dates')[0]['certification']
+            if first_certification != '':
+                print(f"FALLBACK: Parental rating for TMDb ID {tmdb_id}: {first_certification} ({ratings[0].get('iso_3166_1')})")
+                return first_certification
+            else:
+                print(f"Parental rating for TMDb ID {tmdb_id}: NR (No certification available)")
+                return 'NR'
+
+        except requests.RequestException as e:
+            print(f"Request failed: {e}")
+        except ValueError:
+            print("Failed to decode JSON from response.")
+        return None
+
 import os
 if __name__ == '__main__':
     # import libraries
     import json, requests
-    from analytics import update_movie_list
     from colorama import Fore, Back, Style
     from utilities import get_drive_letter, read_json
     # import utility methods
@@ -299,7 +398,6 @@ if __name__ == '__main__':
     primary_drives_dict, backup_drives_dict, extensions_dict = read_alexandria_config(drive_config)
     primary_drive_letter_dict = {}; backup_drive_letter_dict = {}
     for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
-    update_movie_list(primary_drive_letter_dict)
     media_statistics = read_json(filepath_statistics)
     list_tv_shows = media_statistics["TV Shows"]["Show Titles"]
     list_anime = media_statistics["Anime"]["Anime Titles"]
@@ -312,3 +410,4 @@ if __name__ == '__main__':
     # api_handler.tmdb_movies_pull_popular()
     # api_handler.tvdb_fetch_all_series_info(series_ids)
     # api_handler.tvdb_show_fetch_info(series_ids[0])
+    # api_handler._fetch_parental_rating(4951)

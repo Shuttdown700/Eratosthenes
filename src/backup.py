@@ -10,16 +10,15 @@ libraries = [['colorama',['Fore','Back','Style']],
 from utilities import import_libraries
 import_libraries(libraries)
 
-from colorama import Fore, Back, Style
 import datetime
 import os
 import shutil
 from typing import List, Tuple
 
-from utilities import files_are_identical, read_alexandria, read_alexandria_config, read_csv, read_json
+from utilities import files_are_identical, read_alexandria, read_alexandria_config, read_csv
 from utilities import get_drive_letter, get_drive_name, get_file_size, get_space_remaining, remove_empty_folders
 
-
+from colorama import Fore, Back, Style
 RED = Fore.RED
 YELLOW = Fore.YELLOW
 GREEN = Fore.GREEN
@@ -29,7 +28,7 @@ RESET = Style.RESET_ALL
 BRIGHT = Style.BRIGHT
 
 class Backup:
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Backup class and set up essential attributes."""
         from analytics import read_media_statistics, read_media_file_data
         from utilities import get_drive_name, read_alexandria_config, read_json
@@ -49,6 +48,7 @@ class Backup:
             self.primary_drives_letter_dict[key] = [get_drive_letter(name) for name in val]
         for key, val in self.backup_drives_name_dict.items():
             self.backup_drives_letter_dict[key] = [get_drive_letter(name) for name in val if get_drive_letter(name) != '']
+        
         # Drive letters and names
         self.primary_drive_letters = []
         for val in self.primary_drives_letter_dict.values():
@@ -66,16 +66,9 @@ class Backup:
         self.primary_filepaths_dict = {}
         self.drive_stats_dict = {}
 
-    def backup_output_files(self):
-        """
-        Backs up all files from the specified output directory to a dated backup folder.
-
-        Args:
-            output_dir (str): The directory containing files to back up.
-
-        Returns:
-            None
-        """
+    def backup_output_files(self) -> None:
+        from utilities import order_file_contents
+        """Backs up all files in the output directory to a dated backup folder."""
         try:
             # Define the backup directory path with current date
             current_date = datetime.datetime.now().strftime('%Y%m%d')
@@ -88,7 +81,7 @@ class Backup:
             for idx,filename in enumerate(os.listdir(self.output_directory)):
                 if idx == 0: print('')
                 file_path = os.path.join(self.output_directory, filename)
-
+                # if 'list' in file_path and '.txt' in file_path: order_file_contents(file_path)
                 # Skip directories, process only files
                 if os.path.isfile(file_path):
                     # Generate the backup file name
@@ -98,13 +91,13 @@ class Backup:
                     # Copy the file to the backup directory with the new name
                     shutil.copy2(file_path, backup_file_path)
 
-                    print(f"{GREEN}Output file backed up: {RESET}{"/".join('.','output','backups',current_date,filename)}")
+                    print(f"{GREEN}Output file backed up: {RESET}{"/".join(['.','output','backups',current_date,filename])}")
 
         except Exception as e:
             print(f"Error during backup: {e}")
 
-    def apply_movie_backup_filters(self, media_type: str, backup_candidate_tuples: list[tuple[str,str]]) -> list[tuple[str,str]]:
-        """Filter movie backups using IMDb rating and blocked keywords."""
+    def apply_movie_backup_filters(self, media_type: str, backup_candidate_tuples: list[tuple[str,str]]) -> list[tuple[str,str]]: 
+        """Filter movie backups using ratings, blocked keywords, file sizes, tmdb data."""
         import ast
 
         if not backup_candidate_tuples or len(backup_candidate_tuples) == 0:
@@ -156,6 +149,8 @@ class Backup:
         # Process each candidate backup tuple (primary source, backup destination)
         for backup_candidate_tuple in backup_candidate_tuples:
             filepath_primary = backup_candidate_tuple[0]
+            if 'featurettes' in os.path.dirname(filepath_primary).lower():
+                continue
             filepath_backup_candidate = backup_candidate_tuple[1]
             movie_with_year = os.path.splitext(os.path.basename(filepath_primary))[0]
             backup_drive_letter = filepath_backup_candidate[0]
@@ -178,13 +173,13 @@ class Backup:
                     else:
                         backup_filepaths_blocked.append(filepath_backup_candidate)
                         num_blocked_by_lack_of_tmbd_data += 1
-                    print(f'\t{RED}{BRIGHT}[ALERT] {RESET}No TMDb data for: {movie_with_year}')
+                    print(f'\t{RED}{BRIGHT}[ALERT] {RESET}No (or invalid) TMDb data for: {movie_with_year}')
                 else:
                     backup_tuple_accepted.append(backup_candidate_tuple)
                 continue
 
             # Check file size
-            if get_file_size(filepath_primary) > float(file_size_max_GB[backup_drive_letter]):
+            if get_file_size(filepath_primary,"GB") > float(file_size_max_GB[backup_drive_letter]):
                 if os.path.isfile(filepath_backup_candidate):
                     backup_filepaths_revoked.append(filepath_backup_candidate)
                     num_revoked_by_file_size += 1
@@ -223,7 +218,7 @@ class Backup:
 
         return backup_tuple_accepted
 
-    def apply_show_backup_filters(self, media_type: str, backup_filepaths: list):
+    def apply_show_backup_filters(self, media_type: str, backup_filepaths: list) -> list:
         """
         Filters show backup file paths based on whitelist and blocked keywords.
 
@@ -245,7 +240,7 @@ class Backup:
         -----
         The function reads whitelists for each backup drive to filter file paths.
         """
-        from utilities import get_drive_name, read_file_as_list
+        from utilities import get_drive_name, read_file_as_list, order_file_contents
         # Return immediately if no file paths are provided
         if not backup_filepaths:
             return backup_filepaths
@@ -269,6 +264,7 @@ class Backup:
                 src_directory, "config", "show_whitelists",
                 f"{get_drive_name(drive_letter).replace(' ', '_')}_whitelist.txt"
             ).replace("\\", "/")
+            order_file_contents(whitelist_path)
             drive_whitelists[drive_letter] = read_file_as_list(whitelist_path)
 
         # Process each file path
@@ -303,23 +299,7 @@ class Backup:
         return adjusted_filepaths
 
     def remove_revoked_files(self, filepaths_backup_revoked: list) -> int:
-        """
-        Removes excess files from backup drives.
-
-        Parameters
-        ----------
-        filepaths_backup_excess : list
-            List of excess file paths to be removed.
-        updated_block_list : bool, optional
-            Indicates if the files are blocked by backup config settings. Default is False.
-        non_configured_backup : bool, optional
-            Indicates if the files are not expected to be backed up on this drive. Default is False.
-
-        Returns
-        -------
-        int
-            Number of files successfully deleted.
-        """
+        """Removes excess files from backup drives."""
         from utilities import get_file_size
         num_files_deleted = 0
         total_size_gb = 0
@@ -333,15 +313,15 @@ class Backup:
 
         for idx, filepath in enumerate(filepaths_backup_revoked):
             if idx == 0: print('\n')
-            print(F'\t{RED}{BRIGHT} [ALERT] Revoked Backup File: {RESET} {filepath}')
-            total_size_gb += get_file_size(filepath)
+            print(F'\t{RED}{BRIGHT}[ALERT] Revoked Backup File: {RESET} {filepath}')
+            total_size_gb += get_file_size(filepath,"GB")
 
         # User confirmation
         confirmation_message = (
             f'\n\tDo you want to {RED}{BRIGHT}delete{RESET} these {len(filepaths_backup_revoked):,} revoked backup files'
             f'({int(total_size_gb):,} GB)? [Y/N] '
             if len(filepaths_backup_revoked) > 1
-            else '\n\tDo you want to {RED}{BRIGHT}delete{RESET} this revoked backup file? [Y/N] '
+            else f'\n\tDo you want to {RED}{BRIGHT}delete{RESET} this revoked backup file? [Y/N] '
         )
 
         user_input = input(confirmation_message).strip().lower()
@@ -362,36 +342,20 @@ class Backup:
         return num_files_deleted
 
     def backup_integrity(self, existing_backup_tuples: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
-        """
-        Checks the integrity of existing backups by comparing primary and backup files.
-
-        Parameters
-        ----------
-        existing_backup_tuples : list
-            List of tuples containing primary and backup file paths. 
-            Format: [(primary, backup), (primary, backup), ...]
-
-        Returns
-        -------
-        modified_files : list
-            List of tuples where the backup files are outdated compared to the primary files. 
-            Format: [(primary, backup), (primary, backup), ...]
-        """
-        modified_files = []
-
-        for primary_path, backup_path in existing_backup_tuples:
+        """Identifies and returns backup files that do not match the primary file."""
+        modified_backup_filepath_tuples = []
+        for primary_filepath, backup_filepath in existing_backup_tuples:
             try:
                 # Skip if either the primary or backup file is missing
-                if not os.path.isfile(primary_path) or not os.path.isfile(backup_path):
+                if not os.path.isfile(primary_filepath) or not os.path.isfile(backup_filepath):
                     continue
 
                 # Check if files are not identical
-                if not files_are_identical(primary_path, backup_path):
-                    modified_files.append((primary_path, backup_path))
+                if not files_are_identical(primary_filepath, backup_filepath):
+                    modified_backup_filepath_tuples.append((primary_filepath, backup_filepath))
             except Exception as e:
-                print(f"Error processing {primary_path} and {backup_path}: {e}")
-
-        return modified_files
+                print(f"Error processing {primary_filepath} and {backup_filepath}: {e}")
+        return modified_backup_filepath_tuples
 
     def backup_mapper(self,media_type: str, drive_backup_letter: str, primary_filepaths_dict: dict, bool_recursive: bool=False) -> Tuple[list, list, list, list]:
         """Maps and filters backup files for a given media type and drive."""
@@ -455,24 +419,8 @@ class Backup:
 
         return tuple_filepaths_missing, tuple_filepaths_modified, filepaths_backup_current, filepaths_backup_excess
 
-    def assess_backup_feasibility(self, missing_filepaths, modified_filepaths):
-        """
-        Determine the feasibility of a backup by calculating required and remaining space.
-
-        Parameters
-        ----------
-        missing_filepaths : list
-            List of missing file tuples. Format: [(primary, backup), (primary, backup), ...]
-        modified_filepaths : list
-            List of modified file tuples. Format: [(primary, backup), (primary, backup), ...]
-
-        Returns
-        -------
-        required_space : float
-            Total space (in GB) required for the backup.
-        remaining_space : float
-            Total remaining space (in GB) across the backup drives.
-        """
+    def assess_backup_feasibility(self, missing_filepaths: list, modified_filepaths: list) -> Tuple[float, float]:
+        """Determine the feasibility of a backup by calculating required and remaining space."""
         # Import any necessary utilities
         import os
         from utilities import get_space_remaining, get_file_size
@@ -482,15 +430,15 @@ class Backup:
                             [filepair[1][0] for filepair in modified_filepaths])
 
         # Calculate total remaining space across all drives
-        remaining_space = sum(get_space_remaining(drive) for drive in backup_drives)
+        remaining_space = sum(get_space_remaining(drive,"GB") for drive in backup_drives)
 
         # Calculate required backup space
-        required_space = sum(get_file_size(filepair[0]) for filepair in missing_filepaths)
+        required_space = sum(get_file_size(filepair[0],"GB") for filepair in missing_filepaths)
 
         # Adjust for modified files (add new versions and subtract old ones)
         for primary, backup in modified_filepaths:
-            required_space += get_file_size(primary)
-            remaining_space += get_file_size(backup)  # Reclaim space from the old backup version
+            required_space += get_file_size(primary,"GB")
+            remaining_space += get_file_size(backup,"GB")  # Reclaim space from the old backup version
 
         return required_space, remaining_space
 
@@ -513,8 +461,8 @@ class Backup:
         from utilities import get_file_size, get_space_remaining, get_drive_name
         # Process backup tuples
         if backup_tuples:
-            total_backup_size = sum(get_file_size(src) for src, _ in backup_tuples)
-            remaining_space = get_space_remaining(backup_tuples[0][1][0]) - total_backup_size
+            total_backup_size = sum(get_file_size(src,"GB") for src, _ in backup_tuples)
+            remaining_space = get_space_remaining(backup_tuples[0][1][0],"GB") - total_backup_size
             print(
                 f"\n\tBacking up {RED}{len(backup_tuples):,} file(s){RESET} "
                 f"({YELLOW}{int(total_backup_size):,} GB{RESET}, "
@@ -527,14 +475,21 @@ class Backup:
             print(f"\nUpdating {RED}{len(modified_tuples):,} file(s){RESET}:")
             self._process_file_pairs(modified_tuples, action="Updating")
 
-    def main(self):
+    def main(self) -> None:
         import os
         from analytics import read_media_statistics, read_media_file_data
+        from api import API
 
         print(f'\n{"#" * 10}\n\n{MAGENTA}{BRIGHT}Initiating Alexandria Backup...{RESET}\n\n{"#" * 10}')
-
         # Back up output files
         self.backup_output_files()
+
+        # Update TMDb data
+        api = API()
+        print(f'\n{"#" * 10}\n')
+        print(f"{YELLOW}{BRIGHT}Refreshing{RESET} TMDb Movie Data\n")
+        api.tmdb_movies_fetch()
+        print(f'\n{"#" * 10}\n')
 
         # Iterate through all backup drives
         for drive_backup_letter in self.all_drive_letters:
@@ -617,7 +572,11 @@ class Backup:
             self.backup_function(missing, modified)
 
         # Remove empty sub-directories
-        remove_empty_folders(primary_parent_paths + [f'{drive_backup_letter}:/{media_type}'], print_line_prefix="\t", print_header="\n")
+        directories = primary_parent_paths
+        directories += [os.path.join(f'{p}:/', m) for p in drive_backup_letter for m in self.media_types]
+        # directories.append(f'{drive_backup_letter}:/')
+        directories = list(dict.fromkeys(directories))
+        remove_empty_folders(directories, print_line_prefix="\t", print_header="\n")
 
     def _is_drive_associated_with_media_type(self, media_type: str, drive_backup_letter: str) -> bool:
         """Check if a backup drive is associated with the given media type."""
@@ -626,7 +585,7 @@ class Backup:
             or drive_backup_letter in self.primary_drives_letter_dict[media_type]
         )
 
-    def _handle_undirected_backups(self, media_type: str, drive_backup_letter: str):
+    def _handle_undirected_backups(self, media_type: str, drive_backup_letter: str) -> None:
         """Handle undirected backups for drives that are not explicitly associated with a media type."""
         root_path = f'{drive_backup_letter}:/{media_type}'
         undirected_files = read_alexandria([root_path], self.extensions_dict[media_type])
@@ -635,16 +594,16 @@ class Backup:
             self.remove_revoked_files(undirected_files)
             remove_empty_folders([root_path])
 
-    def _log_remaining_space(self, drive_backup_letter, drive_backup_name):
+    def _log_remaining_space(self, drive_backup_letter: str, drive_backup_name: str) -> None:
         """Log the remaining space on the backup drive."""
-        space_remaining_tb = get_space_remaining(drive_backup_letter) / 1000
+        space_remaining_tb = get_space_remaining(drive_backup_letter,"TB")
         self.drive_stats_dict[drive_backup_name] = {"Space Remaining (TB)": space_remaining_tb}
 
         print(f'\n{MAGENTA}{BRIGHT}Space remaining{RESET} in '
             f'{GREEN}{BRIGHT}{drive_backup_name} ({drive_backup_letter.upper()} drive){RESET}: '
             f'{BLUE}{BRIGHT}{space_remaining_tb:,.2f} TB{RESET}')
 
-    def _update_drive_statistics(self):
+    def _update_drive_statistics(self) -> None:
         """Sort and display drive statistics."""
         self.drive_stats_dict = dict(sorted(self.drive_stats_dict.items(), key=lambda item: item[0].title()))
         
@@ -656,3 +615,9 @@ class Backup:
 if __name__ == '__main__':
     backup = Backup()
     backup.main()
+
+"""
+NOTES:
+- add context to revoke backup files
+- keep track of user choices in the event the same action is asked multiple times
+"""
