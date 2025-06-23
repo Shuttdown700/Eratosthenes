@@ -149,8 +149,8 @@ class Backup:
         # Process each candidate backup tuple (primary source, backup destination)
         for backup_candidate_tuple in backup_candidate_tuples:
             filepath_primary = backup_candidate_tuple[0]
-            if 'featurettes' in os.path.dirname(filepath_primary).lower():
-                continue
+            # if 'featurettes' in os.path.dirname(filepath_primary).lower():
+            #     continue
             filepath_backup_candidate = backup_candidate_tuple[1]
             movie_with_year = os.path.splitext(os.path.basename(filepath_primary))[0]
             backup_drive_letter = filepath_backup_candidate[0]
@@ -173,7 +173,8 @@ class Backup:
                     else:
                         backup_filepaths_blocked.append(filepath_backup_candidate)
                         num_blocked_by_lack_of_tmbd_data += 1
-                    print(f'\t{RED}{BRIGHT}[ALERT] {RESET}No (or invalid) TMDb data for: {movie_with_year}')
+                    if 'featurettes' not in os.path.dirname(filepath_primary).lower():
+                        print(f'\t{RED}{BRIGHT}[ALERT] {RESET}No (or invalid) TMDb data for: {movie_with_year}')
                 else:
                     backup_tuple_accepted.append(backup_candidate_tuple)
                 continue
@@ -297,6 +298,9 @@ class Backup:
             return adjusted_filepaths
 
         return adjusted_filepaths
+
+    def apply_music_backup_filters(self, backup_filepaths: list) -> list:
+        pass
 
     def remove_revoked_files(self, filepaths_backup_revoked: list) -> int:
         """Removes excess files from backup drives."""

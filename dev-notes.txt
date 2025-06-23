@@ -34,3 +34,5 @@ DEV Notes: Alexandria Media Manager
 - movie imdb optimization if movies don't fit or to fill space (backup shows first)
 - check for .nfo or .srt files in movie dir that are not the same name as the movie file
 - analytic output that identifies what media exists on what drives, includes a timestamp
+- analytic that goes through the whitelists to determine backup overlap
+- create a function that parsed media details to find shows with .mp4 and h264 to suggest upgrades

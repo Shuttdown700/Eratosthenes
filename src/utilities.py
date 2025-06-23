@@ -232,7 +232,7 @@ def order_file_contents(file_path: str, numeric=False) -> None:
     with open(file_path, 'r') as file:
         lines = file.readlines()
     # Remove any leading/trailing whitespace from each line (including newlines)
-    lines = [line.strip() for line in lines]
+    lines = [line.strip() for line in lines if line.strip()]
     # Sort the lines numerically or alphabetically
     if numeric:
         lines.sort(key=lambda x: float(x) if x.replace('.', '', 1).isdigit() else x)

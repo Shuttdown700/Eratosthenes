@@ -32,3 +32,23 @@ def edit_multi_episode_filenames():
     for index, old_file in enumerate(file_list):
         os.rename(old_file,new_files[index])
         print('Old filename: ',old_file.strip()+'\n','New filename: ',new_files[index]+'\n')
+
+
+import os
+
+def find_mp4_files(root_dir):
+    mp4_files = []
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        for file in filenames:
+            if file.lower().endswith('.mp4'):
+                full_path = os.path.join(dirpath, file)
+                mp4_files.append(full_path)
+    return mp4_files
+
+# Example usage:
+if __name__ == "__main__":
+    search_directory = "A:/Anime"  # Replace with the actual directory path
+    mp4_files = find_mp4_files(search_directory)
+    for file in mp4_files:
+        print(file)
+
