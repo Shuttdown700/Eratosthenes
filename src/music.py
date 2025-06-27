@@ -9,14 +9,13 @@ import json, os
 from mutagen import File
 from mutagen.flac import FLAC, Picture
 from mutagen.mp3 import MP3
-from mutagen.id3 import ID3, TIT2, TPE1, TPE2, TALB, TRCK, TCON, APIC, error
+from mutagen.id3 import ID3, TIT2, TPE1, TPE2, TALB, TRCK, TCON, COMM, APIC, error
 from mutagen.mp4 import MP4, MP4Cover
 from mutagen.easymp4 import EasyMP4
 from PIL import Image
 import io
 import time
 from alive_progress import alive_bar
-from mimetypes import guess_type
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 from utilities import read_alexandria
@@ -158,6 +157,41 @@ def rename_artist(directory, artist_name):
                     audio['artist'] = artist_name
                     audio.save()
                 print(f"Updated artist for: {filename}")
+            except Exception as e:
+                print(f"Failed to update {filename}: {e}")
+
+def rename_comment(directory, comment_text):
+    for filename in os.listdir(directory):
+        if filename.lower().endswith(AUDIO_EXTENSIONS):
+            filepath = os.path.join(directory, filename)
+            try:
+                if filename.lower().endswith('.mp3'):
+                    audio = MP3(filepath, ID3=ID3)
+                    # Remove all existing COMM tags
+                    audio.tags.delall('COMM')
+                    if comment_text:
+                        audio['COMM'] = COMM(encoding=3, lang='eng', desc='', text=comment_text)
+                    audio.save()
+
+                elif filename.lower().endswith('.flac'):
+                    audio = FLAC(filepath)
+                    if 'comment' in audio:
+                        del audio['comment']
+                    if comment_text:
+                        audio['comment'] = comment_text
+                    audio.save()
+
+                elif filename.lower().endswith('.m4a'):
+                    audio = EasyMP4(filepath)
+                    if 'comment' in audio:
+                        del audio['comment']
+                    if comment_text:
+                        audio['comment'] = comment_text
+                    audio.save()
+
+                action = "Removed" if not comment_text else "Updated"
+                print(f"{action} comment for: {filename}")
+
             except Exception as e:
                 print(f"Failed to update {filename}: {e}")
 
@@ -359,7 +393,7 @@ def embed_album_covers(base_directory):
 # rename_essentials_albums(dir_temp_essential_albums)
 
 # # Encode multiple bitrates for MP3s:
-# dir_base_encode_source = r'W:\Music\MP3s_320\Childish Gambino'
+# dir_base_encode_source = r'W:\Music\MP3s_320'
 # encode_multiple_bitrates(dir_base_encode_source, bitrates_desired = [196])
 
 # # Identify popular artists without albums:
@@ -374,12 +408,17 @@ def embed_album_covers(base_directory):
 # dir_ost = 'W:/Temp/OSTs/Star Wars OST/'
 # rename_OTSs(dir_ost)
 
-# Rename specific album:
-directory = r'A:\Temp\Audiobooks\ENGESVO1DA\English_eng_ESV_OT_Non-Drama'
-name = 'Holy Bible: Old Testament (ESV)'
-rename_album(directory, name)
+# # Rename specific album:
+# directory = r'A:\Audiobooks\Holy Bible - Old Testament (NIVUK)'
+# name = 'Holy Bible: Old Testament (NIVUK)'
+# rename_album(directory, name)
 
-# Rename specific album:
-directory = r'A:\Temp\Audiobooks\ENGESVO1DA\English_eng_ESV_OT_Non-Drama'
-artist_name = 'Crossway'
-rename_artist(directory, artist_name)
+# # Rename artist:
+# directory = r'A:\Temp\Audiobooks\ENGESVO1DA\English_eng_ESV_OT_Non-Drama'
+# artist_name = 'Crossway'
+# rename_artist(directory, artist_name)
+
+# # Rename comment:
+# directory = r'A:\Audiobooks\Holy Bible - New Testament (ESV)'
+# comment_text = ''
+# rename_comment(directory, comment_text)

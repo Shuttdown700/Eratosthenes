@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from typing import Optional
+
 def import_libraries(libraries: list) -> None:
     """
     Helps load/install required libraries when running from cmd prompt
@@ -160,31 +162,62 @@ def read_alexandria_config(drive_hieracrchy: dict) -> tuple[dict,dict,dict]:
         extensions_dict.update({media_type:extensions})
     return primary_drives_dict, backup_drives_dict, extensions_dict
 
-def get_drive_name(letter: str) -> str:
+def get_drive_name(letter: str) -> Optional[str]:
     """Gets drive name from letter."""
-    import win32api
-    if does_drive_exist(letter): 
-        return win32api.GetVolumeInformation(f"{letter}:/")[0]
-    else: 
-        return "None"
+    import ctypes, os
+    # Normalize drive letter to format like 'C:\\'
+    letter = letter.strip(':\\').upper() + ':\\'
+    try:
+        if not does_drive_exist(letter):
+            return None
+        volume_name = ctypes.create_unicode_buffer(260)
+        result = ctypes.windll.kernel32.GetVolumeInformationW(
+            letter,
+            volume_name,
+            260,
+            None, None, None, None, 0
+        )
+        if result == 0:
+            error = ctypes.get_last_error()
+            # print(f"[DEBUG] Failed to get volume name for {letter}: Error {error}")
+            return None
+        volume = volume_name.value.strip()
+        # print(f"[DEBUG] Drive {letter} has volume name: '{volume}'")
+        return volume if volume else None
+    except OSError as e:
+        # print(f"[DEBUG] Error accessing drive {letter}: {e}")
+        return None
 
 def does_drive_exist(letter: str) -> bool:
     """Checks if a drive exists."""
-    import win32api
-    try: 
-        win32api.GetVolumeInformation(f"{letter}:/")
+    import os
+    letter = letter.strip(':\\').upper() + ':\\'
+    try:
+        os.stat(letter)
+        # print(f"[DEBUG] Drive {letter} is accessible")
         return True
-    except:
+    except OSError as e:
+        # print(f"[DEBUG] Drive {letter} inaccessible: {e}")
         return False
 
-def get_drive_letter(drive_name: str) -> str:
+def get_drive_letter(drive_name: str) -> Optional[str]:
     """Gets drive letter from drive name."""
-    import win32api
-    drives = [drive[0] for drive in win32api.GetLogicalDriveStrings().split('\000')[:-1] if does_drive_exist(drive[0])]
-    for d in drives:
-        if get_drive_name(d) == drive_name:
-            return d
-    return ''
+    import ctypes, os
+    # print(f"[DEBUG] Searching for drive with name: '{drive_name}'")
+    try:
+        # Generate drive letters A-Z and filter valid ones
+        drives = [f"{chr(i)}:\\" for i in range(65, 91) if does_drive_exist(chr(i))]
+        # print(f"[DEBUG] Found drives: {drives}")
+        for drive in drives:
+            volume_name = get_drive_name(drive)
+            if volume_name and volume_name.lower() == drive_name.lower():
+                # print(f"[DEBUG] Match found: {drive} -> {volume_name}")
+                return drive.rstrip(':\\')
+        # print(f"[DEBUG] No drive found with name '{drive_name}'")
+        return None
+    except Exception as e:
+        # print(f"[DEBUG] Error listing drives: {e}")
+        return None
 
 def get_drive_size(letter: str) -> float:
     """Gets size of drive."""
@@ -472,24 +505,26 @@ def delete_empty_dirs(root_dir: str, approved_extensions: list, dry_run: bool = 
 def main() -> None:
     """Main function to run the utility functions."""      
     # define paths
-    import os
-    src_directory = os.path.dirname(os.path.abspath(__file__))
-    drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
-    output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
-    key_directory = ("\\".join(src_directory.split('\\')[:-1])+"/keys").replace('\\','/')
-    directory_whitelist = (src_directory+"/config/show_whitelists").replace('\\','/')
-    drive_config = read_json(drive_hieracrchy_filepath)
-    primary_drives_dict, backup_drives_dict = read_alexandria_config(drive_config)[:2]
-    dirs_base_all = []; dirs_base_primary = []; dirs_base_backup = []
-    for key,val in primary_drives_dict.items():
-        dirs_base_primary += [f'{get_drive_letter(v)}:/{key}' for v in val]
-    for key,val in backup_drives_dict.items():
-        dirs_base_backup += [f'{get_drive_letter(v)}:/{key}' for v in val]
-    dirs_base_all = dirs_base_primary + dirs_base_backup
-    # rewrite_whitelists_with_year(directory_whitelist,primary_drives_dict)
+    # import os
+    # src_directory = os.path.dirname(os.path.abspath(__file__))
+    # drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
+    # output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
+    # key_directory = ("\\".join(src_directory.split('\\')[:-1])+"/keys").replace('\\','/')
+    # directory_whitelist = (src_directory+"/config/show_whitelists").replace('\\','/')
+    # drive_config = read_json(drive_hieracrchy_filepath)
+    # primary_drives_dict, backup_drives_dict = read_alexandria_config(drive_config)[:2]
+    # dirs_base_all = []; dirs_base_primary = []; dirs_base_backup = []
+    # for key,val in primary_drives_dict.items():
+    #     dirs_base_primary += [f'{get_drive_letter(v)}:/{key}' for v in val]
+    # for key,val in backup_drives_dict.items():
+    #     dirs_base_backup += [f'{get_drive_letter(v)}:/{key}' for v in val]
+    # dirs_base_all = dirs_base_primary + dirs_base_backup
+    # # rewrite_whitelists_with_year(directory_whitelist,primary_drives_dict)
     # hide_metadata(drive_config)
     # remove_empty_folders(dirs_base_all)
     # generate_ssl_key_and_cert(key_directory)
+    # Test the functions
+    print(does_drive_exist('C'))
 
 if __name__ == '__main__':
     main()

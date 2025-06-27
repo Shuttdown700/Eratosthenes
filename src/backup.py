@@ -1,24 +1,24 @@
 #!/usr/bin/env python
 
-# define libraries
-libraries = [['colorama',['Fore','Back','Style']],
-             ['datetime'],
-             ['os'],
-             ['shutil'],
-             ['typing',['List','Tuple']]
-             ]
-from utilities import import_libraries
-import_libraries(libraries)
-
 import datetime
 import os
 import shutil
 from typing import List, Tuple
 
-from utilities import files_are_identical, read_alexandria, read_alexandria_config, read_csv
-from utilities import get_drive_letter, get_drive_name, get_file_size, get_space_remaining, remove_empty_folders
-
 from colorama import Fore, Back, Style
+
+from utilities import (
+    files_are_identical,
+    get_drive_letter,
+    get_drive_name,
+    get_file_size,
+    get_space_remaining,
+    read_alexandria,
+    read_alexandria_config,
+    read_csv,
+    remove_empty_folders,
+)
+
 RED = Fore.RED
 YELLOW = Fore.YELLOW
 GREEN = Fore.GREEN
@@ -47,7 +47,7 @@ class Backup:
         for key,val in self.primary_drives_name_dict.items():
             self.primary_drives_letter_dict[key] = [get_drive_letter(name) for name in val]
         for key, val in self.backup_drives_name_dict.items():
-            self.backup_drives_letter_dict[key] = [get_drive_letter(name) for name in val if get_drive_letter(name) != '']
+            self.backup_drives_letter_dict[key] = [get_drive_letter(name) for name in val if get_drive_letter(name)]
         
         # Drive letters and names
         self.primary_drive_letters = []
@@ -56,7 +56,7 @@ class Backup:
         self.primary_drive_letters = sorted(set(self.primary_drive_letters))
         self.backup_drive_letters = []
         for val in self.backup_drives_letter_dict.values():
-            self.backup_drive_letters += val
+            if val: self.backup_drive_letters += val
         self.backup_drive_letters = sorted(set(self.backup_drive_letters))
         self.all_drive_letters = sorted(set(self.primary_drive_letters + self.backup_drive_letters))
         self.backup_drive_names = [get_drive_name(drive) for drive in self.backup_drive_letters]

@@ -50,7 +50,7 @@ class API(object):
         else:
             movie_tmdb_ids = {}
             current_movie_id_titles = []
-        movie_list_bypass_list = ['Louis C.K. at the Dolby (2023)']
+        movie_list_bypass_list = []
         movie_list_not_found = []
         for movie_with_year in movie_list_adjusted:
             if movie_with_year in movie_list_bypass_list: continue

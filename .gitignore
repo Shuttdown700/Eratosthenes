@@ -8,3 +8,4 @@ keys/*
 src/config/*
 src/binary/*
 src/__pycache__/*
+venv/*

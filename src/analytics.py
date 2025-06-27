@@ -90,9 +90,9 @@ def update_server_statistics(drive_config,filepath_statistics,bool_print=False):
     music_drives_backup = drive_config['Music']['backup_drives']
     # identify drives
     drive_names = list(set(movie_drives_primary+movie_drives_backup+uhd_movie_drives_primary+uhd_movie_drives_backup+anime_movie_drives_primary+anime_movie_drives_backup+anime_drives_primary+anime_drives_backup+show_drives_primary+show_drives_backup+book_drives_primary+book_drives_backup+music_drives_primary+music_drives_backup))
-    if '' in drive_names: drive_names.remove('')
+    drive_names = [drive_name for drive_name in drive_names if drive_name != '']
     drive_letters = [get_drive_letter(drive_name) for drive_name in drive_names]
-    if '' in drive_letters: drive_letters.remove('')
+    drive_letters = [d for d in drive_letters if d is not None]
     primary_drives_dict, backup_drives_dict, extensions_dict = read_alexandria_config(drive_config)
     primary_drive_letter_dict = {}; backup_drive_letter_dict = {}
     for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
