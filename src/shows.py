@@ -1,40 +1,9 @@
 #!/usr/bin/env python
 
-
-def edit_multi_episode_filenames():
-    import os, re
-    def search_filenames_with_pattern(start_directory):
-        file_list = []
-        # Define the regular expression pattern to match a number followed by "-" followed by another number
-        pattern = re.compile(r'\d+-\d+')
-    
-        # Walk through the directory tree starting from the specified directory
-        for root, dirs, files in os.walk(start_directory):
-            for filename in files:
-                # Check if the filename matches the pattern and has a ".mp4" or ".mkv" extension
-                if pattern.search(filename) and (filename.lower().endswith('.mp4') or filename.lower().endswith('.mkv')):
-                    # Print the full path of the matching file
-                    file_list.append(os.path.join(root, filename))
-        return file_list
-    
-    # Example usage
-    file_list = search_filenames_with_pattern('K:\Shows')
-    
-    new_files = []
-    for file in file_list:
-        front = '-'.join(file.split('-')[:-1])
-        back = file.split('-')[-1]
-        if back[1] == '.': continue
-        if back[0].upper() == 'E': continue
-        new_file = front+'-E'+back
-        new_files.append(new_file)
-    
-    for index, old_file in enumerate(file_list):
-        os.rename(old_file,new_files[index])
-        print('Old filename: ',old_file.strip()+'\n','New filename: ',new_files[index]+'\n')
-
-
 import os
+import re
+from colorama import init, Fore, Style
+
 
 def find_mp4_files(root_dir):
     mp4_files = []
@@ -45,10 +14,47 @@ def find_mp4_files(root_dir):
                 mp4_files.append(full_path)
     return mp4_files
 
-# Example usage:
-if __name__ == "__main__":
-    search_directory = "A:/Anime"  # Replace with the actual directory path
-    mp4_files = find_mp4_files(search_directory)
-    for file in mp4_files:
-        print(file)
+# Initialize colorama for Windows compatibility
+init(autoreset=True)
 
+def fix_episode_format(root_dir='.', dry_run=True):
+    """
+    Find files ending with 'SxxExx-xx' and rename to 'SxxExx-Exx'.
+    If the new name already exists, delete the incorrectly named file.
+    
+    Args:
+        root_dir (str): Directory to scan.
+        dry_run (bool): If True, only print actions. If False, apply changes.
+    """
+    pattern = re.compile(r'(S\d{2}E\d{2})-(\d{2})(\.\w+)$')
+
+    for dirpath, _, filenames in os.walk(root_dir):
+        for filename in filenames:
+            match = pattern.search(filename)
+            if match:
+                base, ep2, ext = match.groups()
+                new_name = pattern.sub(rf'{base}-E{ep2}{ext}', filename)
+                old_path = os.path.join(dirpath, filename)
+                new_path = os.path.join(dirpath, new_name)
+
+                if os.path.exists(new_path):
+                    msg = f'DELETE (conflict): {filename} (because {new_name} exists)'
+                    print(Fore.RED + ('[DRY RUN] ' if dry_run else '') + msg)
+                    if not dry_run:
+                        os.remove(old_path)
+                else:
+                    msg = f'RENAME: {filename} -> {new_name}'
+                    color = Fore.YELLOW if dry_run else Fore.GREEN
+                    print(color + ('[DRY RUN] ' if dry_run else '') + msg)
+                    if not dry_run:
+                        os.rename(old_path, new_path)
+
+if __name__ == '__main__':
+    # Set dry_run=False to actually rename files
+    fix_episode_format(r'B:\Shows', dry_run=False)
+
+    # # Find all .mp4 files in the specified directory and print their paths
+    # search_directory = "A:/Anime"  # Replace with the actual directory path
+    # mp4_files = find_mp4_files(search_directory)
+    # for file in mp4_files:
+    #     print(file)

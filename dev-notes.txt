@@ -36,3 +36,10 @@ DEV Notes: Alexandria Media Manager
 - analytic output that identifies what media exists on what drives, includes a timestamp
 - analytic that goes through the whitelists to determine backup overlap
 - create a function that parsed media details to find shows with .mp4 and h264 to suggest upgrades
+- create a suite of file validators: correct format, no duplicate filenames, no rogue srt files
+Search: Garshasp
+- add something that goes through whitelists to determine theoretical backup
+
+Shows to add:
+- How the Universe Works
+- Grey's Anatomy

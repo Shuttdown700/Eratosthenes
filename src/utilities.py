@@ -502,6 +502,14 @@ def delete_empty_dirs(root_dir: str, approved_extensions: list, dry_run: bool = 
                     break
                 print('\nInvalid response\n')
 
+def human_readable_size(size_in_gb):
+    size_in_bytes = size_in_gb * (1024 ** 3)
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
+        if size_in_bytes < 1024:
+            return size_in_bytes, unit
+        size_in_bytes /= 1024
+    return size_in_bytes, "TB"
+
 def main() -> None:
     """Main function to run the utility functions."""      
     # define paths

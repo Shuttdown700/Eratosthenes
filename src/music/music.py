@@ -1,25 +1,34 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Aug  4 17:41:39 2024
+import os
+import io
+import json
 
-@author: brend
-"""
-
-import json, os
+from PIL import Image
+from alive_progress import alive_bar
+from colorama import Fore, Style
 from mutagen import File
 from mutagen.flac import FLAC, Picture
+from mutagen.id3 import (
+    ID3, TIT2, TPE1, TPE2, TALB, TRCK, TCON, COMM, APIC, error
+)
 from mutagen.mp3 import MP3
-from mutagen.id3 import ID3, TIT2, TPE1, TPE2, TALB, TRCK, TCON, COMM, APIC, error
 from mutagen.mp4 import MP4, MP4Cover
 from mutagen.easymp4 import EasyMP4
-from PIL import Image
-import io
-import time
-from alive_progress import alive_bar
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from utilities import read_alexandria
 
+# Define terminal color shortcuts
+RED = Fore.RED
+YELLOW = Fore.YELLOW
+GREEN = Fore.GREEN
+BLUE = Fore.BLUE
+MAGENTA = Fore.MAGENTA
+RESET = Style.RESET_ALL
+BRIGHT = Style.BRIGHT
+
+# Supported file extensions
 IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png')
 AUDIO_EXTENSIONS = ('.mp3', '.flac', '.m4a')
 
@@ -146,17 +155,20 @@ def rename_artist(directory, artist_name):
             try:
                 if filename.lower().endswith('.mp3'):
                     audio = MP3(filepath, ID3=ID3)
-                    audio['TPE1'] = TPE1(encoding=3, text=artist_name)
+                    audio['TPE1'] = TPE1(encoding=3, text=artist_name)  # Track artist
+                    audio['TPE2'] = TPE2(encoding=3, text=artist_name)  # Album artist
                     audio.save()
                 elif filename.lower().endswith('.flac'):
                     audio = FLAC(filepath)
                     audio['artist'] = artist_name
+                    audio['albumartist'] = artist_name
                     audio.save()
                 elif filename.lower().endswith('.m4a'):
                     audio = EasyMP4(filepath)
                     audio['artist'] = artist_name
+                    audio['albumartist'] = artist_name
                     audio.save()
-                print(f"Updated artist for: {filename}")
+                print(f"Updated artist and album artist for: {filename}")
             except Exception as e:
                 print(f"Failed to update {filename}: {e}")
 
@@ -224,7 +236,7 @@ def encode_multiple_bitrates(parent_dir = 'W:\\Music\\MP3s_320',
     libraries = [['os'],['subprocess']]
     import_libraries(libraries)
     import subprocess, shutil
-    os.chdir(os.path.join(os.path.realpath(os.path.dirname(__file__)),"bin"))
+    os.chdir(os.path.join(os.path.realpath(os.path.dirname(__file__)),"..","bin"))
 
     def check_directory(file_out):
         path = os.path.dirname(file_out)
@@ -256,7 +268,7 @@ def encode_multiple_bitrates(parent_dir = 'W:\\Music\\MP3s_320',
 
             check_directory(file_out)  # Ensure destination dir exists
 
-            print(f'Re-encoding to: {file_out}')
+            print(f'{GREEN}{BRIGHT}Re-encoding{RESET} {os.path.basename(file_out)} in {YELLOW}{BRIGHT}{bitrate_desired}kbps{RESET} to: {os.path.dirname(file_out)}')
             cmd = [
                 'ffmpeg',
                 '-i', file_in,
@@ -280,7 +292,7 @@ def encode_multiple_bitrates(parent_dir = 'W:\\Music\\MP3s_320',
                 continue
 
             check_directory(file_out)
-            print(f'Copying image to: {file_out}')
+            print(f'{GREEN}{BRIGHT}Copying image{RESET} to: {file_out}')
             shutil.copy2(file_in, file_out)
     
     extension_desired = '.mp3'
@@ -289,14 +301,15 @@ def encode_multiple_bitrates(parent_dir = 'W:\\Music\\MP3s_320',
         copy_images(parent_dir,bd)
     remove_empty_folders([parent_dir])
 
-def embed_album_covers(base_directory):
+def embed_album_covers(base_directory, override_cover = False):
     def find_image_in_dir(directory):
         candidate = None
         for filename in os.listdir(directory):
             if filename.lower().endswith(IMAGE_EXTENSIONS):
-                if "back" in filename and candidate != None: continue
+                if "back" in filename and candidate is not None:
+                    continue
                 candidate = os.path.join(directory, filename)
-                if "cover" in filename: 
+                if "cover" in filename:
                     return os.path.join(directory, filename)
         return candidate
 
@@ -315,6 +328,20 @@ def embed_album_covers(base_directory):
             return 'covr' in audio
         return False
 
+    def extract_image_from_audio(audio):
+        try:
+            if isinstance(audio, MP3):
+                for tag in audio.tags.values():
+                    if isinstance(tag, APIC):
+                        return tag.data
+            elif isinstance(audio, FLAC) and audio.pictures:
+                return audio.pictures[0].data
+            elif isinstance(audio, MP4) and 'covr' in audio:
+                return audio['covr'][0]
+        except Exception:
+            return None
+        return None
+
     def embed_image(mp3_path, image_path):
         try:
             audio = File(mp3_path, easy=False)
@@ -322,8 +349,8 @@ def embed_album_covers(base_directory):
                 print(f"❌ Unsupported file: {mp3_path}")
                 return
 
-            if has_embedded_image(audio):
-                print(f"⏭️  Skipping (already has cover): {mp3_path}")
+            if has_embedded_image(audio) and not override_cover:
+                # print(f"⏭️  Skipping (already has cover): {mp3_path}")
                 return
 
             image_data, mime_type = convert_image_to_jpeg(image_path)
@@ -333,11 +360,8 @@ def embed_album_covers(base_directory):
                 try:
                     audio.add_tags()
                 except error:
-                    pass  # tags already exist
-                # Remove any existing cover images
+                    pass
                 audio.tags.delall("APIC")
-
-                # Add new cover
                 audio.tags.add(APIC(
                     encoding=3,
                     mime=mime_type,
@@ -350,10 +374,10 @@ def embed_album_covers(base_directory):
             elif isinstance(audio, FLAC):
                 picture = Picture()
                 picture.data = image_data
-                picture.type = 3  # Cover (front)
+                picture.type = 3
                 picture.mime = mime_type
                 picture.desc = "Cover"
-                picture.width = picture.height = 0  # optional
+                picture.width = picture.height = 0
                 audio.add_picture(picture)
                 audio.save()
 
@@ -374,27 +398,103 @@ def embed_album_covers(base_directory):
         if not audio_files:
             continue
 
+        cover_path = os.path.join(dirpath, "cover.jpg")
         image_path = find_image_in_dir(dirpath)
+
+        # Attempt to extract embedded image if all files have embedded covers but no cover.jpg
+        if not image_path and not os.path.exists(cover_path):
+            embedded_images = []
+            for audio_file in audio_files:
+                file_path = os.path.join(dirpath, audio_file)
+                audio = File(file_path, easy=False)
+                if not audio or not has_embedded_image(audio):
+                    break
+                embedded_images.append(extract_image_from_audio(audio))
+
+            if len(embedded_images) == len(audio_files) and embedded_images[0]:
+                try:
+                    with open(cover_path, 'wb') as f:
+                        f.write(embedded_images[0])
+                    print(f"📸 Extracted cover.jpg from embedded image: {cover_path}")
+                    image_path = cover_path
+                except Exception as e:
+                    print(f"❌ Failed to save cover.jpg: {e}")
+            else:
+                print(f"❌ No image found or not all files have embedded images in {dirpath}")
+                continue
+
         if not image_path:
-            print(f"❌ No image found in {dirpath}")
+            print(f"❌ No image to embed in {dirpath}")
             continue
 
         for audio_file in audio_files:
             file_path = os.path.join(dirpath, audio_file)
             embed_image(file_path, image_path)
-            # time.sleep(0.2)
 
-# # Embed album covers in the specified directory:
-# dir_embed_album_covers = r"W:\Music\MP3s_320\BØRNS\(2015) Dopamine"
-# embed_album_covers(dir_embed_album_covers)
+def set_track_numbers(album_directory: str) -> None:
+    """
+    Set track numbers in metadata for audio files in an album folder.
+    Files are sorted by filename and tagged sequentially.
+
+    Parameters
+    ----------
+    album_directory : str
+        Path to the folder containing album audio files.
+    """
+    AUDIO_EXTENSIONS = ('.mp3', '.flac', '.m4a')
+
+    if not os.path.isdir(album_directory):
+        print(f"{Fore.RED}Directory does not exist: {album_directory}{Style.RESET_ALL}")
+        return
+
+    audio_files = sorted([
+        f for f in os.listdir(album_directory)
+        if f.lower().endswith(AUDIO_EXTENSIONS)
+    ])
+
+    if not audio_files:
+        print(f"{Fore.YELLOW}No audio files found in: {album_directory}{Style.RESET_ALL}")
+        return
+
+    with alive_bar(len(audio_files), title="Tagging track numbers") as bar:
+        for index, filename in enumerate(audio_files, start=1):
+            filepath = os.path.join(album_directory, filename)
+            ext = os.path.splitext(filename)[1].lower()
+
+            try:
+                if ext == '.mp3':
+                    audio = MP3(filepath, ID3=ID3)
+                    if audio.tags is None:
+                        audio.add_tags()
+                    audio.tags.add(TRCK(encoding=3, text=str(index)))
+                    audio.save()
+                elif ext == '.flac':
+                    audio = FLAC(filepath)
+                    audio['tracknumber'] = str(index)
+                    audio.save()
+                elif ext == '.m4a':
+                    audio = MP4(filepath)
+                    audio['trkn'] = [(index, 0)]  # (track number, total optional)
+                    audio.save()
+
+                print(f"{Fore.GREEN}Tagged:{Style.RESET_ALL} {filename} -> Track {index}")
+            except Exception as e:
+                print(f"{Fore.RED}Error tagging {filename}:{Style.RESET_ALL} {e}")
+            bar()
+
+
+# Embed album covers in the specified directory:
+directory = r"W:\Music\FLAC"
+override_cover = False
+embed_album_covers(directory,override_cover)
 
 # # Rename essentials albums:
 # dir_temp_essential_albums = 'W:/Temp/MP3s_320_Essentials/'
 # rename_essentials_albums(dir_temp_essential_albums)
 
 # # Encode multiple bitrates for MP3s:
-# dir_base_encode_source = r'W:\Music\MP3s_320'
-# encode_multiple_bitrates(dir_base_encode_source, bitrates_desired = [196])
+# directory = r'W:\Music\FLAC'
+encode_multiple_bitrates(directory, bitrates_desired = [320,196])
 
 # # Identify popular artists without albums:
 # dir_identify_popular_artists = 'W:/Music/MP3s_320/'
@@ -409,16 +509,20 @@ def embed_album_covers(base_directory):
 # rename_OTSs(dir_ost)
 
 # # Rename specific album:
-# directory = r'A:\Audiobooks\Holy Bible - Old Testament (NIVUK)'
-# name = 'Holy Bible: Old Testament (NIVUK)'
+# directory = r'W:\Temp\Download Zone\(2018) Kamikaze'
+# name = 'Kamikaze'
 # rename_album(directory, name)
 
 # # Rename artist:
-# directory = r'A:\Temp\Audiobooks\ENGESVO1DA\English_eng_ESV_OT_Non-Drama'
-# artist_name = 'Crossway'
+# directory = r'C:\Users\brend\Downloads\ENGKJVO1DA\English_eng_KJV_OT_Non-Drama'
+# artist_name = 'Faith Comes By Hearing'
 # rename_artist(directory, artist_name)
 
 # # Rename comment:
-# directory = r'A:\Audiobooks\Holy Bible - New Testament (ESV)'
+# directory = r'C:\Users\brend\Downloads\ENGKJVO1DA\English_eng_KJV_OT_Non-Drama'
 # comment_text = ''
 # rename_comment(directory, comment_text)
+
+# # Set Track Numbers Metadata:
+# directory = r"W:\Temp\Download Zone\Eminem\(2004) Encore [needs editing]"
+# tag_track_numbers_metadata(directory)

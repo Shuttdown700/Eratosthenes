@@ -145,6 +145,10 @@ class Backup:
         num_blocked_by_keyword = 0
         num_revoked_by_keyword = 0
         num_exceptions_by_keyword = 0
+        exceptions_flagged_tmdb = [
+            ""
+        ]
+
 
         # Process each candidate backup tuple (primary source, backup destination)
         for backup_candidate_tuple in backup_candidate_tuples:
@@ -423,10 +427,12 @@ class Backup:
 
         return tuple_filepaths_missing, tuple_filepaths_modified, filepaths_backup_current, filepaths_backup_excess
 
-    def assess_backup_feasibility(self, missing_filepaths: list, modified_filepaths: list) -> Tuple[float, float]:
+    def assess_backup_feasibility(self, 
+                                  missing_filepaths: list, 
+                                  modified_filepaths: list
+                                  ) -> Tuple[float, float]:
         """Determine the feasibility of a backup by calculating required and remaining space."""
         # Import any necessary utilities
-        import os
         from utilities import get_space_remaining, get_file_size
 
         # Determine all backup drives involved
@@ -446,37 +452,55 @@ class Backup:
 
         return required_space, remaining_space
 
-    def backup_function(self,backup_tuples: List[Tuple[str, str]], modified_tuples: List[Tuple[str, str]]) -> None:
+    def backup_function(self, 
+                        backup_tuples: List[Tuple[str, str]], 
+                        modified_tuples: List[Tuple[str, str]]
+                        ) -> None:
         """
-        Batch backup function to handle missing and modified file backups.
+        Handles backup of missing and modified files in batch.
 
         Parameters
         ----------
-        backup_tuples : list
-            List of backup file tuples. Format: [(src, dest), (src, dest), ...]
-        modified_tuples : list
-            List of modified file tuples. Format: [(src, dest), (src, dest), ...]
+        backup_tuples : List[Tuple[str, str]]
+            List of new file backup pairs as (src, dest).
+
+        modified_tuples : List[Tuple[str, str]]
+            List of modified file pairs as (src, dest).
 
         Returns
         -------
         None
         """
-        import subprocess
-        from utilities import get_file_size, get_space_remaining, get_drive_name
-        # Process backup tuples
+        from utilities import human_readable_size, get_file_size, get_space_remaining
+
+        # Handle new backups
         if backup_tuples:
-            total_backup_size = sum(get_file_size(src,"GB") for src, _ in backup_tuples)
-            remaining_space = get_space_remaining(backup_tuples[0][1][0],"GB") - total_backup_size
+            # Calculate total backup size in GB
+            total_gb = sum(get_file_size(src, "GB") for src, _ in backup_tuples)
+            
+            # Determine available space on destination drive
+            destination_path = backup_tuples[0][1]
+            if not destination_path:
+                print(f"{RED}Destination path is missing. Skipping backup.{RESET}")
+                return
+
+            available_gb = get_space_remaining(destination_path[0], "GB") - total_gb
+
+            # Format sizes for output
+            total_size_val, total_unit = human_readable_size(total_gb)
+            remaining_val, remaining_unit = human_readable_size(available_gb)
+
             print(
                 f"\n\tBacking up {RED}{len(backup_tuples):,} file(s){RESET} "
-                f"({YELLOW}{int(total_backup_size):,} GB{RESET}, "
-                f"{GREEN}{int(remaining_space):,} GB remaining{RESET}):"
+                f"({YELLOW}{total_size_val:.2f} {total_unit}{RESET}, "
+                f"{GREEN}{remaining_val:.2f} {remaining_unit} will remain{RESET}):"
             )
+
             self._process_file_pairs(backup_tuples, action="Backing up")
 
-        # Process modified tuples
+        # Handle modified files
         if modified_tuples:
-            print(f"\nUpdating {RED}{len(modified_tuples):,} file(s){RESET}:")
+            print(f"\n\tUpdating {RED}{len(modified_tuples):,} file(s){RESET}:")
             self._process_file_pairs(modified_tuples, action="Updating")
 
     def main(self) -> None:
@@ -512,7 +536,7 @@ class Backup:
         # Update drive statistics and display summary
         self._update_drive_statistics()
         read_media_statistics(self.filepath_statistics, bool_update=True)
-        read_media_file_data(self.filepath_alexandria_media_details, bool_update=True)
+        # read_media_file_data(self.filepath_alexandria_media_details, bool_update=False)
 
         # Final message
         print(f'\n{"#" * 10}\n\n{GREEN}{BRIGHT}Alexandria Backup Complete{RESET}\n\n{"#" * 10}\n')

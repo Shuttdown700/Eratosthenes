@@ -2,7 +2,8 @@
 import os, subprocess
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-def download_yt_video_playlist(url,output_directory):
+def download_yt_video_playlist(url,
+                               output_directory):
     
     os.makedirs(output_directory, exist_ok=True)
 
@@ -60,6 +61,6 @@ def download_yt_music_playlist(url, output_directory):
     # Execute the command
     subprocess.call(cmd)
 
-url_playlist = "https://www.youtube.com/watch?v=ZiIjLL9wq4Q&list=PLWVo2tank-zwgDMAZhAp4_pT0NZ6YwVCc&ab_channel=ChildishGambino-Topic"
-sub_directory = os.path.join("W:","Temp","YouTube")
-download_yt_music_playlist(url_playlist,sub_directory)             
+url_playlist = "https://www.youtube.com/playlist?list=PLH0Szn1yYNecanpQqdixWAm3zHdhY2kPR"
+sub_directory = os.path.join("A:","Temp","YouTube")
+download_yt_video_playlist(url_playlist,sub_directory)             

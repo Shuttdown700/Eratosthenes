@@ -1,7 +1,9 @@
 *.exe
 *.pyc
 *.config
-archive/
+*.json
+*.csv
+archive/*
 icons/*
 output/*
 keys/*
