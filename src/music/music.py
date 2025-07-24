@@ -482,6 +482,25 @@ def set_track_numbers(album_directory: str) -> None:
                 print(f"{Fore.RED}Error tagging {filename}:{Style.RESET_ALL} {e}")
             bar()
 
+def clean_flac_titles(directory):
+    for filename in os.listdir(directory):
+        if filename.lower().endswith('.flac'):
+            filepath = os.path.join(directory, filename)
+            try:
+                audio = FLAC(filepath)
+                title = audio.get("title", [None])[0]
+                if title:
+                    new_title = title.split('(')[0].strip()
+                    if new_title != title:
+                        print(f'Renaming "{title}" -> "{new_title}" in: {filename}')
+                        audio["title"] = new_title
+                        audio.save()
+                    else:
+                        print(f'No change needed for: {filename}')
+                else:
+                    print(f"No title tag found in: {filename}")
+            except Exception as e:
+                print(f"Error processing {filename}: {e}")
 
 # Embed album covers in the specified directory:
 directory = r"W:\Music\FLAC"
@@ -492,8 +511,8 @@ embed_album_covers(directory,override_cover)
 # dir_temp_essential_albums = 'W:/Temp/MP3s_320_Essentials/'
 # rename_essentials_albums(dir_temp_essential_albums)
 
-# # Encode multiple bitrates for MP3s:
-# directory = r'W:\Music\FLAC'
+# Encode multiple bitrates for MP3s:
+directory = r'W:\Music\FLAC'
 encode_multiple_bitrates(directory, bitrates_desired = [320,196])
 
 # # Identify popular artists without albums:
@@ -526,3 +545,7 @@ encode_multiple_bitrates(directory, bitrates_desired = [320,196])
 # # Set Track Numbers Metadata:
 # directory = r"W:\Temp\Download Zone\Eminem\(2004) Encore [needs editing]"
 # tag_track_numbers_metadata(directory)
+
+# # Clean FLAC titles:
+# directory = r"W:\Temp\Download Zone\(2020) TRON Legacy - The Complete Edition"
+# clean_flac_titles(directory)

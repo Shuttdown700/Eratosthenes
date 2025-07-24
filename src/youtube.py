@@ -13,10 +13,12 @@ def download_yt_video_playlist(url,
     # Construct the command with properly quoted arguments
     cmd = [
         "yt-dlp",
+        "-vU",
         "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
         "--embed-thumbnail",
         url,
-        "-o", os.path.join(output_directory, "%(title)s.%(ext)s")
+        "-o", os.path.join(output_directory, "%(title)s.%(ext)s"),
+        "--cookies-from-browser", "chrome"
     ]
 
     # Print command for debugging
@@ -61,6 +63,6 @@ def download_yt_music_playlist(url, output_directory):
     # Execute the command
     subprocess.call(cmd)
 
-url_playlist = "https://www.youtube.com/playlist?list=PLH0Szn1yYNecanpQqdixWAm3zHdhY2kPR"
-sub_directory = os.path.join("A:","Temp","YouTube")
+url_playlist = "https://www.youtube.com/watch?v=g8fEzanH5cE&ab_channel=TrayClancy"
+sub_directory = os.path.join("A:","Temp","YouTube","Bible Project - Old Testament")
 download_yt_video_playlist(url_playlist,sub_directory)             

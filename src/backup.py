@@ -326,7 +326,7 @@ class Backup:
 
         # User confirmation
         confirmation_message = (
-            f'\n\tDo you want to {RED}{BRIGHT}delete{RESET} these {len(filepaths_backup_revoked):,} revoked backup files'
+            f'\n\tDo you want to {RED}{BRIGHT}delete{RESET} these {len(filepaths_backup_revoked):,} revoked backup files '
             f'({int(total_size_gb):,} GB)? [Y/N] '
             if len(filepaths_backup_revoked) > 1
             else f'\n\tDo you want to {RED}{BRIGHT}delete{RESET} this revoked backup file? [Y/N] '
@@ -595,7 +595,7 @@ class Backup:
         if required_space > remaining_space:
             print(f'\n\t{Back.RED}[ALERT]{RESET} The {YELLOW}{media_type}{Fore.RESET} backup to the '
                 f'{YELLOW}{drive_backup_name} ({drive_backup_letter}) drive{Fore.RESET} is '
-                f'{RED}{BRIGHT}{abs(int(remaining_space - required_space))} GB too large{RESET}')
+                f'{RED}{BRIGHT}{abs(int(remaining_space - required_space)):,.2f} GB too large{RESET}')
         else:
             self.backup_function(missing, modified)
 
