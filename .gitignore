@@ -12,3 +12,9 @@ src/binary/*
 src/__pycache__/*
 venv/*
 .vscode/* 
+*.mp4
+*.mkv
+*.m4v
+*.mp3
+*.flac
+*.pdf
