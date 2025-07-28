@@ -19,6 +19,12 @@ from utilities import (
     remove_empty_folders,
 )
 
+from analysis.read_server_statistics import (
+    read_media_statistics, 
+)
+
+from api import API
+
 RED = Fore.RED
 YELLOW = Fore.YELLOW
 GREEN = Fore.GREEN
@@ -30,14 +36,13 @@ BRIGHT = Style.BRIGHT
 class Backup:
     def __init__(self) -> None:
         """Initialize the Backup class and set up essential attributes."""
-        from analytics import read_media_statistics, read_media_file_data
         from utilities import get_drive_name, read_alexandria_config, read_json
         self.timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.src_directory = os.path.dirname(os.path.abspath(__file__))
-        self.filepath_drive_hierarchy = os.path.join(self.src_directory, "config", "alexandria_drives.config").replace("\\", "/")
-        self.output_directory = os.path.join(os.path.dirname(self.src_directory), "output").replace("\\", "/")
+        self.filepath_drive_hierarchy = os.path.join(self.src_directory, "..", "config", "alexandria_drives.config")
+        self.output_directory = os.path.join(os.path.dirname(self.src_directory), "..", "output")
         self.filepath_statistics = os.path.join(self.output_directory, "alexandria_media_statistics.json")
-        self.filepath_alexandria_media_details = os.path.join(self.output_directory, "alexandria_media_details.json").replace("\\", "/")
+        self.filepath_alexandria_media_details = os.path.join(self.output_directory, "alexandria_media_details.json")
 
         # Read configuration and initialize dictionaries
         self.drive_config = read_json(self.filepath_drive_hierarchy)
@@ -266,7 +271,7 @@ class Backup:
         src_directory = os.path.dirname(os.path.abspath(__file__))
         for drive_letter in backup_drives:
             whitelist_path = os.path.join(
-                src_directory, "config", "show_whitelists",
+                src_directory, "..", "config", "show_whitelists", "active",
                 f"{get_drive_name(drive_letter).replace(' ', '_')}_whitelist.txt"
             ).replace("\\", "/")
             order_file_contents(whitelist_path)
@@ -504,10 +509,7 @@ class Backup:
             self._process_file_pairs(modified_tuples, action="Updating")
 
     def main(self) -> None:
-        import os
-        from analytics import read_media_statistics, read_media_file_data
-        from api import API
-
+        """Main function to initiate the Alexandria backup process."""
         print(f'\n{"#" * 10}\n\n{MAGENTA}{BRIGHT}Initiating Alexandria Backup...{RESET}\n\n{"#" * 10}')
         # Back up output files
         self.backup_output_files()
@@ -533,9 +535,9 @@ class Backup:
             # Display remaining space on the drive
             self._log_remaining_space(drive_backup_letter, drive_backup_name)
 
-        # Update drive statistics and display summary
-        self._update_drive_statistics()
-        read_media_statistics(self.filepath_statistics, bool_update=True)
+        # Display drive statistics and display summary
+        self._display_drive_statistics()
+        read_media_statistics(bool_update=False, bool_print=True)
         # read_media_file_data(self.filepath_alexandria_media_details, bool_update=False)
 
         # Final message
@@ -595,7 +597,7 @@ class Backup:
         if required_space > remaining_space:
             print(f'\n\t{Back.RED}[ALERT]{RESET} The {YELLOW}{media_type}{Fore.RESET} backup to the '
                 f'{YELLOW}{drive_backup_name} ({drive_backup_letter}) drive{Fore.RESET} is '
-                f'{RED}{BRIGHT}{abs(int(remaining_space - required_space)):,.2f} GB too large{RESET}')
+                f'{RED}{BRIGHT}{abs(int(remaining_space - required_space)):,.0f} GB too large{RESET}')
         else:
             self.backup_function(missing, modified)
 
@@ -631,7 +633,7 @@ class Backup:
             f'{GREEN}{BRIGHT}{drive_backup_name} ({drive_backup_letter.upper()} drive){RESET}: '
             f'{BLUE}{BRIGHT}{space_remaining_tb:,.2f} TB{RESET}')
 
-    def _update_drive_statistics(self) -> None:
+    def _display_drive_statistics(self) -> None:
         """Sort and display drive statistics."""
         self.drive_stats_dict = dict(sorted(self.drive_stats_dict.items(), key=lambda item: item[0].title()))
         

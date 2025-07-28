@@ -2,37 +2,9 @@
 
 from typing import Optional
 
-def import_libraries(libraries: list) -> None:
-    """
-    Helps load/install required libraries when running from cmd prompt
-
-    Parameters
-    ----------
-    libraries : list
-        List of libraries.
-
-    Returns
-    -------
-    None.
-
-    """
-    import subprocess
-    import warnings
-    warnings.filterwarnings("ignore")
-    exec('warnings.filterwarnings("ignore")')
-    aliases = {'numpy':'np','pandas':'pd','matplotlib.pyplot':'plt'}
-    for s in libraries:
-        try:
-            exec(f"import {s[0]} as {aliases[s[0]]}") if s[0] in list(aliases.keys()) else exec(f"import {s[0]}")
-        except ImportError:
-            print(f'Installing... {s[0].split(".")[0]}')
-            cmd = f'python -m pip install {s[0].split(".")[0]}'
-            subprocess.call(cmd, shell=True, stdout=subprocess.PIPE)
-        if len(s) == 1: continue
-        for sl in s[1]:
-            exec(f'from {s[0]} import {sl}')
-
-def read_alexandria(parent_dirs : list,extensions: list[str] = ['.mp4','.mkv','.pdf','.mp3']) -> list:
+def read_alexandria(parent_dirs : list,
+                    extensions: list[str] = ['.mp4','.mkv','m4v','.pdf','.mp3','.flac']
+                    ) -> list:
     """
     Returns all files of a given extension from a list of parent directories
 
@@ -270,7 +242,7 @@ def order_file_contents(file_path: str, numeric=False) -> None:
     if numeric:
         lines.sort(key=lambda x: float(x) if x.replace('.', '', 1).isdigit() else x)
     else:
-        lines.sort()
+        lines.sort(key=lambda x: x.lower())
     # Write the sorted content back to the file
     with open(file_path, 'w') as file:
         for line in lines:
@@ -329,9 +301,15 @@ def format_file_size(size_bytes):
         index += 1
     return f"{size_bytes:.2f} {units[index]}"
 
-def write_list_to_txt_file(file_path: str, items: list, bool_append: bool = False) -> None:
+def write_list_to_txt_file(file_path: str, 
+                           items: list, 
+                           bool_append: bool = False,
+                           bool_sort: bool = False
+                           ) -> None:
     """Writes a list of items to a text file."""
     flag = 'a' if bool_append else 'w'
+    if bool_sort:
+        items = sorted(items, key=lambda x: x.lower())
     with open(file_path, flag,encoding='utf-8') as file:
         for i, item in enumerate(items):
             if i < len(items) - 1:
@@ -509,30 +487,3 @@ def human_readable_size(size_in_gb):
             return size_in_bytes, unit
         size_in_bytes /= 1024
     return size_in_bytes, "TB"
-
-def main() -> None:
-    """Main function to run the utility functions."""      
-    # define paths
-    # import os
-    # src_directory = os.path.dirname(os.path.abspath(__file__))
-    # drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
-    # output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
-    # key_directory = ("\\".join(src_directory.split('\\')[:-1])+"/keys").replace('\\','/')
-    # directory_whitelist = (src_directory+"/config/show_whitelists").replace('\\','/')
-    # drive_config = read_json(drive_hieracrchy_filepath)
-    # primary_drives_dict, backup_drives_dict = read_alexandria_config(drive_config)[:2]
-    # dirs_base_all = []; dirs_base_primary = []; dirs_base_backup = []
-    # for key,val in primary_drives_dict.items():
-    #     dirs_base_primary += [f'{get_drive_letter(v)}:/{key}' for v in val]
-    # for key,val in backup_drives_dict.items():
-    #     dirs_base_backup += [f'{get_drive_letter(v)}:/{key}' for v in val]
-    # dirs_base_all = dirs_base_primary + dirs_base_backup
-    # # rewrite_whitelists_with_year(directory_whitelist,primary_drives_dict)
-    # hide_metadata(drive_config)
-    # remove_empty_folders(dirs_base_all)
-    # generate_ssl_key_and_cert(key_directory)
-    # Test the functions
-    print(does_drive_exist('C'))
-
-if __name__ == '__main__':
-    main()

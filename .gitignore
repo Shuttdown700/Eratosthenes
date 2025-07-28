@@ -7,8 +7,8 @@ archive/*
 icons/*
 output/*
 keys/*
-src/config/*
-src/binary/*
+config/*
+src/bin/*
 src/__pycache__/*
 venv/*
 .vscode/* 

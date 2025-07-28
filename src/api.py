@@ -1,27 +1,42 @@
 #!/usr/bin/env python
 
+import json
+import requests
+
+from colorama import Fore, Back, Style
+
+from utilities import (
+    get_drive_letter,
+    read_alexandria_config,
+    read_csv,
+    read_json,
+    write_to_csv
+)
+
 class API(object):
     def __init__(self):
-        from utilities import read_json
         self.src_directory = os.path.dirname(os.path.abspath(__file__))
         self.root_directory = os.path.abspath(os.path.join(self.src_directory, ".."))
         self.output_directory = os.path.join(self.root_directory,"output")
-        self.filepath_movie_list = os.path.join(self.output_directory,'movie_list.txt')
-        self.filepath_tmdb_csv = os.path.join(self.output_directory,'tmdb.csv')
-        self.filepath_tmdb_top_rated_current_csv = os.path.join(self.output_directory,'tmdb_top_rated_existing.csv')
-        self.filepath_tmdb_top_rated_missing_csv = os.path.join(self.output_directory,'tmdb_top_rated_missing.csv')
-        self.filepath_tmdb_recent_current_csv = os.path.join(self.output_directory,'tmdb_recent_existing.csv')
-        self.filepath_tmdb_recent_missing_csv = os.path.join(self.output_directory,'tmdb_recent_missing.csv')
+        self.filepath_movie_list = os.path.join(self.output_directory,'movies','movie_list.txt')
+        self.filepath_tmdb_csv = os.path.join(self.output_directory,'movies','tmdb.csv')
+        self.filepath_tmdb_top_rated_current_csv = os.path.join(self.output_directory,'movies','tmdb_top_rated_existing.csv')
+        self.filepath_tmdb_top_rated_missing_csv = os.path.join(self.output_directory,'movies','tmdb_top_rated_missing.csv')
+        self.filepath_tmdb_recent_current_csv = os.path.join(self.output_directory,'movies','tmdb_recent_existing.csv')
+        self.filepath_tmdb_recent_missing_csv = os.path.join(self.output_directory,'movies','tmdb_recent_missing.csv')
         self.filepath_movie_list_tmdb_not_found = os.path.join(self.output_directory,'movie_list_tdmb_not_found.txt')
-        self.filepath_api_config = os.path.join(self.src_directory,"config","api.config")
-        self.filepath_movie_tmdb_ids = os.path.join(self.output_directory,"movie_tmdb_ids.json")
-        self.drive_hieracrchy_filepath = os.path.join(self.src_directory,"config","alexandria_drives.config")
+        self.filepath_api_config = os.path.join(self.src_directory,"..", "config","api.config")
+        self.filepath_movie_tmdb_ids = os.path.join(self.output_directory,'movies',"movie_tmdb_ids.json")
+        self.filepath_series_ids = os.path.join(self.output_directory,"alexandria_series_ids.json")
+        self.filepath_statistics = os.path.join(self.output_directory,"alexandria_media_statistics.json")
+        self.drive_hieracrchy_filepath = os.path.join(self.src_directory,"..", "config","alexandria_drives.config")
         self.drive_config = read_json(self.drive_hieracrchy_filepath)
         self.api_config = read_json(self.filepath_api_config)
         self.tmdb_api_url_base_search = self.api_config['tmdb']['api_url_base_search']
         self.tmdb_api_url_base_query = self.api_config['tmdb']['api_url_base_query']
         self.tmdb_api_url_base_discover = self.api_config['tmdb']['api_url_base_discover']
         self.tmdb_api_key = self.api_config['tmdb']['api_key']
+        self.open_library_api_url_base = self.api_config['open-library']['api_url_base']
         self.emby_api_key = self.api_config['emby']['api_key']
         self.emby_url = self.api_config['emby']['api_url']
         self.headers_tmdb = {
@@ -32,11 +47,10 @@ class API(object):
 
     def tmdb_movies_fetch(self):
         import json, requests
-        from analytics import update_movie_list
+        from analysis.update_media_list import update_media_list
         from colorama import Fore, Back, Style
-        from utilities import read_csv, read_json, write_list_to_txt_file, write_to_csv
         # update movie list
-        movie_list = update_movie_list(self.drive_config,self.output_directory)
+        movie_list = update_media_list('movies')
         # read current movies in local tmdb database
         tmbd_current_movies = [x['Title_Alexandria'] for x in read_csv(self.filepath_tmdb_csv)]
         # generate list of movies to query
@@ -122,9 +136,6 @@ class API(object):
         """
         Add discriminator the saves files that I have in a different file than those that I don't have. Also, change file names. 
         """
-        from colorama import Fore, Style
-        import requests
-        from utilities import read_csv
         tmdb_csv = read_csv(self.filepath_tmdb_csv)
         current_tmdb_titles_with_year = [x["Title_TMDb"]+f' ({x["Release_Year"]})' for x in tmdb_csv]
         csv_headers = ['Title_TMDb','Release_Date','Release_Year','Rating','Overview','TMDb_ID']
@@ -172,11 +183,10 @@ class API(object):
         missing_recent_csv_rows = sorted(missing_title_csv_rows, key=lambda x: x[1],reverse=True)
         write_to_csv(self.filepath_tmdb_recent_missing_csv,missing_recent_csv_rows,csv_headers)        
     
-    def tvdb_show_fetch_ids(self,titles : list, filepath_series_ids = ''):
+    def tvdb_show_fetch_ids(self,titles : list):
         import tvdb_v4_official
-        from utilities import read_json
         try:
-            series_ids = read_json(filepath_series_ids)
+            series_ids = read_json(self.filepath_series_ids)
         except:
             series_ids = {}
         current_series_titles = list(series_ids.keys())
@@ -210,9 +220,9 @@ class API(object):
             else:
                 print(f"{title_with_year} not found in search")
         series_ids = dict(sorted(series_ids.items()))
-        if filepath_series_ids != '':
+        if self.filepath_series_ids:
             import json
-            with open(filepath_series_ids, 'w') as json_file:
+            with open(self.filepath_series_ids, 'w') as json_file:
                 json.dump(series_ids, json_file, indent=4)
         return series_ids
 
@@ -271,8 +281,46 @@ class API(object):
         for series_id in list_series_ids:
             self.tvdb_show_fetch_info(series_id)
 
+    def open_library_search(self, 
+                            title: str, 
+                            year: str = None
+                            ) -> dict:
+        # Set your Open Library API URL
+        open_library_url = self.open_library_api_url_base
+        # Example: Search for books by title
+
+        params = {
+            'q': title.replace(' ','+'),
+            'limit': 10,  # Limit the number of results
+            'lang': 'eng'
+        }
+        response = requests.get(open_library_url, params=params)
+        # Check if the request was successful
+        if response.status_code == 200:
+            data = response.json()
+            for book in data['docs']:
+                title = book.get('title', 'Unknown Title')
+                authors = book.get('author_name', ['Unknown Author'])
+                first_publish_year = book.get('first_publish_year', 'Unknown Year')
+                cover_id = book.get('cover_i', None)
+                cover_edition_key = book.get('cover_edition_key', None)
+                author_keys = book.get('author_key', [])
+                cover_url = f'http://covers.openlibrary.org/b/id/{cover_id}-L.jpg' if cover_id else None
+                print(f"Title: {title}, Authors: {', '.join(authors)}, Year: {first_publish_year}")
+            if not data['docs']:
+                print(f"No results found for '{title}'")
+                return None
+            book_info = data['docs']
+            if year:
+                for book in book_info:
+                    if 'first_publish_year' in book and book['first_publish_year'] == year:
+                        print(f"Found book from {year}: {book['title']}")
+                        return book
+            return book_info[0]
+        else:
+            print(f"Error: {response.status_code} - {response.text}")
+
     def emby_api(self):
-        import requests
         # Set your Emby server information and API key
         emby_url = self.emby_url
         api_key = self.emby_api_key
@@ -291,8 +339,6 @@ class API(object):
             print(f"Error: {response.status_code} - {response.text}")
 
         ###
-
-        import requests
 
         # Replace with the actual item ID of the actor and the path to the new image
         actor_item_id = 'ACTOR-ITEM-ID'
@@ -337,8 +383,6 @@ class API(object):
             print(f"Error: {response.status_code} - {response.text}")
 
     def _fetch_parental_rating(self,tmdb_id):
-        import requests
-        from utilities import read_json
         tmdb_api_key = self.tmdb_api_key
         # url = f"https://api.themoviedb.org/3/tv/{tmdb_id}/content_ratings"
         url = f'https://api.themoviedb.org/3/movie/{tmdb_id}/release_dates'
@@ -383,31 +427,22 @@ class API(object):
 
 import os
 if __name__ == '__main__':
-    # import libraries
-    import json, requests
-    from colorama import Fore, Back, Style
-    from utilities import get_drive_letter, read_json
-    # import utility methods
-    from utilities import write_list_to_txt_file, write_to_csv, read_alexandria_config, read_csv, read_file_as_list, read_json
-    src_directory = os.path.dirname(os.path.abspath(__file__))
-    drive_hieracrchy_filepath = (src_directory+"/config/alexandria_drives.config").replace('\\','/')
-    api_config_filepath = (src_directory+"/config/api.config").replace('\\','/')
-    output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
-    filepath_statistics = os.path.join(output_directory,"alexandria_media_statistics.json")
-    drive_config = read_json(drive_hieracrchy_filepath)
+    # instantiate API handler
+    api_handler = API()
+    drive_config = read_json(api_handler.drive_hieracrchy_filepath)
     primary_drives_dict, backup_drives_dict, extensions_dict = read_alexandria_config(drive_config)
-    primary_drive_letter_dict = {}; backup_drive_letter_dict = {}
+    primary_drive_letter_dict = {}
     for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
-    media_statistics = read_json(filepath_statistics)
+    media_statistics = read_json(api_handler.filepath_statistics)
     list_tv_shows = media_statistics["TV Shows"]["Show Titles"]
     list_anime = media_statistics["Anime"]["Anime Titles"]
     list_series = list_tv_shows + list_anime
-    # instantiate API handler
-    api_handler = API()
-    # filepath_series_ids = os.path.join(output_directory,"alexandria_series_ids.json").replace('\\','/')
-    # series_ids = api_handler.tvdb_show_fetch_ids(list_series,filepath_series_ids)
-    api_handler.tmdb_movies_fetch()
+    # series_ids = api_handler.tvdb_show_fetch_ids(list_series)
+    # api_handler.tmdb_movies_fetch()
     # api_handler.tmdb_movies_pull_popular()
     # api_handler.tvdb_fetch_all_series_info(series_ids)
     # api_handler.tvdb_show_fetch_info(series_ids[0])
     # api_handler._fetch_parental_rating(4951)
+    data = api_handler.open_library_search("The Great Gatsby","1920")
+    with open(os.path.join(api_handler.output_directory, "temp", "open_library_search_results.json"), "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)

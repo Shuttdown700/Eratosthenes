@@ -57,5 +57,5 @@ class Validator:
 
 validator = Validator()
 validator.validate_json_file(
-    r"C:\Users\brend\Documents\Coding Projects\alexandria_media_manager\src\config\alexandria_drives.config",
+    r"C:\Users\brend\Documents\Coding Projects\alexandria_media_manager\config\alexandria_drives.config",
     r"C:\Users\brend\Documents\Coding Projects\alexandria_media_manager\src\validator\schemas\schema_alexandria_config.json")
