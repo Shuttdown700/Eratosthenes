@@ -18,3 +18,5 @@ venv/*
 *.mp3
 *.flac
 *.pdf
+!output/.gitkeep
+!config/.gitkeep
