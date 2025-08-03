@@ -83,8 +83,9 @@ def update_media_list(media_type: str) -> list:
         data = sorted(set(data), key=str.lower)
 
     # Define output path
+    dirname = media_type.replace(" ", "_").lower() if media_type != "anime_movies" else "movies"
     output_dir = os.path.join(
-        src_directory, "..", "..", "output", media_type.replace(" ", "_").lower()
+        src_directory, "..", "..", "output", dirname
     )
     os.makedirs(output_dir, exist_ok=True)
 

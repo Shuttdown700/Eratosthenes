@@ -3,6 +3,7 @@
 import datetime
 import os
 import shutil
+import zipfile
 from typing import List, Tuple
 
 from colorama import Fore, Back, Style
@@ -40,7 +41,7 @@ class Backup:
         self.timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.src_directory = os.path.dirname(os.path.abspath(__file__))
         self.filepath_drive_hierarchy = os.path.join(self.src_directory, "..", "config", "alexandria_drives.config")
-        self.output_directory = os.path.join(os.path.dirname(self.src_directory), "..", "output")
+        self.output_directory = os.path.join(os.path.dirname(self.src_directory), "output")
         self.filepath_statistics = os.path.join(self.output_directory, "alexandria_media_statistics.json")
         self.filepath_alexandria_media_details = os.path.join(self.output_directory, "alexandria_media_details.json")
 
@@ -57,7 +58,10 @@ class Backup:
         # Drive letters and names
         self.primary_drive_letters = []
         for val in self.primary_drives_letter_dict.values():
-            self.primary_drive_letters += val
+            if None not in val: 
+                self.primary_drive_letters += val
+            else:
+                print(f"{RED}{BRIGHT}[ALERT] {RESET}Primary drive letter is None for {val}. Please check the drive configuration.")
         self.primary_drive_letters = sorted(set(self.primary_drive_letters))
         self.backup_drive_letters = []
         for val in self.backup_drives_letter_dict.values():
@@ -71,35 +75,52 @@ class Backup:
         self.primary_filepaths_dict = {}
         self.drive_stats_dict = {}
 
-    def backup_output_files(self) -> None:
-        from utilities import order_file_contents
-        """Backs up all files in the output directory to a dated backup folder."""
+    def backup_output_files(self, compress: bool = True) -> None:
+        """Backs up all files in the output directory (recursively) to a dated backup folder or zip archive."""
         try:
-            # Define the backup directory path with current date
+            # Define the backup base path with current date
             current_date = datetime.datetime.now().strftime('%Y%m%d')
-            backup_dir = os.path.join(self.output_directory, 'backups', current_date)
+            backup_base = os.path.join(self.output_directory, 'backups')
+            os.makedirs(backup_base, exist_ok=True)
 
-            # Create the backup directory if it doesn't exist
-            os.makedirs(backup_dir, exist_ok=True)
+            if compress:
+                zip_path = os.path.join(backup_base, f'alexandria_output_backup_{current_date}.zip')
+                with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    for root, _, files in os.walk(self.output_directory):
+                        if 'backups' in root:
+                            continue
+                        for filename in files:
+                            file_path = os.path.join(root, filename)
+                            relative_path = os.path.relpath(file_path, self.output_directory)
+                            zipf.write(file_path, arcname=relative_path)
+                            # print(f"{GREEN}File added to ZIP: {RESET}{relative_path}")
+                print(f"{GREEN}Backup ZIP created: {RESET}{zip_path}")
 
-            # Loop through all files in the output directory
-            for idx,filename in enumerate(os.listdir(self.output_directory)):
-                if idx == 0: print('')
-                file_path = os.path.join(self.output_directory, filename)
-                # if 'list' in file_path and '.txt' in file_path: order_file_contents(file_path)
-                # Skip directories, process only files
-                if os.path.isfile(file_path):
-                    # Generate the backup file name
-                    backup_filename = f"{os.path.splitext(filename)[0]} - backup {current_date}{os.path.splitext(filename)[1]}"
-                    backup_file_path = os.path.join(backup_dir, backup_filename)
+            else:
+                backup_dir = os.path.join(backup_base, current_date)
+                os.makedirs(backup_dir, exist_ok=True)
 
-                    # Copy the file to the backup directory with the new name
-                    shutil.copy2(file_path, backup_file_path)
+                for root, _, files in os.walk(self.output_directory):
+                    if 'backups' in root:
+                        continue
+                    for filename in files:
+                        file_path = os.path.join(root, filename)
+                        relative_path = os.path.relpath(file_path, self.output_directory)
 
-                    print(f"{GREEN}Output file backed up: {RESET}{"/".join(['.','output','backups',current_date,filename])}")
+                        # Create subdirectories in backup path
+                        backup_subdir = os.path.join(backup_dir, os.path.dirname(relative_path))
+                        os.makedirs(backup_subdir, exist_ok=True)
+
+                        name, ext = os.path.splitext(filename)
+                        backup_filename = f"{name} - backup {current_date}{ext}"
+                        backup_file_path = os.path.join(backup_subdir, backup_filename)
+
+                        shutil.copy2(file_path, backup_file_path)
+                        print(f"{GREEN}Output file backed up: {RESET}{os.path.join('output', 'backups', current_date, relative_path)}")
 
         except Exception as e:
             print(f"Error during backup: {e}")
+
 
     def apply_movie_backup_filters(self, media_type: str, backup_candidate_tuples: list[tuple[str,str]]) -> list[tuple[str,str]]: 
         """Filter movie backups using ratings, blocked keywords, file sizes, tmdb data."""
@@ -133,7 +154,7 @@ class Backup:
             exclude_strings_exceptions[drive_letter] = self.drive_config[media_type]['backup_drives'][drive_name]["backup_exclusion_override_strings"]
 
         # Read the most recent TMDb data
-        tmdb_filepath = os.path.join(self.output_directory, 'tmdb.csv')
+        tmdb_filepath = os.path.join(self.output_directory, 'movies', 'tmdb.csv')
         tmdb_data = read_csv(tmdb_filepath)
 
         # Initialize counters and lists
@@ -510,7 +531,7 @@ class Backup:
 
     def main(self) -> None:
         """Main function to initiate the Alexandria backup process."""
-        print(f'\n{"#" * 10}\n\n{MAGENTA}{BRIGHT}Initiating Alexandria Backup...{RESET}\n\n{"#" * 10}')
+        print(f'\n{"#" * 10}\n\n{MAGENTA}{BRIGHT}Initiating Alexandria Backup...{RESET}\n\n{"#" * 10}\n')
         # Back up output files
         self.backup_output_files()
 

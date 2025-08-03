@@ -23,7 +23,6 @@ def read_alexandria(parent_dirs : list,
         A list of all paths to corresponding files.
         
     """
-    # import libraries
     import os
     # assert correction arguments
     assert isinstance(parent_dirs,list) and isinstance(extensions,list), "One or more arguments are not in list type."
@@ -369,8 +368,7 @@ def remove_empty_folders(
                 except Exception as e:
                     print(f"{print_line_prefix}{Fore.YELLOW}Warning: Failed to delete {sub_path}: {e}{Style.RESET_ALL}")
 
-    if num_directories_removed == 0:
-        print(f"{print_line_prefix}{Fore.GREEN}No empty directories found.{Style.RESET_ALL}")
+    # if num_directories_removed == 0: print(f"{print_line_prefix}{Fore.GREEN}No empty directories found.{Style.RESET_ALL}")
 
 def hide_metadata(drive_config: dict) -> None:
     """Hides metadata files in the specified drives."""

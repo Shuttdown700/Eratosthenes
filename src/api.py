@@ -51,6 +51,7 @@ class API(object):
         from colorama import Fore, Back, Style
         # update movie list
         movie_list = update_media_list('movies')
+        movie_list += update_media_list('anime_movies')
         # read current movies in local tmdb database
         tmbd_current_movies = [x['Title_Alexandria'] for x in read_csv(self.filepath_tmdb_csv)]
         # generate list of movies to query
@@ -407,7 +408,7 @@ class API(object):
                     if rating.get('iso_3166_1') == country:
                         rating_certification = rating.get('release_dates')[0]['certification']
                         if rating_certification != '' and rating_certification != 'NR':
-                            print(f"Parental rating for TMDb ID {tmdb_id}: {rating_certification} ({country})")
+                            # print(f"Parental rating for TMDb ID {tmdb_id}: {rating_certification} ({country})")
                             return rating_certification
 
             # Fallback to any available rating if preferred countries not found

@@ -1,16 +1,28 @@
 import os
 import re
+import sys
 import subprocess
 from typing import List
 
-# Define path to ffprobe (relative to this script's location)
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from utilities import read_json
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 FFPROBE_PATH = os.path.join(SCRIPT_DIR, "..", "bin", "ffprobe.exe")
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, "..", "..", "output")
+MEDIA_DATA = read_json(os.path.join(OUTPUT_DIR, "alexandria_media_details.json"))
 
 
 def get_video_duration(filepath: str) -> float:
     """Return the duration of a video file in seconds."""
     try:
+        try:
+            file_data = MEDIA_DATA[os.path.normpath(filepath).split(os.sep)[1]][os.path.splitext(os.path.basename(filepath))[0]]
+            return float(file_data["Length (min.)"]) * 60
+        except KeyError:
+            file_data = None
+
         result = subprocess.run(
             [
                 FFPROBE_PATH, "-v", "error", "-show_entries",
@@ -102,7 +114,6 @@ def sum_durations(duration_strings: list[str]) -> str:
     """
     total_seconds = sum(parse_duration(s) for s in duration_strings)
     return format_duration(total_seconds)
-
 
 
 def main(video_filepaths: List[str],print_bool=False) -> None:

@@ -42,16 +42,25 @@ def read_media_statistics(bool_update=False,
     size_books = data["Books"]["Total Size"]
     size_music = data["Music"]["Total Size"]
     size_courses = data["Courses"]["Total Size"]
+    duration_shows = ",".join(data["TV Shows"]["Total Duration"].split(",")[:-1])
+    duration_anime = ",".join(data["Anime"]["Total Duration"].split(",")[:-1])
+    duration_bluray_movies = ",".join(data["Movies"]["Total Duration"].split(",")[:-1])
+    duration_anime_movies = ",".join(data["Anime Movies"]["Total Duration"].split(",")[:-1])
+    duration_4k_movies = ",".join(data["4K Movies"]["Total Duration"].split(",")[:-1])
+    duration_course_videos = ",".join(data["Courses"]["Total Duration"].split(",")[:-1])
+    duration_music = ",".join(data["Music"]["Total Duration"].split(",")[:-1])
 
     if bool_print:
         print(f'\n{"#"*10}\n')
         print("Media Statistics\n")
-        print(f"{Fore.YELLOW}{Style.BRIGHT}Shows: {Style.NORMAL}{num_shows:,} shows, {num_show_episodes:,} episodes | {size_shows}")
-        print(f"{Fore.CYAN}{Style.BRIGHT}Anime: {Style.NORMAL}{num_anime:,} series, {num_anime_episodes:,} episodes | {size_anime}")
-        print(f"{Fore.MAGENTA}{Style.BRIGHT}Movies: {Style.NORMAL}{num_bluray_movies:,} Blu-ray, {num_anime_movies:,} Anime, {num_4k_movies:,} 4K Movies | {size_movies}, {size_anime_movies}, {size_4k_movies}")
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Shows: {Style.NORMAL}{num_shows:,} shows, {num_show_episodes:,} episodes | {size_shows} | {duration_shows}")
+        print(f"{Fore.CYAN}{Style.BRIGHT}Anime: {Style.NORMAL}{num_anime:,} series, {num_anime_episodes:,} episodes | {size_anime} | {duration_anime}")
+        print(f"{Fore.MAGENTA}{Style.BRIGHT}BluRay Movies: {Style.NORMAL}{num_bluray_movies:,} | {size_movies} | {duration_bluray_movies}")
+        print(f"{Fore.MAGENTA}{Style.BRIGHT}Anime Movies: {Style.NORMAL}{num_anime_movies:,} | {size_anime_movies} | {duration_anime_movies}")
+        print(f"{Fore.MAGENTA}{Style.BRIGHT}4K Movies: {Style.NORMAL}{num_4k_movies:,} | {size_4k_movies} | {duration_4k_movies}")
         print(f"{Fore.GREEN}{Style.BRIGHT}Books: {Style.NORMAL}{num_books:,} books | {size_books}")
-        print(f"{Fore.BLUE}{Style.BRIGHT}Music: {Style.NORMAL}{num_songs:,} songs | {size_music}")
-        print(f"{Fore.RED}{Style.BRIGHT}Courses: {Style.NORMAL}{num_course_videos:,} course videos | {size_courses}")
+        print(f"{Fore.BLUE}{Style.BRIGHT}Music: {Style.NORMAL}{num_songs:,} songs | {size_music} | {duration_music}")
+        print(f"{Fore.RED}{Style.BRIGHT}Courses: {Style.NORMAL}{num_course_videos:,} course videos | {size_courses} | {duration_course_videos}")
         print(f'\n{"#"*10}\n')
     
     return data

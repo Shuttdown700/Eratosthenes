@@ -9,9 +9,9 @@ init(autoreset=True)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "../.."))
 
-WHITELIST_FOLDER = os.path.join(PROJECT_ROOT, "config/show_whitelists/active")
-SHOWS_LIST_PATH = os.path.join(PROJECT_ROOT, "output", "show_list.txt")
-ANIME_LIST_PATH = os.path.join(PROJECT_ROOT, "output", "anime_list.txt")
+WHITELIST_FOLDER = os.path.join(PROJECT_ROOT, "config", "show_whitelists" ,"active")
+SHOWS_LIST_PATH = os.path.join(PROJECT_ROOT, "output", "shows", "shows_list.txt")
+ANIME_LIST_PATH = os.path.join(PROJECT_ROOT, "output", "anime", "anime_list.txt")
 OUTPUT_JSON = os.path.join(PROJECT_ROOT, "output", "active_backup_summary.json")
 
 def load_list(path):
@@ -19,6 +19,8 @@ def load_list(path):
         return set(line.strip() for line in f if line.strip())
 
 def main():
+    from update_media_list import update_all_media_lists
+    update_all_media_lists()
     # Load master list
     all_titles = load_list(SHOWS_LIST_PATH) | load_list(ANIME_LIST_PATH)
 
