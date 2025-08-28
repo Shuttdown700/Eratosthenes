@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-from typing import Optional
+from typing import Optional, Dict, List
+
+import json
+from pathlib import Path
 
 def read_alexandria(parent_dirs : list,
                     extensions: list[str] = ['.mp4','.mkv','m4v','.pdf','.mp3','.flac']
@@ -69,11 +72,36 @@ def files_are_identical(file1 : str, file2: str) -> bool:
     else:
         return True # files are identical
 
-def read_json(filepath: str) -> dict:
-    import json
-    with open(filepath, 'r', encoding='utf8') as json_file:
-        json_data = json.load(json_file)
-    return json_data
+def read_json(filepath: str | Path, default: dict = None) -> dict:
+    """
+    Read JSON file safely, returning default if file doesn't exist or is invalid.
+    
+    Args:
+        filepath: Path to the JSON file.
+        default: Default value to return if file reading fails.
+    
+    Returns:
+        dict: Contents of the JSON file or default value.
+    """
+    try:
+        with open(filepath, "r", encoding='utf8') as file:
+            return json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return default if default is not None else {}
+    
+def write_json(filepath: str | Path, data: dict) -> None:
+    """
+    Write dictionary to JSON file with proper formatting and UTF-8 encoding.
+
+    Args:
+        filepath: Path to save the JSON file.
+        data: Dictionary to save.
+    """
+    try:
+        with open(filepath, "w", encoding="utf-8") as file:
+            json.dump(data, file, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error writing to {filepath}: {e}")
 
 def get_json_file_list(directory: str) -> list:
     import os

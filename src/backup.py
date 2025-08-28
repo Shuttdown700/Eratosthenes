@@ -6,8 +6,6 @@ import shutil
 import zipfile
 from typing import List, Tuple
 
-from colorama import Fore, Back, Style
-
 from utilities import (
     files_are_identical,
     get_drive_letter,
@@ -17,7 +15,7 @@ from utilities import (
     read_alexandria,
     read_alexandria_config,
     read_csv,
-    remove_empty_folders,
+    remove_empty_folders
 )
 
 from analysis.read_server_statistics import (
@@ -25,6 +23,8 @@ from analysis.read_server_statistics import (
 )
 
 from api import API
+
+from colorama import Fore, Back, Style
 
 RED = Fore.RED
 YELLOW = Fore.YELLOW
@@ -62,6 +62,7 @@ class Backup:
                 self.primary_drive_letters += val
             else:
                 print(f"{RED}{BRIGHT}[ALERT] {RESET}Primary drive letter is None for {val}. Please check the drive configuration.")
+                raise 
         self.primary_drive_letters = sorted(set(self.primary_drive_letters))
         self.backup_drive_letters = []
         for val in self.backup_drives_letter_dict.values():

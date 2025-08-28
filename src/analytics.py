@@ -384,33 +384,52 @@ def read_media_file_data(filepath_alexandria_media_details,bool_update=False,boo
     return data
 
 def main():
-    import os
-    from utilities import get_drive_letter, get_file_size, read_alexandria, read_alexandria_config, read_json
-    from api import API
-    # define paths
+    # Define paths
     src_directory = os.path.dirname(os.path.abspath(__file__))
-    drive_hieracrchy_filepath = (src_directory+"/../config/alexandria_drives.config").replace('\\','/')
-    output_directory = ("\\".join(src_directory.split('\\')[:-1])+"/output").replace('\\','/')
-    filepath_statistics = os.path.join(output_directory,"alexandria_media_statistics.json").replace('\\','/')
-    filepath_alexandria_media_details = os.path.join(output_directory,"alexandria_media_details.json").replace('\\','/')
-    drive_config = read_json(drive_hieracrchy_filepath)
-    # define primary & backup drives
-    primary_drives_dict, backup_drives_dict, extensions_dict = read_alexandria_config(drive_config)
-    primary_drive_letter_dict = {}; backup_drive_letter_dict = {}
-    for key,value in primary_drives_dict.items(): primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
-    for key,value in backup_drives_dict.items(): backup_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
+    drive_hierarchy_filepath = os.path.join(
+        src_directory, "..", "config", "alexandria_drives.config"
+    )
+    output_directory = os.path.join(
+        src_directory, "..", "output"
+    )
+    filepath_alexandria_media_details = os.path.join(
+        output_directory, "alexandria_media_details.json"
+    )
+    
+    # Read drive configuration
+    drive_config = read_json(drive_hierarchy_filepath)
+    
+    # Define primary & backup drives
+    primary_drives_dict, backup_drives_dict, extensions_dict = read_alexandria_config(
+        drive_config
+    )
+    primary_drive_letter_dict = {}
+    backup_drive_letter_dict = {}
+    
+    for key, value in primary_drives_dict.items():
+        primary_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
+    
+    for key, value in backup_drives_dict.items():
+        backup_drive_letter_dict[key] = [get_drive_letter(x) for x in value]
+    
+    # Commented code left as-is
     # api_handler = API()
-    # movie_titles_with_year = update_movie_list(drive_config,output_directory)
     # api_handler.tmdb_movies_fetch()
-    # read_media_statistics(filepath_statistics,bool_update=False,bool_print=True)
-    # read_media_file_data(filepath_alexandria_media_details,bool_update=False,bool_print_backup_data=True)
-    update_server_statistics(drive_config,filepath_statistics)
-    # update_media_file_data(drive_config,filepath_alexandria_media_details,bool_print=True, overwrite_media_data=False, reset=False)
+    # read_media_file_data(filepath_alexandria_media_details, bool_update=False, bool_print_backup_data=True)
+    
+    update_media_file_data(
+        drive_config,
+        filepath_alexandria_media_details,
+        bool_print=True,
+        overwrite_media_data=False,
+        reset=False,
+    )
+    
     # movies_suggested = suggest_movie_downloads()
-    # data_media_statistics = read_media_statistics(filepath_statistics)
     # read_media_file_data(filepath_alexandria_media_details)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
 
 
