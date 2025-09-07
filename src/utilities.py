@@ -513,3 +513,20 @@ def human_readable_size(size_in_gb):
             return size_in_bytes, unit
         size_in_bytes /= 1024
     return size_in_bytes, "TB"
+
+def is_hidden(filepath):
+    """
+    Cross-platform check for hidden files:
+    - On Windows, check FILE_ATTRIBUTE_HIDDEN
+    - On Unix, check if filename starts with '.'
+    """
+    import ctypes, os, sys
+    if sys.platform.startswith('win'):
+        try:
+            attrs = ctypes.windll.kernel32.GetFileAttributesW(str(filepath))
+            return bool(attrs & 2)  # FILE_ATTRIBUTE_HIDDEN = 0x2
+        except Exception as e:
+            print(f"Error checking hidden attribute for {filepath}: {e}")
+            return False
+    else:
+        return os.path.basename(filepath).startswith('.')

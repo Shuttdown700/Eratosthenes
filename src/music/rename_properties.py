@@ -108,9 +108,9 @@ def rename_album(directory, name):
                     audio = EasyMP4(filepath)
                     audio['album'] = name
                     audio.save()
-                print(f"Updated album for: {filename}")
+                print(f"{GREEN}{BRIGHT}Updated album{RESET} for: {filename}")
             except Exception as e:
-                print(f"Failed to update {filename}: {e}")
+                print(f"{RED}{BRIGHT}Failed to update{RESET} {filename}: {e}")
 
 def rename_artist(directory, artist_name):
     for filename in os.listdir(directory):
@@ -132,9 +132,9 @@ def rename_artist(directory, artist_name):
                     audio['artist'] = artist_name
                     audio['albumartist'] = artist_name
                     audio.save()
-                print(f"Updated artist and album artist for: {filename}")
+                print(f"{GREEN}{BRIGHT}Updated artist and album artist{RESET} for: {filename}")
             except Exception as e:
-                print(f"Failed to update {filename}: {e}")
+                print(f"{RED}{BRIGHT}Failed to update{RESET} {filename}: {e}")
 
 def rename_comment(directory, comment_text):
     for filename in os.listdir(directory):
@@ -169,7 +169,7 @@ def rename_comment(directory, comment_text):
                 print(f"{action} comment for: {filename}")
 
             except Exception as e:
-                print(f"Failed to update {filename}: {e}")
+                print(f"{RED}{BRIGHT}Failed to update comment{RESET} for {filename}: {e}")
 
 def rename_OTSs(ost_soundtrack):
     from mutagen.mp3 import MP3  
@@ -204,7 +204,7 @@ def set_track_numbers(album_directory: str) -> None:
     AUDIO_EXTENSIONS = ('.mp3', '.flac', '.m4a')
 
     if not os.path.isdir(album_directory):
-        print(f"{Fore.RED}Directory does not exist: {album_directory}{Style.RESET_ALL}")
+        print(f"{RED}{BRIGHT}Directory does not exist{RESET}: {album_directory}")
         return
 
     audio_files = sorted([
@@ -213,7 +213,7 @@ def set_track_numbers(album_directory: str) -> None:
     ])
 
     if not audio_files:
-        print(f"{Fore.YELLOW}No audio files found in: {album_directory}{Style.RESET_ALL}")
+        print(f"{YELLOW}No audio files found{RESET} in: {album_directory}")
         return
 
     with alive_bar(len(audio_files), title="Tagging track numbers") as bar:
@@ -237,9 +237,9 @@ def set_track_numbers(album_directory: str) -> None:
                     audio['trkn'] = [(index, 0)]  # (track number, total optional)
                     audio.save()
 
-                print(f"{Fore.GREEN}Tagged:{Style.RESET_ALL} {filename} -> Track {index}")
+                print(f"{GREEN}{BRIGHT}Tagged:{RESET} {filename} -> Track {index}")
             except Exception as e:
-                print(f"{Fore.RED}Error tagging {filename}:{Style.RESET_ALL} {e}")
+                print(f"{RED}{BRIGHT}Error tagging{RESET} {filename}: {e}")
             bar()
 
 def clean_flac_titles(directory):
@@ -252,15 +252,15 @@ def clean_flac_titles(directory):
                 if title:
                     new_title = title.split('(')[0].strip()
                     if new_title != title:
-                        print(f'Renaming "{title}" -> "{new_title}" in: {filename}')
+                        print(f'{GREEN}{BRIGHT}Renaming {RESET}"{title}" -> "{new_title}" in: {filename}')
                         audio["title"] = new_title
                         audio.save()
                     else:
-                        print(f'No change needed for: {filename}')
+                        print(f'{YELLOW}No change needed{RESET} for: {filename}')
                 else:
-                    print(f"No title tag found in: {filename}")
+                    print(f"{YELLOW}No title tag found{RESET} in: {filename}")
             except Exception as e:
-                print(f"Error processing {filename}: {e}")
+                print(f"{RED}{BRIGHT}Error processing{RESET} {filename}: {e}")
 
 if __name__ == "__main__":
     # Example usage:
@@ -270,13 +270,13 @@ if __name__ == "__main__":
     dir_temp_playlist_albums = r'W:\Temp\Download Zone\Playlists'
     dir_temp_OSTs = r'W:\Temp\Download Zone\OSTs'
     dir_temp = r'W:\Music\Temp\Download Zone'
-    dir_custom = r"A:\Music\FLAC\Original Soundtracks (OST)\Klaus Badelt\(2003) Pirates of the Caribbean - The Curse of the Black Pearl"
+    dir_custom = r"A:\Music\MP3s_320\Original Soundtracks (OST)\Hans Zimmer\(2017) Dunkirk (Original Motion Picture Soundtrack)"
     # rename_essentials_albums(dir_temp_essential_albums)
     # rename_playlist_albums(dir_temp_playlist_albums)
     # clean_flac_titles(dir_custom)
 
-    # rename_album(dir_custom, "The Lord of the Rings: The Fellowship of the Ring")
-    # rename_artist(dir_custom, 'Howard Shore')
+    # rename_album(dir_custom, "The Lord of the Rings: The Return of the King")
+    # rename_artist(dir_custom, 'Hans Zimmer')
     # rename_comment(dir_custom, '')
     # rename_OTSs(dir_temp_OSTs)
     # set_track_numbers(dir_custom)
