@@ -296,7 +296,6 @@ def update_server_statistics(bool_update_duration=False, bool_print=False) -> No
         duration_music, duration_courses
         ]
 
-    durations = [d for d in durations if d and isinstance(d, (int, float))]
     total_duration = sum_durations(durations)
 
     with open(filepath_statistics, 'w') as json_file:

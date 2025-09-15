@@ -10,6 +10,7 @@ keys/*
 config/*
 src/bin/*
 src/__pycache__/*
+src/music/temp/*
 venv/*
 .vscode/* 
 *.mp4

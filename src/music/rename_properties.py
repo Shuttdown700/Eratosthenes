@@ -262,6 +262,9 @@ def clean_flac_titles(directory):
             except Exception as e:
                 print(f"{RED}{BRIGHT}Error processing{RESET} {filename}: {e}")
 
+def search_for_missing_properties(root_dir):
+    pass
+
 if __name__ == "__main__":
     # Example usage:
     dir_root_FLAC = r'W:\Music\FLAC'
@@ -270,12 +273,12 @@ if __name__ == "__main__":
     dir_temp_playlist_albums = r'W:\Temp\Download Zone\Playlists'
     dir_temp_OSTs = r'W:\Temp\Download Zone\OSTs'
     dir_temp = r'W:\Music\Temp\Download Zone'
-    dir_custom = r"A:\Music\MP3s_320\Original Soundtracks (OST)\Hans Zimmer\(2017) Dunkirk (Original Motion Picture Soundtrack)"
+    dir_custom = r"A:\Temp\Music\Radiohead\(1997) OK Computer (Deluxe)\CD 2"
     # rename_essentials_albums(dir_temp_essential_albums)
     # rename_playlist_albums(dir_temp_playlist_albums)
     # clean_flac_titles(dir_custom)
 
-    # rename_album(dir_custom, "The Lord of the Rings: The Return of the King")
+    rename_album(dir_custom, "Ok Computer")
     # rename_artist(dir_custom, 'Hans Zimmer')
     # rename_comment(dir_custom, '')
     # rename_OTSs(dir_temp_OSTs)

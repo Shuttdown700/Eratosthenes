@@ -69,6 +69,6 @@ def add_year_to_filenames(root_dir: str,
                 os.rename(src, dst)
 
 if __name__ == '__main__':
-    dir_to_fix = r'B:\Spongebob Squarepants (1999)'
+    dir_to_fix = r'D:\Shows\Spongebob Squarepants (1999)'
     add_year_to_filenames(dir_to_fix, 
                           dry_run=False)
