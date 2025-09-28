@@ -10,13 +10,13 @@ def download_yt_video_playlist(url,
     os.makedirs(output_directory, exist_ok=True)
 
     # Change to yt-dlp binary location
-    os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "bin"))
+    os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bin"))
 
     # Construct the command with properly quoted arguments
     cmd = [
         "yt-dlp",
         "-vU",
-        "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+        "-f", "bestvideo[ext=mkv]+bestaudio[ext=m4a]/best[ext=mkv]/best",
         "--embed-thumbnail",
         url,
         "-o", os.path.join(output_directory, "%(title)s.%(ext)s"),
@@ -30,6 +30,6 @@ def download_yt_video_playlist(url,
     subprocess.call(cmd)
 
 if __name__ == "__main__":
-    url_playlist = "https://www.youtube.com/watch?v=Q0BrP8bqj0c&list=PLH0Szn1yYNecanpQqdixWAm3zHdhY2kPR&ab_channel=BibleProject"
-    sub_directory = os.path.join("A:","Temp","YouTube","Bible Project - New Testament")
+    url_playlist = "https://www.youtube.com/watch?v=mhazCS14Tas"
+    sub_directory = os.path.join("A:","Temp","YouTube","Horror Short Films")
     download_yt_video_playlist(url_playlist,sub_directory)     

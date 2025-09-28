@@ -273,13 +273,13 @@ if __name__ == "__main__":
     dir_temp_playlist_albums = r'W:\Temp\Download Zone\Playlists'
     dir_temp_OSTs = r'W:\Temp\Download Zone\OSTs'
     dir_temp = r'W:\Music\Temp\Download Zone'
-    dir_custom = r"A:\Temp\Music\Radiohead\(1997) OK Computer (Deluxe)\CD 2"
+    dir_custom = r"A:\Music\MP3s_320\Paul Simon\(1986) Graceland"
     # rename_essentials_albums(dir_temp_essential_albums)
     # rename_playlist_albums(dir_temp_playlist_albums)
     # clean_flac_titles(dir_custom)
 
-    rename_album(dir_custom, "Ok Computer")
-    # rename_artist(dir_custom, 'Hans Zimmer')
+    # rename_album(dir_custom, "The Age of Adz")
+    rename_artist(dir_custom, 'Paul Simon')
     # rename_comment(dir_custom, '')
     # rename_OTSs(dir_temp_OSTs)
     # set_track_numbers(dir_custom)

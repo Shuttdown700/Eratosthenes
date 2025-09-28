@@ -412,7 +412,8 @@ class API(object):
 
     def open_library_search(self, 
                             title: str, 
-                            year: str = None
+                            year: str = None,
+                            author: str = None
                             ) -> dict:
         # Set your Open Library API URL
         open_library_url = self.open_library_api_url_base
@@ -444,6 +445,9 @@ class API(object):
                 for book in book_info:
                     if 'first_publish_year' in book and book['first_publish_year'] == year:
                         print(f"Found book from {year}: {book['title']}")
+                        return book
+                    if 'author_name' in book and author and author in book['author_name']:
+                        print(f"Found book by {author}: {book['title']}")
                         return book
             return book_info[0]
         else:
@@ -565,11 +569,11 @@ if __name__ == '__main__':
     series_data = api_handler.fetch_tvdb_series_info(378609)
     pass
     # series_ids = api_handler.tvdb_show_fetch_ids()
-    api_handler.tmdb_movies_fetch()
+    # api_handler.tmdb_movies_fetch()
     # api_handler.tmdb_movies_pull_popular()
     # api_handler.tvdb_fetch_all_series_info(series_ids)
     # api_handler.tvdb_show_fetch_info(series_ids[0])
     # api_handler._fetch_parental_rating(4951)
-    # data = api_handler.open_library_search("The Great Gatsby","1920")
+    data = api_handler.open_library_search("The Great Gatsby","1920")
     # with open(os.path.join(api_handler.output_directory, "temp", "open_library_search_results.json"), "w", encoding="utf-8") as f:
     #     json.dump(data, f, indent=4, ensure_ascii=False)

@@ -20,6 +20,8 @@ def load_list(path):
 
 def main():
     from update_media_list import update_all_media_lists
+    print(f'\n{"#" * 10}\n')
+    print(f"{Fore.CYAN}Assessing backup status of all titles...{Style.RESET_ALL}\n")
     update_all_media_lists()
     # Load master list
     all_titles = load_list(SHOWS_LIST_PATH) | load_list(ANIME_LIST_PATH)
@@ -39,12 +41,17 @@ def main():
 
     # Organize into buckets
     buckets = defaultdict(dict)
+    num_no_backup = 0
     for title in all_titles:
         drives = backup_locations.get(title, [])
         count = len(drives)
         bucket_key = f"{count} backup" if count == 1 else f"{count} backups"
         if count == 0:
             bucket_key = "0 backups"
+            print_statement = f'{Fore.RED}No backups found for{Style.RESET_ALL}: {Fore.YELLOW}{title}{Style.RESET_ALL}'
+            if num_no_backup == 0: print(f"\n{print_statement}")
+            else: print(print_statement)
+            num_no_backup += 1
         buckets[bucket_key][title] = drives
 
     # Sort keys numerically
@@ -59,7 +66,8 @@ def main():
     with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
         json.dump(sorted_buckets, f, indent=4, ensure_ascii=False)
 
-    print(f"{Fore.GREEN}Detailed backup summary saved{Style.RESET_ALL}: {OUTPUT_JSON}")
+    print(f"\n{Fore.GREEN}{Style.BRIGHT}Detailed backup summary saved{Style.RESET_ALL}: {OUTPUT_JSON}")
+    print(f'\n{"#" * 10}\n')
 
 if __name__ == "__main__":
     main()

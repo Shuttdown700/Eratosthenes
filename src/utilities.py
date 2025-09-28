@@ -530,3 +530,85 @@ def is_hidden(filepath):
             return False
     else:
         return os.path.basename(filepath).startswith('.')
+    
+def generate_music_file_print_message(file_path, max_title_length=20, max_album_length=20, 
+                         include_track=True, include_album=True, 
+                         include_artist=True, separator=" | "
+                         ) -> str:
+    """
+    Extract and format music metadata into a string with length limits.
+    
+    Args:
+        file_path (str): Path to the music file (.flac or .mp3)
+        max_title_length (int): Maximum length for track title (default: 30)
+        max_album_length (int): Maximum length for album name (default: 25)
+        include_track (bool): Whether to include track number
+        include_album (bool): Whether to include album name
+        include_artist (bool): Whether to include album artist
+        separator (str): Separator between metadata fields
+    
+    Returns:
+        str: Formatted metadata string or "Unknown Track" if file can't be read
+    """
+    
+    from mutagen.flac import FLAC
+    from mutagen.mp3 import MP3
+    from mutagen.id3 import ID3
+
+    try:
+        # Determine file type and load appropriate mutagen object
+        if file_path.lower().endswith('.flac'):
+            audio_file = FLAC(file_path)
+        elif file_path.lower().endswith('.mp3'):
+            audio_file = MP3(file_path)
+            # Ensure ID3 tags are available for MP3
+            if audio_file.tags is None:
+                audio_file.add_tags(ID3)
+                audio_file.tags.save()
+        else:
+            return "Unsupported file format"
+        
+        # Extract metadata
+        track_num = audio_file.get('tracknumber', [''])[0] if audio_file else ''
+        track_title = audio_file.get('title', [''])[0] if audio_file else ''
+        album_name = audio_file.get('album', [''])[0] if audio_file else ''
+        album_artist = audio_file.get('albumartist', [''])[0] if audio_file else ''
+        artist = audio_file.get('artist', [''])[0] if audio_file else ''
+        
+        # Use album artist if available, otherwise fall back to artist
+        if not album_artist and artist:
+            album_artist = artist
+        
+        # Format track number (just the number part if it contains "/")
+        if track_num and '/' in track_num:
+            track_num = track_num.split('/')[0].strip()
+        
+        # Apply length limits with ellipsis
+        if len(track_title) > max_title_length:
+            track_title = track_title[:max_title_length-3] + "..."
+        
+        if len(album_name) > max_album_length:
+            album_name = album_name[:max_album_length-3] + "..."
+        
+        # Build the formatted string
+        parts = []
+        
+        if include_track and track_num:
+            parts.append(f"#{track_num}")
+        
+        if include_album and album_name:
+            parts.append(album_name)
+        
+        if include_artist and album_artist:
+            parts.append(album_artist)
+        
+        if track_title:
+            parts.append(track_title)
+        
+        if not parts:
+            return "Unknown Track"
+        
+        return separator.join(parts)
+        
+    except Exception as e:
+        return f"Error reading file: {str(e)[:20]}..."

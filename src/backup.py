@@ -3,11 +3,13 @@
 import datetime
 import os
 import shutil
+import sys
 import zipfile
 from typing import List, Tuple
 
 from utilities import (
     files_are_identical,
+    generate_music_file_print_message,
     get_drive_letter,
     get_drive_name,
     get_file_size,
@@ -18,9 +20,9 @@ from utilities import (
     remove_empty_folders
 )
 
-from analysis.read_server_statistics import (
-    read_media_statistics, 
-)
+sys.path.append(os.path.join(os.path.dirname(__file__), "analysis"))
+from analysis.read_server_statistics import read_media_statistics
+from analysis.assess_backup import main as assess_backup
 
 from api import API
 
@@ -94,7 +96,6 @@ class Backup:
                             file_path = os.path.join(root, filename)
                             relative_path = os.path.relpath(file_path, self.output_directory)
                             zipf.write(file_path, arcname=relative_path)
-                            # print(f"{GREEN}File added to ZIP: {RESET}{relative_path}")
                 print(f"{GREEN}Backup ZIP created: {RESET}{zip_path}")
 
             else:
@@ -250,7 +251,7 @@ class Backup:
 
         return backup_tuple_accepted
 
-    def apply_show_backup_filters(self, media_type: str, backup_filepaths: list) -> list:
+    def apply_show_backup_filters(self, media_type: str, backup_filepaths: list[tuple[str,str]]) -> list[tuple[str,str]] | bool:
         """
         Filters show backup file paths based on whitelist and blocked keywords.
 
@@ -330,8 +331,60 @@ class Backup:
 
         return adjusted_filepaths
 
-    def apply_music_backup_filters(self, backup_filepaths: list) -> list:
-        pass
+    def apply_audio_file_backup_filters(self, media_type, backup_candidate_tuples: list[tuple[str,str]]) -> list[tuple[str,str]]:
+
+        """Filter audio file backups using Quality, <>..."""
+        import ast
+
+        if not backup_candidate_tuples:
+            return []
+        
+        # Validate input
+        assert isinstance(backup_candidate_tuples, list), "backup_candidate_tuples must be a list."
+        assert all(isinstance(item, tuple) and len(item) == 2 for item in backup_candidate_tuples), "backup_candidate_tuples must be a list of tuples of length 2."
+        assert all(isinstance(item[0], str) and isinstance(item[1], str) for item in backup_candidate_tuples), "Each tuple in backup_candidate_tuples must contain two strings."
+
+        drive_letters_backup = sorted(set({x[1][0] for x in backup_candidate_tuples}))
+
+        # Initialize IMDb minimums and other configurations from drive config
+        backup_qualities = {}
+        for drive_letter in drive_letters_backup:
+            drive_name = get_drive_name(drive_letter)
+            backup_qualities[drive_letter] = str(self.drive_config[media_type]['backup_drives'][drive_name]["quality"]).lower().strip()
+
+        # Initialize counters and lists
+        backup_tuple_accepted = []
+        backup_filepaths_blocked = []
+        backup_filepaths_revoked = []
+        num_revoked_by_quality = 0
+
+        # Process each candidate backup tuple (primary source, backup destination)
+        for backup_candidate_tuple in backup_candidate_tuples:
+            filepath_primary = backup_candidate_tuple[0]
+            filepath_backup_candidate = backup_candidate_tuple[1]
+            backup_drive_letter = filepath_backup_candidate[0]
+            path_parts = os.path.normpath(filepath_primary).split(os.sep)
+            dir_quality = path_parts[2].split("_")[-1].lower() if len(path_parts) > 2 else ""
+            file_quality = 'flac' if '.flac' in filepath_primary.lower() else dir_quality
+
+            # Check quality
+            if file_quality not in backup_qualities[backup_drive_letter]:
+                if os.path.isfile(filepath_backup_candidate):
+                    backup_filepaths_revoked.append(filepath_backup_candidate)
+                    num_revoked_by_quality += 1
+                else:
+                    backup_filepaths_blocked.append(filepath_backup_candidate)
+                    num_revoked_by_quality += 1
+                continue
+
+            # If not filtered, add to accepted list
+            backup_tuple_accepted.append((filepath_primary, filepath_backup_candidate))
+
+        # Remove revoked backup files
+        if len(backup_filepaths_revoked) > 0:
+            self.remove_revoked_files(backup_filepaths_revoked)
+
+        return backup_tuple_accepted
 
     def remove_revoked_files(self, filepaths_backup_revoked: list) -> int:
         """Removes excess files from backup drives."""
@@ -431,6 +484,10 @@ class Backup:
                 if not isinstance(filepaths_backup_current, list):
                     return self.backup_mapper(media_type, drive_backup_letter, primary_filepaths_dict, bool_recursive=True)
             tuple_filepaths_missing = self.apply_show_backup_filters(media_type, tuple_filepaths_missing)
+
+        elif media_type.lower() in ["music","audiobooks"]:
+            tuple_filepaths_missing = self.apply_audio_file_backup_filters(media_type, tuple_filepaths_missing)
+            tuple_filepaths_existing_backup = self.apply_audio_file_backup_filters(media_type, tuple_filepaths_existing_backup)
 
         # Identify excess and current backup files
         filepaths_backup_excess = []
@@ -559,6 +616,7 @@ class Backup:
 
         # Display drive statistics and display summary
         self._display_drive_statistics()
+        assess_backup()
         read_media_statistics(bool_update=False, bool_print=True)
         # read_media_file_data(self.filepath_alexandria_media_details, bool_update=False)
 
@@ -569,12 +627,17 @@ class Backup:
         import subprocess
         """Process a list of file pairs (source, destination) for backup or update."""
         for src_file, dest_file in file_pairs:
-            file_title = os.path.basename(src_file).strip()
+            media_type = os.path.split(src_file)[0].split('/')[1]
+            ext = os.path.splitext(src_file)[1].lower() 
+            if media_type == "Music" and ext in ['.mp3', '.flac']:
+                file_title = generate_music_file_print_message(src_file)
+            else:
+                file_title = '.'.join(os.path.basename(src_file).strip().split('.')[:-1])
             if os.path.isfile(src_file):
                 dest_dir = os.path.dirname(dest_file)
                 os.makedirs(dest_dir, exist_ok=True)
                 print(
-                    f"{YELLOW}{BRIGHT}\t{action} File:{RESET} {'.'.join(file_title.split('.')[:-1])} "
+                    f"{YELLOW}{BRIGHT}\t{action} File:{RESET} {file_title} "
                     f"{RED}|{RESET} {Fore.BLUE}{get_drive_name(src_file[0])}{RESET} "
                     f"-> {GREEN}{get_drive_name(dest_file[0])}{RESET}"
                 )
