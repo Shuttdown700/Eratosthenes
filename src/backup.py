@@ -123,7 +123,6 @@ class Backup:
         except Exception as e:
             print(f"Error during backup: {e}")
 
-
     def apply_movie_backup_filters(self, media_type: str, backup_candidate_tuples: list[tuple[str,str]]) -> list[tuple[str,str]]: 
         """Filter movie backups using ratings, blocked keywords, file sizes, tmdb data."""
         import ast

@@ -19,7 +19,7 @@ from mutagen.mp4 import MP4, MP4Cover
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from utilities import read_alexandria, remove_empty_folders
+from utilities import read_alexandria, remove_empty_folders, generate_music_file_print_message
 
 # Define terminal color shortcuts
 RED = Fore.RED
@@ -239,7 +239,7 @@ def encode_multiple_bitrates(parent_dir = 'W:\\Music\\FLAC',
 
             check_directory(file_out)  # Ensure destination dir exists
 
-            print(f'{GREEN}{BRIGHT}Re-encoding{RESET} {os.path.basename(file_out)} in {YELLOW}{BRIGHT}{bitrate_desired}kbps{RESET} to: {os.path.dirname(file_out)}')
+            print(f'{GREEN}{BRIGHT}Re-encoding{RESET} {generate_music_file_print_message(file_in)} in {YELLOW}{BRIGHT}{bitrate_desired}kbps{RESET} to: {os.path.dirname(file_out)}')
             cmd = [
                 'ffmpeg',
                 '-i', file_in,

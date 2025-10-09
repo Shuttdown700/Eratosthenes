@@ -47,8 +47,10 @@ def main():
         count = len(drives)
         bucket_key = f"{count} backup" if count == 1 else f"{count} backups"
         if count == 0:
+            if num_no_backup == 0:
+                print(f"\n{Fore.RED}{Style.BRIGHT}Titles with NO backups:{Style.RESET_ALL}")
             bucket_key = "0 backups"
-            print_statement = f'{Fore.RED}No backups found for{Style.RESET_ALL}: {Fore.YELLOW}{title}{Style.RESET_ALL}'
+            print_statement = f'{Fore.YELLOW}{title}{Style.RESET_ALL}'
             if num_no_backup == 0: print(f"\n{print_statement}")
             else: print(print_statement)
             num_no_backup += 1
