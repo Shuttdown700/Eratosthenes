@@ -274,14 +274,14 @@ def encode_multiple_bitrates(parent_dir = 'W:\\Music\\FLAC',
 if __name__ == "__main__":
 
     dirs_to_reencode = [
-        r"A:\Music\FLAC"]
+        r"W:\Music\FLAC"]
     
     for directory in dirs_to_reencode:
         embed_album_covers(directory, override_cover = False)
         encode_multiple_bitrates(directory, bitrates_desired = [320])
 
     dirs_embed_covers = [
-        r"A:\Music\MP3s_320"]
+        r"W:\Music\MP3s_320"]
        
     # dirs_embed_covers = [
     #     r"W:\Music\FLAC\Weezer\(1994) Weezer (Blue Album)\Disc 1",

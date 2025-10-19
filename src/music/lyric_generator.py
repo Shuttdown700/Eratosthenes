@@ -208,7 +208,7 @@ from utilities import read_json
 
 config_path = BASE_DIR.parent.parent / "config" / "api.config"
 api_config = read_json(config_path)
-GENIUS_TOKEN = api_config['genius']['api_key']
+GENIUS_TOKEN = api_config['genius']['access_token']
 genius = lyricsgenius.Genius(GENIUS_TOKEN)
 
 # -------------------------------
