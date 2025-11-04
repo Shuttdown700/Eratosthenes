@@ -141,14 +141,19 @@ class Backup:
         # Initialize IMDb minimums and other configurations from drive config
         imdb_mins = {}
         imdb_maxes = {}
+        release_year_min = {}
+        release_year_max = {}
         backup_unknown_ratings = {}
         exclude_strings = {}
         exclude_strings_exceptions = {}
         file_size_max_GB = {}
+
         for drive_letter in drive_letters_backup:
             drive_name = get_drive_name(drive_letter)
             imdb_mins[drive_letter] = float(self.drive_config[media_type]['backup_drives'][drive_name]["rating_minimum"])
             imdb_maxes[drive_letter] = float(self.drive_config[media_type]['backup_drives'][drive_name]["rating_maximum"])
+            release_year_min[drive_letter] = int(self.drive_config[media_type]['backup_drives'][drive_name]["release_year_minimum"])
+            release_year_max[drive_letter] = int(self.drive_config[media_type]['backup_drives'][drive_name]["release_year_maximum"])
             file_size_max_GB[drive_letter] = float(self.drive_config[media_type]['backup_drives'][drive_name]["maximum_file_size_GB"])
             backup_unknown_ratings[drive_letter] = ast.literal_eval(self.drive_config[media_type]['backup_drives'][drive_name]["backup_unknown_ratings"])
             exclude_strings[drive_letter] = self.drive_config[media_type]['backup_drives'][drive_name]["backup_exclusion_strings"]
@@ -169,6 +174,8 @@ class Backup:
         num_revoked_by_file_size = 0
         num_blocked_by_rating = 0
         num_revoked_by_rating = 0
+        num_blocked_by_release_year = 0
+        num_revoked_by_release_year = 0
         num_blocked_by_keyword = 0
         num_revoked_by_keyword = 0
         num_exceptions_by_keyword = 0
@@ -227,9 +234,24 @@ class Backup:
                     backup_filepaths_revoked.append(filepath_backup_candidate)
                     num_revoked_by_rating += 1
                 else:
+                    # if abs(movie_rating-imdb_mins[backup_drive_letter]) <= .1: print(f"Rating: {movie_rating} | Min: {imdb_mins[backup_drive_letter]} | Max: {imdb_maxes[backup_drive_letter]}")
                     backup_filepaths_blocked.append(filepath_backup_candidate)
                     num_blocked_by_rating += 1
                 continue
+
+            # Check release year
+            try:
+                year = int(movie_with_year.split("(")[-1].split(')')[0])
+                if not release_year_min[backup_drive_letter] <= year <= release_year_max[backup_drive_letter]:
+                    if os.path.isfile(filepath_backup_candidate):
+                        backup_filepaths_revoked.append(filepath_backup_candidate)
+                        num_revoked_by_release_year += 1
+                    else:
+                        backup_filepaths_blocked.append(filepath_backup_candidate)
+                        num_blocked_by_release_year += 1
+                    continue
+            except:
+                pass
 
             # Check for excluded strings
             if any(exc.lower() in movie_with_year.lower() for exc in exclude_strings[backup_drive_letter]):

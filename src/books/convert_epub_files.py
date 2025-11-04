@@ -90,7 +90,8 @@ def convert_epub_to_pdf(epub_path, output_pdf_path, overwrite=False):
 if __name__ == "__main__":
     # Example usage
 
-    input_directory = r"W:\Temp\Books\Non-Fiction Books Collection - January, 10 2023 EPUB"
+    input_directory = r"W:\Temp\Books\Anna EPUBs"
     output_directory = os.path.join(input_directory, "Converted PDFs")
+
 
     batch_convert_epubs(input_directory, output_directory, overwrite=True)
