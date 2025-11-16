@@ -60,7 +60,7 @@ def update_server_statistics(bool_update_duration=False, bool_print=False) -> No
     book_drives_backup = drive_config['Books']['backup_drives']
 
     music_drives_primary = drive_config['Music']['primary_drives']
-    music_drives_backup = drive_config['Music']['backup_drives']
+    music_drives_backup = list(drive_config['Music']['backup_drives'].keys())
 
     # Identify drives
     drive_names = list(set(
@@ -317,4 +317,4 @@ def update_server_statistics(bool_update_duration=False, bool_print=False) -> No
         print(f'\n{"#" * 10}\n')
 
 if __name__ == "__main__":
-    update_server_statistics(bool_update_duration=False,bool_print=True)
+    update_server_statistics(bool_update_duration=True,bool_print=True)

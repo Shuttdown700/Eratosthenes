@@ -19,7 +19,10 @@ from mutagen.mp4 import MP4, MP4Cover
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from utilities import read_alexandria, remove_empty_folders, generate_music_file_print_message
+from utilities import (
+    read_alexandria, remove_empty_folders, generate_music_file_print_message,
+    read_json, read_alexandria_config, get_drive_letter
+)
 
 # Define terminal color shortcuts
 RED = Fore.RED
@@ -34,7 +37,7 @@ BRIGHT = Style.BRIGHT
 IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png')
 AUDIO_EXTENSIONS = ('.mp3', '.flac', '.m4a')
 
-def embed_album_covers(base_directory, override_cover = False):
+def embed_album_covers(base_directory, override_cover=False):
     def find_image_in_dir(directory):
         candidate = None
         for filename in os.listdir(directory):
@@ -83,21 +86,6 @@ def embed_album_covers(base_directory, override_cover = False):
             print(f"❌ Failed to convert image to square: {e}")
             return image_bytes  # Return original if conversion fails
 
-    def squish_to_square_image(image_bytes: bytes, size: int = 500) -> bytes:
-        """
-        Force an image to a square 1:1 aspect ratio by resizing (squishing/stretching).
-        'size' determines the output square dimension (default 500x500).
-        """
-        try:
-            with Image.open(BytesIO(image_bytes)) as img:
-                squished_img = img.resize((size, size))  # Force resize to square
-                output = BytesIO()
-                squished_img.save(output, format='JPEG')
-                return output.getvalue()
-        except Exception as e:
-            print(f"❌ Failed to squish image to square: {e}")
-            return image_bytes  # Return original if conversion fails
-
     def extract_image_from_audio(audio):
         try:
             if isinstance(audio, MP3):
@@ -109,26 +97,24 @@ def embed_album_covers(base_directory, override_cover = False):
             elif isinstance(audio, MP4) and 'covr' in audio:
                 return audio['covr'][0]
         except Exception:
-            print(f"❌ Failed to extract image from audio due to error: {audio.filename}")
+            print(f"❌ Failed to extract image from audio: {getattr(audio, 'filename', '?')}")
             return None
-        print(f"❌ No embedded image found in: {audio.filename}")
         return None
 
-    def embed_image(mp3_path, image_path):
+    def embed_image(audio_path, image_path):
         try:
-            audio = File(mp3_path, easy=False)
+            audio = File(audio_path, easy=False)
             if audio is None:
-                print(f"❌ Unsupported file: {mp3_path}")
+                print(f"❌ Unsupported file: {audio_path}")
                 return
 
             if has_embedded_image(audio) and not override_cover:
-                # print(f"⏭️  Skipping (already has cover): {mp3_path}")
                 return
 
             image_data, mime_type = convert_image_to_jpeg(image_path)
 
             if isinstance(audio, MP3):
-                audio = MP3(mp3_path, ID3=ID3)
+                audio = MP3(audio_path, ID3=ID3)
                 try:
                     audio.add_tags()
                 except error:
@@ -149,7 +135,7 @@ def embed_album_covers(base_directory, override_cover = False):
                 picture.type = 3
                 picture.mime = mime_type
                 picture.desc = "Cover"
-                picture.width = picture.height = 0
+                audio.clear_pictures()
                 audio.add_picture(picture)
                 audio.save()
 
@@ -157,10 +143,10 @@ def embed_album_covers(base_directory, override_cover = False):
                 audio['covr'] = [MP4Cover(image_data, imageformat=MP4Cover.FORMAT_JPEG)]
                 audio.save()
 
-            print(f"✅ Embedded cover into: {mp3_path}")
         except Exception as e:
-            print(f"❌ Failed to embed cover into: {mp3_path} ({e})")
+            print(f"❌ Failed to embed cover into: {audio_path} ({e})")
 
+    # === MAIN LOGIC ===
     if not os.path.isdir(base_directory):
         print("Invalid base directory.")
         return
@@ -173,41 +159,48 @@ def embed_album_covers(base_directory, override_cover = False):
         cover_path = os.path.join(dirpath, "cover.jpg")
         image_path = find_image_in_dir(dirpath)
 
-        # Attempt to extract embedded image if all files have embedded covers but no cover.jpg
-        if not image_path and not os.path.exists(cover_path):
-            embedded_images = []
+        # Step 1: Try to find or create a cover.jpg
+        if not image_path:
+            embedded_image = None
             for audio_file in audio_files:
                 file_path = os.path.join(dirpath, audio_file)
-                audio = File(file_path, easy=False)
-                if not audio or not has_embedded_image(audio):
-                    break
-                embedded_images.append(extract_image_from_audio(audio))
-
-            if len(embedded_images) == len(audio_files) and embedded_images[0]:
                 try:
-                    square_image_bytes = make_square_image(embedded_images[0])
-                    with open(cover_path, 'wb') as f:
-                        f.write(square_image_bytes)
-                    print(f"📸 Extracted and squared cover.jpg: {cover_path}")
-                    image_path = cover_path
-                except Exception as e:
-                    print(f"❌ Failed to save cover.jpg: {e}")
-            else:
-                print(f"❌ No image found or not all files have embedded images in {dirpath}")
-                continue
+                    audio = File(file_path, easy=False)
+                except Exception:
+                    continue
+                if audio and has_embedded_image(audio):
+                    embedded_image = extract_image_from_audio(audio)
+                    if embedded_image:
+                        try:
+                            square_img = make_square_image(embedded_image)
+                            with open(cover_path, 'wb') as f:
+                                f.write(square_img)
+                            image_path = cover_path
+                        except Exception as e:
+                            print(f"❌ Failed to write cover.jpg: {e}")
+                        break
+
+        if not image_path and os.path.exists(cover_path):
+            image_path = cover_path
 
         if not image_path:
-            print(f"❌ No image to embed in {dirpath}")
             continue
 
         for audio_file in audio_files:
             file_path = os.path.join(dirpath, audio_file)
-            embed_image(file_path, image_path)
+            try:
+                audio = File(file_path, easy=False)
+                if not audio:
+                    continue
+            except Exception:
+                continue
+            if not has_embedded_image(audio) or override_cover:
+                embed_image(file_path, image_path)
 
-def encode_multiple_bitrates(parent_dir = 'W:\\Music\\FLAC', 
-                             bitrates_desired = [320]):
+
+def encode_multiple_bitrates(parent_dir='W:\\Music\\FLAC', bitrates_desired=[320]):
     """Encodes audio files in the specified parent directory to multiple bitrates."""
-    os.chdir(os.path.join(os.path.realpath(os.path.dirname(__file__)),"..","bin"))
+    os.chdir(os.path.join(os.path.realpath(os.path.dirname(__file__)), "..", "bin"))
 
     def check_directory(file_out):
         path = os.path.dirname(file_out)
@@ -217,10 +210,7 @@ def encode_multiple_bitrates(parent_dir = 'W:\\Music\\FLAC',
     def safe_output_path(parent_dir, bitrate_desired):
         drive = os.path.splitdrive(parent_dir)[0]
         path_parts = parent_dir.split(os.sep)
-
-        # Only use elements from index 3 onward if they exist
         safe_tail = path_parts[3:] if len(path_parts) > 3 else []
-
         output_base = os.path.join(drive + os.sep, "Music", f'MP3s_{bitrate_desired}', *safe_tail)
         return output_base
 
@@ -229,7 +219,6 @@ def encode_multiple_bitrates(parent_dir = 'W:\\Music\\FLAC',
         output_base = safe_output_path(parent_dir, bitrate_desired)
 
         for file_in in filepaths:
-            # Recreate relative path inside output directory
             rel_path = os.path.relpath(file_in, start=parent_dir)
             rel_path_no_ext = os.path.splitext(rel_path)[0]
             file_out = os.path.join(output_base, rel_path_no_ext + desired_extension)
@@ -237,9 +226,10 @@ def encode_multiple_bitrates(parent_dir = 'W:\\Music\\FLAC',
             if os.path.isfile(file_out):
                 continue
 
-            check_directory(file_out)  # Ensure destination dir exists
+            check_directory(file_out)
 
-            print(f'{GREEN}{BRIGHT}Re-encoding{RESET} {generate_music_file_print_message(file_in)} in {YELLOW}{BRIGHT}{bitrate_desired}kbps{RESET} to: {os.path.dirname(file_out)}')
+            print(f'{GREEN}{BRIGHT}Re-encoding{RESET} {generate_music_file_print_message(file_in)} '
+                  f'in {YELLOW}{BRIGHT}{bitrate_desired}kbps{RESET} to: {os.path.dirname(file_out)}')
             cmd = [
                 'ffmpeg',
                 '-i', file_in,
@@ -252,7 +242,6 @@ def encode_multiple_bitrates(parent_dir = 'W:\\Music\\FLAC',
 
     def copy_images(parent_dir, bitrate_desired):
         filepaths = read_alexandria([parent_dir], ['.jpeg', '.png', '.jpg'])
-
         output_base = safe_output_path(parent_dir, bitrate_desired)
 
         for file_in in filepaths:
@@ -263,34 +252,27 @@ def encode_multiple_bitrates(parent_dir = 'W:\\Music\\FLAC',
                 continue
 
             check_directory(file_out)
-            print(f'{GREEN}{BRIGHT}Copying image{RESET} to: {file_out}')
             shutil.copy2(file_in, file_out)
-    
+
     for bd in bitrates_desired:
-        re_encode_tracks(parent_dir,bitrate_desired=bd,desired_extension='.mp3')
-        copy_images(parent_dir,bd)
+        re_encode_tracks(parent_dir, bitrate_desired=bd, desired_extension='.mp3')
+        copy_images(parent_dir, bd)
     remove_empty_folders([parent_dir])
+
 
 if __name__ == "__main__":
 
-    dirs_to_reencode = [
-        r"W:\Music\FLAC"]
-    
-    for directory in dirs_to_reencode:
-        embed_album_covers(directory, override_cover = False)
-        encode_multiple_bitrates(directory, bitrates_desired = [320])
+    src_directory = os.path.dirname(os.path.abspath(__file__))
+    filepath_drive_hierarchy = os.path.join(src_directory, "..", "..", "config", "alexandria_drives.config")
+    drive_config = read_json(filepath_drive_hierarchy)
+    primary_drives_name_dict = read_alexandria_config(drive_config)[0]
+    drive_letter = get_drive_letter(primary_drives_name_dict['Music'][0])
 
-    dirs_embed_covers = [
-        r"W:\Music\MP3s_320"]
-       
-    # dirs_embed_covers = [
-    #     r"W:\Music\FLAC\Weezer\(1994) Weezer (Blue Album)\Disc 1",
-    #     r"W:\Music\FLAC\Weezer\(1994) Weezer (Blue Album)\Disc 2",
-    #     r"W:\Music\MP3s_320\Weezer\(1994) Weezer (Blue Album)\Disc 1",
-    #     r"W:\Music\MP3s_320\Weezer\(1994) Weezer (Blue Album)\Disc 2"
-    # ]
-    
+    dirs_to_reencode = [drive_letter+r":\Music\FLAC"]
+    for directory in dirs_to_reencode:
+        embed_album_covers(directory, override_cover=False)
+        encode_multiple_bitrates(directory, bitrates_desired=[320])
+
+    dirs_embed_covers = [drive_letter+r":\Music\MP3s_320"]
     for directory in dirs_embed_covers:
-        embed_album_covers(directory, override_cover = False)
-    
-    # embed_album_covers(r"A:\Music\MP3s_320\_Playlists\(2021) 60's Psychedelic Essentials", override_cover = True)
+        embed_album_covers(directory, override_cover=False)

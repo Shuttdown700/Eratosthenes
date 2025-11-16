@@ -596,7 +596,7 @@ class Backup:
             remaining_val, remaining_unit = human_readable_size(available_gb)
 
             print(
-                f"\n\tBacking up {RED}{len(backup_tuples):,} file(s){RESET} "
+                f"\n\tBacking up {RED}{len(backup_tuples):,} file{'s' if len(backup_tuples) != 1 else ''}{RESET} "
                 f"({YELLOW}{total_size_val:.2f} {total_unit}{RESET}, "
                 f"{GREEN}{remaining_val:.2f} {remaining_unit} will remain{RESET}):"
             )
@@ -605,7 +605,7 @@ class Backup:
 
         # Handle modified files
         if modified_tuples:
-            print(f"\n\tUpdating {RED}{len(modified_tuples):,} file(s){RESET}:")
+            print(f"\n\tUpdating {RED}{len(modified_tuples):,} file{'s' if len(modified_tuples) != 1 else ''}{RESET}:")
             self._process_file_pairs(modified_tuples, action="Updating")
 
     def main(self) -> None:

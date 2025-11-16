@@ -17,6 +17,18 @@ MAGENTA = Fore.MAGENTA
 RESET = Style.RESET_ALL
 BRIGHT = Style.BRIGHT
 
+"""
+Description:
+
+This script scans a specified directory for .mp3 and .flac audio files,
+extracts their metadata (artist, album artist, album, title), and generates
+output files including:
+- A text file listing all unique artists.
+- A text file listing all unique album artists.
+- A JSON file containing a nested structure of artists, albums, and tracks.
+
+"""
+
 
 def extract_metadata(filepath):
     """Extract metadata from an audio file using mutagen."""
@@ -83,6 +95,12 @@ def collect_music_data(base_dir, skip_dirs=None):
                 all_album_artists.add(album_artist)
                 music_data[artist][album].append(title)
 
+    all_artists.discard('Unknown Artist')
+    all_artists = sorted(all_artists, key=lambda x: x.lower())
+
+    all_album_artists.discard('Unknown Artist')
+    all_album_artists = sorted(all_album_artists, key=lambda x: x.lower())
+    
     print(f"{GREEN}{BRIGHT}Scan complete.{RESET}")
     print(f"{YELLOW}Artists: {len(all_artists)}")
     print(f"Albums: {sum(len(a) for a in music_data.values())}")

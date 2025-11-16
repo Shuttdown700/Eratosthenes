@@ -274,10 +274,7 @@ def set_track_numbers(album_directory: str) -> None:
     Set track numbers in metadata for audio files in an album folder.
     Files are sorted by filename and tagged sequentially.
 
-    Parameters
-    ----------
-    album_directory : str
-        Path to the folder containing album audio files.
+    If a file already has a track number, keep and use that number instead of overwriting it.
     """
     AUDIO_EXTENSIONS = ('.mp3', '.flac', '.m4a')
 
@@ -285,14 +282,52 @@ def set_track_numbers(album_directory: str) -> None:
         print(f"{RED}{BRIGHT}Directory does not exist{RESET}: {album_directory}")
         return
 
-    audio_files = sorted([
-        f for f in os.listdir(album_directory)
-        if f.lower().endswith(AUDIO_EXTENSIONS)
-    ])
+    # Natural sort (correct for 1,2,10 rather than 1,10,2)
+    def natural_key(s):
+        return [
+            int(t) if t.isdigit() else t.lower()
+            for t in re.split(r'(\d+)', s)
+        ]
+
+    audio_files = sorted(
+        [
+            f for f in os.listdir(album_directory)
+            if f.lower().endswith(AUDIO_EXTENSIONS)
+        ],
+        key=natural_key
+    )
 
     if not audio_files:
         print(f"{YELLOW}No audio files found{RESET} in: {album_directory}")
         return
+
+    def _parse_track_number(value):
+        if value is None:
+            return None
+
+        # MP4 trkn → list/tuple like [(1, 12)] or (1,12)
+        if isinstance(value, (list, tuple)):
+            candidate = value[0]
+            if isinstance(candidate, (list, tuple)):
+                candidate = candidate[0]
+
+            try:
+                return int(candidate)
+            except (ValueError, TypeError):
+                pass
+
+        # String cases like "1/12", "01", "Track 1"
+        s = str(value)
+        m = re.search(r'(\d+)', s)
+        if not m:
+            return None
+
+        try:
+            return int(m.group(1))
+        except ValueError:
+            return None
+
+    total_tracks = len(audio_files)
 
     with alive_bar(len(audio_files), title="Tagging track numbers") as bar:
         for index, filename in enumerate(audio_files, start=1):
@@ -300,24 +335,62 @@ def set_track_numbers(album_directory: str) -> None:
             ext = os.path.splitext(filename)[1].lower()
 
             try:
+                track_num = None
+                changed = False
+
                 if ext == '.mp3':
                     audio = MP3(filepath, ID3=ID3)
-                    if audio.tags is None:
-                        audio.add_tags()
-                    audio.tags.add(TRCK(encoding=3, text=str(index)))
-                    audio.save()
+
+                    if audio.tags is not None and 'TRCK' in audio.tags:
+                        existing = (
+                            audio.tags['TRCK'].text[0]
+                            if hasattr(audio.tags['TRCK'], 'text') and audio.tags['TRCK'].text
+                            else str(audio.tags['TRCK'])
+                        )
+                        track_num = _parse_track_number(existing)
+
+                    if track_num is None:
+                        if audio.tags is None:
+                            audio.add_tags()
+                        audio.tags.add(TRCK(encoding=3, text=str(index)))
+                        audio.save()
+                        track_num = index
+                        changed = True
+
                 elif ext == '.flac':
                     audio = FLAC(filepath)
-                    audio['tracknumber'] = str(index)
-                    audio.save()
+
+                    existing = None
+                    if 'tracknumber' in audio:
+                        val = audio.get('tracknumber')
+                        existing = val[0] if isinstance(val, (list, tuple)) and val else val
+
+                    track_num = _parse_track_number(existing)
+
+                    if track_num is None:
+                        audio['tracknumber'] = str(index)
+                        audio.save()
+                        track_num = index
+                        changed = True
+
                 elif ext == '.m4a':
                     audio = MP4(filepath)
-                    audio['trkn'] = [(index, 0)]  # (track number, total optional)
-                    audio.save()
+                    existing = audio.tags.get('trkn') if audio.tags is not None else None
 
-                print(f"{GREEN}{BRIGHT}Tagged:{RESET} {filename} -> Track {index}")
+                    track_num = _parse_track_number(existing)
+
+                    if track_num is None:
+                        audio['trkn'] = [(index, total_tracks)]
+                        audio.save()
+                        track_num = index
+                        changed = True
+
+                verb = "Tagged" if changed else "Kept"
+                print(f"{GREEN}{BRIGHT}{verb}:{RESET} {filename} -> Track {track_num}")
+
             except Exception as e:
                 print(f"{RED}{BRIGHT}Error tagging{RESET} {filename}: {e}")
+
             bar()
 
 def set_year_from_folder(directory, bypass_dirs=[r"W:\Music\MP3s_320\_Playlists"]):
@@ -419,6 +492,57 @@ def set_year_from_folder(directory, bypass_dirs=[r"W:\Music\MP3s_320\_Playlists"
     print(f"{RED}Failed:{RESET} {failed}")
     print("-"*60)
 
+def set_artist_from_folder(directory):
+    for filename in os.listdir(directory):
+        if filename.lower().endswith(AUDIO_EXTENSIONS):
+            filepath = os.path.join(directory, filename)
+            grandparent = os.path.basename(os.path.dirname(os.path.abspath(directory)))
+            if not grandparent:
+                grandparent = os.path.basename(os.path.abspath(directory))
+            artist_from_path = grandparent.strip()
+            try:
+                if filename.lower().endswith('.mp3'):
+                    audio = MP3(filepath, ID3=ID3)
+                    audio['TPE1'] = TPE1(encoding=3, text=artist_from_path)  # Track artist
+                    audio['TPE2'] = TPE2(encoding=3, text=artist_from_path)  # Album artist
+                    audio.save()
+                elif filename.lower().endswith('.flac'):
+                    audio = FLAC(filepath)
+                    audio['artist'] = artist_from_path
+                    audio['albumartist'] = artist_from_path
+                    audio.save()
+                elif filename.lower().endswith('.m4a'):
+                    audio = EasyMP4(filepath)
+                    audio['artist'] = artist_from_path
+                    audio['albumartist'] = artist_from_path
+                    audio.save()
+                print(f"{GREEN}{BRIGHT}Updated artist and album artist{RESET} for: {filename}")
+            except Exception as e:
+                print(f"{RED}{BRIGHT}Failed to update{RESET} {filename}: {e}")
+
+def set_album_from_folder(directory):
+    for filename in os.listdir(directory):
+        if filename.lower().endswith(AUDIO_EXTENSIONS):
+            filepath = os.path.join(directory, filename)
+            parent = os.path.basename(os.path.abspath(directory))
+            album_from_path = ')'.join(parent.split(')')[1:]).strip() if ')' in parent else parent.strip()
+            try:
+                if filename.lower().endswith('.mp3'):
+                    audio = MP3(filepath, ID3=ID3)
+                    audio['TALB'] = TALB(encoding=3, text=album_from_path)
+                    audio.save()
+                elif filename.lower().endswith('.flac'):
+                    audio = FLAC(filepath)
+                    audio['album'] = album_from_path
+                    audio.save()
+                elif filename.lower().endswith('.m4a'):
+                    audio = EasyMP4(filepath)
+                    audio['album'] = album_from_path
+                    audio.save()
+                print(f"{GREEN}{BRIGHT}Updated album{RESET} for: {filename}")
+            except Exception as e:
+                print(f"{RED}{BRIGHT}Failed to update{RESET} {filename}: {e}")
+
 def clean_flac_titles(directory):
     for filename in os.listdir(directory):
         if filename.lower().endswith('.flac'):
@@ -476,21 +600,24 @@ if __name__ == "__main__":
     dir_temp_playlist_albums = r'W:\Temp\Download Zone\Playlists'
     dir_temp_OSTs = r'W:\Temp\Download Zone\OSTs'
     dir_temp = r'W:\Music\Temp\Download Zone'
-    dir_custom = r"W:\Music\MP3s_320\Eminem\(2004) Encore"
-    dir_custom2 = r"W:\Music\FLAC\Eminem\(2004) Encore"
+    dir_custom = r"W:\Temp\Music\Playlists\(2023) Halloween Playlist"
+    # dir_custom2 = r"W:\Music\MP3s_320\Whitney Houston\(1996) The Preacher's Wife"
 
     # rename_essentials_albums(dir_temp_essential_albums)
     # rename_playlist_albums(dir_temp_playlist_albums)
     # rename_OTSs(dir_temp_OSTs)  
     
-    # rename_album(dir_custom, "LIFE")
-    rename_artist(dir_custom, 'Eminem')
-    rename_artist(dir_custom2, 'Eminem')
+    rename_album(dir_custom, "Halloween Playlist 2023")
+    
+    # rename_artist(dir_custom, 'Tech N9ne')
+    # rename_artist(dir_custom2, 'Whitney Houston')
     # rename_comment(dir_custom, '')
+
+    # set_album_from_folder(dir_custom)
+    # set_artist_from_folder(dir_custom)
     # set_year_from_folder(dir_custom)
     # set_track_numbers(dir_custom)
 
-    # rename_year_and_date(dir_custom, '2015')
     # clean_flac_titles(dir_custom)
     # update_flac_titles_from_filename(dir_custom)
     
