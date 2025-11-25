@@ -41,5 +41,4 @@ Search: Garshasp
 - add something that goes through whitelists to determine theoretical backup
 
 Shows to add:
-- How the Universe Works
 - Grey's Anatomy

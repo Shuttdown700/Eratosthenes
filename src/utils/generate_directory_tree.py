@@ -9,5 +9,5 @@ def print_directory_tree(startpath):
         for f in files:
             print(f'{subindent}{f}')
 
-# Example usage:
-print_directory_tree(r'C:\Users\brend\Documents\Georgia Tech\CS 6250 (Fall 2025)\Project - BGP Measurements\BGPM')
+directory = os.path.join(os.path.dirname(__file__), '..', '..')
+print_directory_tree(directory)

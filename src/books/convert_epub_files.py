@@ -90,7 +90,9 @@ def convert_epub_to_pdf(epub_path, output_pdf_path, overwrite=False):
 if __name__ == "__main__":
     # Example usage
 
-    input_directory = r"W:\Temp\Books\Anna EPUBs"
+    # Oxford World's Classics on Anna
+
+    input_directory = r"W:\Temp\Books\_Anna_Downloads"
     output_directory = os.path.join(input_directory, "Converted PDFs")
 
 
