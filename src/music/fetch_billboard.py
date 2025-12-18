@@ -1,6 +1,17 @@
-import billboard
+import os
+import sys
 
+import billboard
 from colorama import Fore, Style
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from utilities import (
+    read_file_as_list
+)
+
+
+OUTPUT_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'output', 'music')
 
 RED = Fore.RED
 YELLOW = Fore.YELLOW
@@ -66,8 +77,24 @@ def fetch_billboard_top_100_artists_chart(bool_print=True,
         if bool_print: print(f"{YELLOW}{idx+1:03}{RESET}{d}{entry.artist}{d}{GREEN}{duration_str}{RESET} on the Top 100 Artist chart", sep="\n")
     return chart
 
+def compare_artists(chart_artists: list[billboard.ArtistChart],
+                    curr_artists: list[str],
+                    d=f"{MAGENTA}{BRIGHT} | {RESET}"
+                    ) -> None:
+    chart_artist_names = [entry.artist for entry in chart_artists]
+    new_artists = [artist for artist in chart_artist_names if artist not in curr_artists]
+    if new_artists:
+        print(f"\n{MAGENTA}{BRIGHT}=== New Artists on Billboard Top 100 Artist Chart ==={RESET}")
+        for artist in new_artists:
+            print(f"{GREEN}+ {artist}{RESET}")
+    else:
+        print(f"\n{MAGENTA}{BRIGHT}=== No New Artists on Billboard Top 100 Artist Chart ==={RESET}")
+
 if __name__ == "__main__":
     # chart_tracks, artist_track_counts = fetch_billboard_top_100_tracks()
     # chart_albums, artist_album_counts = fetch_billboard_albums_top_200_albums()
-    chart_artists = fetch_billboard_top_100_artists_chart()
+    chart_artists = fetch_billboard_top_100_artists_chart(bool_print=False)
+    curr_artists = read_file_as_list(os.path.join(OUTPUT_DIR, 'album_artists.txt'))
+    compare_artists(chart_artists, curr_artists)
+
 

@@ -35,6 +35,7 @@ BRIGHT = Style.BRIGHT
 
 # Supported file extensions
 IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png')
+# **.m4a is already correctly included here.**
 AUDIO_EXTENSIONS = ('.mp3', '.flac', '.m4a')
 
 def embed_album_covers(base_directory, override_cover=False):
@@ -60,6 +61,7 @@ def embed_album_covers(base_directory, override_cover=False):
             return any(key.startswith("APIC") for key in audio.tags.keys())
         elif isinstance(audio, FLAC):
             return len(audio.pictures) > 0
+        # This handles both .mp4 and .m4a
         elif isinstance(audio, MP4):
             return 'covr' in audio
         return False
@@ -94,6 +96,7 @@ def embed_album_covers(base_directory, override_cover=False):
                         return tag.data
             elif isinstance(audio, FLAC) and audio.pictures:
                 return audio.pictures[0].data
+            # This handles both .mp4 and .m4a
             elif isinstance(audio, MP4) and 'covr' in audio:
                 return audio['covr'][0]
         except Exception:
@@ -139,6 +142,7 @@ def embed_album_covers(base_directory, override_cover=False):
                 audio.add_picture(picture)
                 audio.save()
 
+            # This handles both .mp4 and .m4a
             elif isinstance(audio, MP4):
                 audio['covr'] = [MP4Cover(image_data, imageformat=MP4Cover.FORMAT_JPEG)]
                 audio.save()
@@ -215,6 +219,7 @@ def encode_multiple_bitrates(parent_dir='W:\\Music\\FLAC', bitrates_desired=[320
         return output_base
 
     def re_encode_tracks(parent_dir, bitrate_desired=128, desired_extension='.mp3'):
+        # **MODIFICATION HERE**: Added '.m4a' to the list of file extensions to process.
         filepaths = read_alexandria([parent_dir], ['.mp3', '.flac', '.m4a'])
         output_base = safe_output_path(parent_dir, bitrate_desired)
 
@@ -262,17 +267,21 @@ def encode_multiple_bitrates(parent_dir='W:\\Music\\FLAC', bitrates_desired=[320
 
 if __name__ == "__main__":
 
-    src_directory = os.path.dirname(os.path.abspath(__file__))
-    filepath_drive_hierarchy = os.path.join(src_directory, "..", "..", "config", "alexandria_drives.config")
-    drive_config = read_json(filepath_drive_hierarchy)
-    primary_drives_name_dict = read_alexandria_config(drive_config)[0]
-    drive_letter = get_drive_letter(primary_drives_name_dict['Music'][0])
-
-    dirs_to_reencode = [drive_letter+r":\Music\FLAC"]
+    dirs_to_reencode = []
+    if dirs_to_reencode == []:
+        src_directory = os.path.dirname(os.path.abspath(__file__))
+        filepath_drive_hierarchy = os.path.join(src_directory, "..", "..", "config", "alexandria_drives.config")
+        drive_config = read_json(filepath_drive_hierarchy)
+        primary_drives_name_dict = read_alexandria_config(drive_config)[0]
+        drive_letter = get_drive_letter(primary_drives_name_dict['Music'][0])
+        dirs_to_reencode = [drive_letter+r":\Music\FLAC"]
+    
     for directory in dirs_to_reencode:
-        embed_album_covers(directory, override_cover=False)
+        embed_album_covers(directory, override_cover=True)
         encode_multiple_bitrates(directory, bitrates_desired=[320])
 
-    dirs_embed_covers = [drive_letter+r":\Music\MP3s_320"]
+    dirs_embed_covers = []
+    if dirs_embed_covers == []:
+        dirs_embed_covers = [drive_letter+r":\Music\MP3s_320"]
     for directory in dirs_embed_covers:
-        embed_album_covers(directory, override_cover=False)
+        embed_album_covers(directory, override_cover=True)

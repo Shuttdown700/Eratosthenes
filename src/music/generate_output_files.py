@@ -1,9 +1,13 @@
 import os
 import json
+import sys
 from mutagen import File
 from collections import defaultdict
 from tqdm import tqdm
 from colorama import Fore, Style, init
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "utils"))
+from map_media_type_to_drives import map_media_type_to_drives
 
 # Initialize colorama
 init(autoreset=True)
@@ -70,7 +74,7 @@ def collect_music_data(base_dir, skip_dirs=None):
         for _, _, files in os.walk(base_dir)
     )
 
-    with tqdm(total=total_files, desc="Processing files", ncols=90, colour="cyan") as pbar:
+    with tqdm(total=total_files, desc="Processing Music Files", ncols=90, colour="cyan") as pbar:
         for root, dirs, files in os.walk(base_dir):
             # Skip unwanted directories
             dirs[:] = [d for d in dirs if os.path.join(root, d) not in skip_dirs]
@@ -126,20 +130,44 @@ def write_json_file(filename, data):
 
 if __name__ == "__main__":
     # === CONFIGURATION ===
-    base_directory = r"W:\Music\MP3s_320"  # Directory to scan
-    
+    media = "Music"
+    format_and_quality = "MP3s_320"
+    map_media_type_to_drives(media)
+    drive_letters, drive_names = map_media_type_to_drives(media)
+    base_directories = [f"{letter}:\\Music\\{format_and_quality}" for letter in drive_letters if letter]
+   
     output_directory = os.path.abspath(
         os.path.join(os.path.dirname(__file__), '..', '..', 'output', 'music')
     )
-    skip_directories = [
-        os.path.join(base_directory, "_playlists")
-    ]
+    skip_directories = []
+    for base_directory in base_directories:
+        skip_directories.append(os.path.join(base_directory, "_Playlists"))
 
     # Create output directory if missing
     os.makedirs(output_directory, exist_ok=True)
 
     # === EXECUTION ===
-    music_data, artists, album_artists = collect_music_data(base_directory, skip_directories)
+    music_data = {}
+    artists = []
+    album_artists = []
+    for base_directory in base_directories:
+        data, artist_list, album_artist_list = collect_music_data(
+            base_directory,
+            skip_dirs=skip_directories
+        )
+        # Merge collected data
+        for artist, albums in data.items():
+            if artist not in music_data:
+                music_data[artist] = albums
+            else:
+                for album, tracks in albums.items():
+                    if album not in music_data[artist]:
+                        music_data[artist][album] = tracks
+                    else:
+                        music_data[artist][album].extend(tracks)
+
+        artists.extend(artist_list)
+        album_artists.extend(album_artist_list)
 
     # Define output filepaths
     artists_file = os.path.join(output_directory, "artists.txt")

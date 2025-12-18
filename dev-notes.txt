@@ -1,5 +1,8 @@
 DEV Notes: Alexandria Media Manager
 
+- function that prints the closest movie release date to your birthday
+- idea: create 2x2 matrix of genre tags which counts the number of times tags are paired together in a movie
+- handle the error of if a drive disconnects and returns a None letter
 - give option to remove media info for files not currently present instead of immediently removing that data
 - give option to add files to primary if they are unexpectedly found on a backup drive (currently only option is to delete off backup)
 - detect seasons that are not present on primary drives but are on backup drives (give option to add to primary or delete from backup)

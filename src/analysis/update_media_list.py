@@ -1,6 +1,8 @@
 import os
 import sys
 
+CURR_DIR = os.path.dirname(os.path.abspath(__file__))
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from utilities import (
@@ -10,6 +12,10 @@ from utilities import (
     read_alexandria_config,
     read_json,
 )
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..","utils"))
+
+from map_media_type_to_drives import map_media_type_to_drives
 
 from colorama import Fore, Style, init
 init(autoreset=True)
@@ -32,30 +38,13 @@ MEDIA_TYPE_OPTIONS = [
 
 def update_media_list(media_type: str) -> list:
     """Update the media list based on primary drive configuration."""
-    
-    # Determine config file path
-    src_directory = os.path.dirname(os.path.abspath(__file__))
-    drive_hierarchy_filepath = os.path.join(
-        src_directory, "..", "..", "config", "alexandria_drives.config"
-    )
 
-    # Load drive configuration
-    drive_config = read_json(drive_hierarchy_filepath)
-    primary_drives_dict, _, _ = read_alexandria_config(drive_config)
 
-    # Map drive labels to actual drive letters
-    primary_drive_letter_dict = {
-        key: [get_drive_letter(path) for path in paths]
-        for key, paths in primary_drives_dict.items()
-    }
-
-    # Normalize media type
     media_key = media_type.replace("_", " ").title()
-
-    # Build list of primary media directories
+    media_drive_letters, _ = map_media_type_to_drives(media_key)
     media_dirs = [
         f"{letter}:/{media_key}/"
-        for letter in primary_drive_letter_dict.get(media_key, [])
+        for letter in media_drive_letters
     ]
 
     if not media_dirs:
@@ -85,7 +74,7 @@ def update_media_list(media_type: str) -> list:
     # Define output path
     dirname = media_type.replace(" ", "_").lower() if media_type != "anime_movies" else "movies"
     output_dir = os.path.join(
-        src_directory, "..", "..", "output", dirname
+        CURR_DIR, "..", "..", "output", dirname
     )
     os.makedirs(output_dir, exist_ok=True)
 

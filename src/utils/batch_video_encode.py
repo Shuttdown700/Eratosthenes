@@ -23,8 +23,9 @@ audio_codec = "aac"
 bitrate_5_1 = "640k"
 bitrate_stereo = "256k"
 
-target_width = None
-target_height = None
+# *** CONFIGURATION: Set target resolution to 1080p (1920x1080) ***
+target_width = 1920
+target_height = 1080
 
 overwrite = False
 
@@ -39,6 +40,7 @@ FFPROBE = Path(__file__).resolve().parents[1] / "bin" / "ffprobe.exe"
 
 def gather_files(source_path: Path):
     """Return sorted list of video files in the directory."""
+    # Supports .mp4 and .mkv input files
     files = sorted([f for f in source_path.glob("*")
                     if f.suffix.lower() in (".mp4", ".mkv")])
     return files
@@ -56,6 +58,17 @@ def probe_streams(file_path: Path):
     return streams
 
 
+def get_video_resolution(streams: list):
+    """Return the width and height of the first video stream, or None."""
+    video_streams = [s for s in streams if s["codec_type"] == "video"]
+    if video_streams:
+        v_stream = video_streams[0]
+        width = v_stream.get("width")
+        height = v_stream.get("height")
+        return width, height
+    return None, None
+
+
 def select_audio_settings(audio_streams):
     """Determine output audio channels and bitrate."""
     if audio_streams:
@@ -69,13 +82,16 @@ def select_audio_settings(audio_streams):
         return "2", bitrate_stereo
 
 
-def build_encode_cmd(input_file: Path, output_file: Path, audio_channels: str, audio_bitrate: str):
+def build_encode_cmd(input_file: Path, output_file: Path, audio_channels: str, audio_bitrate: str,
+                     input_width: int, input_height: int):
     """Build ffmpeg command for encoding."""
     vf_filters = []
-    if target_width and target_height:
+    
+    # *** ADJUSTMENT: Apply scaling filter only if original resolution exceeds target 1080p ***
+    if input_width > target_width or input_height > target_height:
+        # Robust filter: Prevents upscaling and scales down to fit within 1920x1080
         vf_filters.append(
-            f"scale={target_width}:{target_height}:force_original_aspect_ratio=decrease,"
-            f"pad={target_width}:{target_height}:(ow-iw)/2:(oh-ih)/2"
+            f"scale='if(gt(iw,{target_width}),{target_width},-1)':'if(gt(ih,{target_height}),{target_height},-1)':force_original_aspect_ratio=decrease"
         )
 
     cmd = [
@@ -114,6 +130,10 @@ def process_file(f: Path, output_path: Path):
 
     streams = probe_streams(f)
 
+    # Get video resolution
+    in_width, in_height = get_video_resolution(streams)
+    print(f"{BLUE}{BRIGHT}Video Resolution{RESET}: {in_width}x{in_height}")
+
     audio_streams = [s for s in streams if s["codec_type"] == "audio"]
     subtitle_streams = [s for s in streams if s["codec_type"] == "subtitle"]
 
@@ -139,20 +159,27 @@ def process_file(f: Path, output_path: Path):
     print(f"{YELLOW}Selected audio encoding{RESET}: {audio_channels}ch @ {audio_bitrate}")
 
     # Output file
-    out_file = output_path / f.name
+    # *** ADJUSTMENT: Always output to .mkv container ***
+    new_suffix = ".mkv" 
+
+    # Construct the output file path using the original filename stem and the new suffix
+    out_file_name = f.stem + new_suffix
+    out_file = output_path / out_file_name
+    
     if out_file.exists() and not overwrite:
         print(f"{YELLOW}Skipping (already exists){RESET}:", out_file)
         return
 
     # Build and run command
     print(f"{GREEN}{BRIGHT}Encoding{RESET}: {out_file.name}")
-    cmd = build_encode_cmd(f, out_file, audio_channels, audio_bitrate)
-
-    # subprocess.run(cmd, check=True)
-
+    cmd = build_encode_cmd(f, out_file, audio_channels, audio_bitrate, in_width, in_height)
+    
+    # Run command and suppress output for clean batch processing
     subprocess.run(cmd, check=True,
                    stdout=subprocess.DEVNULL,
                    stderr=subprocess.DEVNULL)
+    
+    # subprocess.run(cmd, check=True) # For debugging, remove in production
 
     # Size change
     original_size = f.stat().st_size
@@ -176,7 +203,7 @@ def process_directory(source_path: Path):
     if "Re-Encoded" in source_path.parts:
         print(f"{YELLOW}Skipping (is a Re-Encoded sub-directory){RESET}: {source_path}")
         return
-    output_path = source_path / "Re-Encoded"
+    output_path = source_path / ".." / "Re-Encoded"
     output_path.mkdir(parents=True, exist_ok=True)
 
     files = gather_files(source_path)
@@ -207,7 +234,7 @@ def main(directories: list[str]):
 
         for source_path in dirs_to_check:
             # skip output folders to avoid re-processing encoded outputs
-            if source_path.name.lower() == "Re-Encoded":
+            if source_path.name.lower() == "re-encoded":
                 continue
 
             # only process directories that actually contain video files
@@ -219,6 +246,6 @@ def main(directories: list[str]):
 
 if __name__ == "__main__":
     dir_list = [
-        r"R:\Temp\To Re-Encode\_Ready-Encode"
+        r"A:\Temp\YouTube\The Hunger Games (but better) (2025)"
     ]
     main(dir_list)

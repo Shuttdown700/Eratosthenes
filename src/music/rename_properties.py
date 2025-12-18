@@ -600,18 +600,18 @@ if __name__ == "__main__":
     dir_temp_playlist_albums = r'W:\Temp\Download Zone\Playlists'
     dir_temp_OSTs = r'W:\Temp\Download Zone\OSTs'
     dir_temp = r'W:\Music\Temp\Download Zone'
-    dir_custom = r"W:\Temp\Music\Playlists\(2023) Halloween Playlist"
+    dir_custom = r"W:\Music\FLAC\David Guetta\(2003) Guetta Blaster"
     # dir_custom2 = r"W:\Music\MP3s_320\Whitney Houston\(1996) The Preacher's Wife"
 
     # rename_essentials_albums(dir_temp_essential_albums)
     # rename_playlist_albums(dir_temp_playlist_albums)
     # rename_OTSs(dir_temp_OSTs)  
     
-    rename_album(dir_custom, "Halloween Playlist 2023")
+    # rename_album(dir_custom, "Halloween Playlist 2023")
     
-    # rename_artist(dir_custom, 'Tech N9ne')
+    rename_artist(dir_custom, 'David Guetta')
     # rename_artist(dir_custom2, 'Whitney Houston')
-    # rename_comment(dir_custom, '')
+    rename_comment(dir_custom, '')
 
     # set_album_from_folder(dir_custom)
     # set_artist_from_folder(dir_custom)
