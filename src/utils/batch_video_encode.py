@@ -246,6 +246,6 @@ def main(directories: list[str]):
 
 if __name__ == "__main__":
     dir_list = [
-        r"A:\Temp\YouTube\The Hunger Games (but better) (2025)"
+        r"A:\Temp\Movies\To Re-Encode"
     ]
     main(dir_list)
