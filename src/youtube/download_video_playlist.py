@@ -37,6 +37,6 @@ def download_yt_video_playlist(url,
     subprocess.call(cmd)
 
 if __name__ == "__main__":
-    url_playlist = "https://www.youtube.com/watch?v=G6ID6U4Xd7k"
+    url_playlist = "https://www.youtube.com/watch?v=fPCEjURvaX0&list=PL2KJJamF98zjDh1KGAZsSb0p5THVDshAi"
     sub_directory = os.path.join("A:","Temp","YouTube","The Hunger Games (but better) (2025)")
     download_yt_video_playlist(url_playlist,sub_directory)     

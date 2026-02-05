@@ -516,7 +516,7 @@ def set_artist_from_folder(directory):
                     audio['artist'] = artist_from_path
                     audio['albumartist'] = artist_from_path
                     audio.save()
-                print(f"{GREEN}{BRIGHT}Updated artist and album artist{RESET} for: {filename}")
+                print(f"{GREEN}{BRIGHT}Updated artist and album artist{RESET} to {YELLOW}{artist_from_path}{RESET} for: {filename}")
             except Exception as e:
                 print(f"{RED}{BRIGHT}Failed to update{RESET} {filename}: {e}")
 
@@ -539,7 +539,7 @@ def set_album_from_folder(directory):
                     audio = EasyMP4(filepath)
                     audio['album'] = album_from_path
                     audio.save()
-                print(f"{GREEN}{BRIGHT}Updated album{RESET} for: {filename}")
+                print(f"{GREEN}{BRIGHT}Updated album{RESET} to {YELLOW}{album_from_path}{RESET} for: {filename}")
             except Exception as e:
                 print(f"{RED}{BRIGHT}Failed to update{RESET} {filename}: {e}")
 
@@ -589,6 +589,67 @@ def update_flac_titles_from_filename(directory):
 
                 print(f"{GREEN}{BRIGHT}Updated{RESET}: {file} -> Title: {track_title}")
 
+def update_audiobook_mp3_titles(directory):
+    import os
+    import re
+    from mutagen.mp3 import MP3
+    from mutagen.id3 import ID3, TIT2
+
+    # UI Formatting
+    GREEN, RED, RESET, BRIGHT = "\033[92m", "\033[91m", "\033[0m", "\033[1m"
+
+    for filename in os.listdir(directory):
+        if filename.lower().endswith('.mp3'):
+            filepath = os.path.join(directory, filename)
+            
+            try:
+                # Regex Explanation:
+                # (Chapter|Prologue|Introduction|Foreword) -> Matches the section type
+                # (\d*) -> Captures the digits immediately after 'Chapter' (if any)
+                # \s+(.*?)\s+ -> Captures the title text
+                # (\d+)\s+\d+m\d+s -> Captures the track number but ignores the time
+                pattern = r'(Chapter|Prologue|Introduction|Foreword|Note|Epilogue|Appendix)(\d*)\s+(.*?)\s+(\d+)\s+\d+m\d+s'
+                match = re.search(pattern, filename, re.IGNORECASE)
+                
+                if match:
+                    label = match.group(1).strip()      # e.g., "Introduction"
+                    num = match.group(2).strip()        # e.g., "01"
+                    title_text = match.group(3).strip() # e.g., "Concerning Hobbits"
+                    track_id = match.group(4).strip()   # e.g., "1"
+                    
+                    if label.lower() == 'chapter':
+                        # Result: "Chapter 01 - Minas Tirith 6"
+                        new_title = f"{label} {num} - {title_text} {track_id}"
+                    elif not title_text:
+                        # Case for "Introduction 1" (where title_text is empty)
+                        new_title = f"{label} {track_id}"
+                    else:
+                        # Result: "Prologue Concerning Hobbits 1"
+                        new_title = f"{label} {title_text} {track_id}"
+                else:
+                    # Fallback: Remove prefix and time if regex doesn't match perfectly
+                    new_title = re.sub(r'^L\d+-\d+\s+Book\d+\s+', '', filename)
+                    new_title = re.sub(r'\s+\d+m\d+s\.mp3$', '', new_title, flags=re.IGNORECASE)
+
+                # Update ID3 Tag
+                audio = MP3(filepath, ID3=ID3)
+                audio['TIT2'] = TIT2(encoding=3, text=new_title)
+                audio.save()
+                
+                print(f"{GREEN}{BRIGHT}Success:{RESET} {new_title}")
+                
+            except Exception as e:
+                print(f"{RED}{BRIGHT}Error processing {filename}:{RESET} {e}")
+
+# Call the function
+# update_mp3_titles_final('/your/directory/path')
+
+# Usage: update_mp3_titles_final('./audiobooks')
+
+# Usage: format_mp3_titles_custom('./audio_folder')
+
+# To use: update_mp3_titles_single_function('/your/path/here')
+
 def search_for_missing_properties(root_dir):
     pass
 
@@ -599,25 +660,24 @@ if __name__ == "__main__":
     dir_temp_essential_albums = r'W:\Temp\Download Zone\Essentials'
     dir_temp_playlist_albums = r'W:\Temp\Download Zone\Playlists'
     dir_temp_OSTs = r'W:\Temp\Download Zone\OSTs'
-    dir_temp = r'W:\Music\Temp\Download Zone'
-    dir_custom = r"W:\Music\FLAC\David Guetta\(2003) Guetta Blaster"
+    dir_custom = r"W:\Music\MP3s_320\Evanescence\(2003) Fallen (Deluxe Edition)"
     # dir_custom2 = r"W:\Music\MP3s_320\Whitney Houston\(1996) The Preacher's Wife"
 
     # rename_essentials_albums(dir_temp_essential_albums)
     # rename_playlist_albums(dir_temp_playlist_albums)
     # rename_OTSs(dir_temp_OSTs)  
     
-    # rename_album(dir_custom, "Halloween Playlist 2023")
-    
-    rename_artist(dir_custom, 'David Guetta')
+    # rename_album(dir_custom, "Evanescence (Deluxe Edition)")
+    # rename_artist(dir_custom, 'Evanescence')
     # rename_artist(dir_custom2, 'Whitney Houston')
-    rename_comment(dir_custom, '')
+    # rename_comment(dir_custom, '')
 
-    # set_album_from_folder(dir_custom)
+    set_album_from_folder(dir_custom)
     # set_artist_from_folder(dir_custom)
-    # set_year_from_folder(dir_custom)
+    set_year_from_folder(dir_custom)
     # set_track_numbers(dir_custom)
 
     # clean_flac_titles(dir_custom)
     # update_flac_titles_from_filename(dir_custom)
+    # update_audiobook_mp3_titles(dir_custom)
     

@@ -187,12 +187,29 @@ def run_movie_analytics(directory):
     plt.title('Adjusted Financial Scale & Outliers [Shuttflix]', fontsize=14, fontweight='bold')
     save_plot('07_adj_financial_peaks.png')
 
-    # --- 08. PRODUCTION: Studio Share ---
+    # --- 08. PRODUCTION: Studio Share [Shuttflix] ---
     plt.figure(figsize=(10, 7))
     exp_prod = df.explode('Prod_List')
-    exp_prod[exp_prod['Prod_List'].notna() & (exp_prod['Prod_List'] != '')].Prod_List.value_counts().head(8).plot(kind='pie', autopct='%1.1f%%', cmap='Set3')
+    exp_prod = exp_prod[exp_prod['Prod_List'].notna() & (exp_prod['Prod_List'] != '')]
+    
+    # Calculate counts and percentages
+    s_counts = exp_prod['Prod_List'].value_counts()
+    s_pct = s_counts / s_counts.sum()
+    
+    # Group studios with < 2% share into "Other"
+    threshold = 0.02
+    main_studios = s_counts[s_pct >= threshold]
+    other_studios_sum = s_counts[s_pct < threshold].sum()
+    
+    if other_studios_sum > 0:
+        main_studios['Other Studios'] = other_studios_sum
+    
+    main_studios.plot(kind='pie', autopct='%1.1f%%', cmap='Set3', startangle=140, pctdistance=0.85)
     plt.title('Primary Production Studio Share [Shuttflix]', fontsize=14, fontweight='bold')
     plt.ylabel('')
+    # Draw a circle at the center to make it a donut (optional, cleaner for many slices)
+    centre_circle = plt.Circle((0,0), 0.70, fc='white')
+    plt.gca().add_artist(centre_circle)
     save_plot('08_studio_share.png')
 
     # --- 09. SEASONALITY: Monthly Bar with % ---
@@ -216,6 +233,40 @@ def run_movie_analytics(directory):
     plt.title('Historical Evolution of Movie Runtimes [Shuttflix]', fontsize=14, fontweight='bold')
     plt.xlabel('Release Year'), plt.ylabel('Minutes')
     save_plot('10_runtime_trend.png')
+
+    # --- 11. RATINGS: Annual Distribution (Candle/Box Chart) [Shuttflix] ---
+    plt.figure(figsize=(16, 7))
+    
+    # Filter for years from 1920 onwards
+    min_year = 1920
+    df_annual = df[df['Release_Year'] >= min_year].dropna(subset=['Rating', 'Release_Year'])
+    
+    # Prepare data: Grouping ratings by every unique year
+    years = sorted(df_annual['Release_Year'].unique())
+    data_to_plot = [df_annual[df_annual['Release_Year'] == y]['Rating'] for y in years]
+    
+    # Create the annual 'candle' chart
+    # showfliers=False removes extreme outliers (dots) to keep the "candles" clean
+    bp = plt.boxplot(data_to_plot, patch_artist=True, labels=[int(y) for y in years], showfliers=False)
+    
+    # Styling
+    for box in bp['boxes']:
+        box.set(facecolor='#3498db', alpha=0.6, linewidth=1)
+    for median in bp['medians']:
+        median.set(color='#e74c3c', linewidth=1.5)
+        
+    # Clean up X-Axis: Only show every 5th year label to prevent overlap
+    ax = plt.gca()
+    for i, label in enumerate(ax.get_xticklabels()):
+        if i % 5 != 0:
+            label.set_visible(False)
+
+    plt.title(f'Annual Rating Distribution Extremes (Post-{min_year}) [Shuttflix]', fontsize=14, fontweight='bold')
+    plt.ylabel('TMDb User Rating')
+    plt.xlabel('Release Year')
+    plt.grid(axis='y', linestyle='--', alpha=0.4)
+    
+    save_plot('11_rating_annual_candles.png')
 
     # Summary Statistics Output
     print("-" * 30)

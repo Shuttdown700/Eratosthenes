@@ -79,8 +79,8 @@ def download_yt_music_playlist(url, output_directory):
 
 if __name__ == "__main__":
     # Example Channel URL: Use the @handle for the most reliable method
-    url_channel = "https://www.youtube.com/@juliaplaysgroove/videos" 
+    url_channel = "https://www.youtube.com/watch?v=qtcRddExVJk&list=PL50qCY5SNEoeEPbW0P_CDo1KG7TUauPKs" 
     
-    sub_directory = os.path.join("A:", "Temp", "YouTube", "Music Downloads") 
+    sub_directory = os.path.join("W:", "Temp", "YouTube", "Audiobook Downloads") 
     
     download_yt_music_playlist(url_channel, sub_directory)

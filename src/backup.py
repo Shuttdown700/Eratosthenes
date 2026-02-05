@@ -751,9 +751,3 @@ class Backup:
 if __name__ == '__main__':
     backup = Backup()
     backup.main()
-
-"""
-NOTES:
-- add context to revoke backup files
-- keep track of user choices in the event the same action is asked multiple times
-"""

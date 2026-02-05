@@ -1,14 +1,16 @@
 DEV Notes: Alexandria Media Manager
 
+- a script that lists a bitrate for tv shows to determine what needs re-encoding or replacing
+- a function that backs up all nfo, jpg, png, etc files in the exact same folder structure as the primaries
 - function that prints the closest movie release date to your birthday
 - idea: create 2x2 matrix of genre tags which counts the number of times tags are paired together in a movie
-- handle the error of if a drive disconnects and returns a None letter
+- [ERROR HANDLING] handle the error of if a drive disconnects and returns a None letter
 - give option to remove media info for files not currently present instead of immediently removing that data
 - give option to add files to primary if they are unexpectedly found on a backup drive (currently only option is to delete off backup)
 - detect seasons that are not present on primary drives but are on backup drives (give option to add to primary or delete from backup)
-- detect when file names are the same but file extensions are different (likely because the primary file was updated)
+- detect when filenames are the same but file extensions are different in the same directory (likely because the primary file was updated)
 - give suggestions (largest size, most polific backed up shows, or imdb rating) for deletion in backup drive to clear up space
-- detect when shows on whitelist are not on the primary and delete them from the whitelist
+- detect when shows on whitelist are not on the primary and delete them from the whitelist (for finding mispellings and old naming conventions)
 - necessary output files:
     shoe details (size, num of seasons, num of episodes, rating)
 - **delete movie folders without any movie files in them, but that may have images or subtitle files (issue on Vaughn)

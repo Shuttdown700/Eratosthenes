@@ -9,5 +9,6 @@ def print_directory_tree(startpath):
         for f in files:
             print(f'{subindent}{f}')
 
-directory = os.path.join(os.path.dirname(__file__), '..', '..')
+# directory = os.path.join(os.path.dirname(__file__), '..', '..')
+directory = r"K:\Temp\Lego Star Wars Droid Tales Complete 2015 Burntodisc\Disc\VIDEO_TS"
 print_directory_tree(directory)

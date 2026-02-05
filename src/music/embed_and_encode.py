@@ -146,6 +146,7 @@ def embed_album_covers(base_directory, override_cover=False):
             elif isinstance(audio, MP4):
                 audio['covr'] = [MP4Cover(image_data, imageformat=MP4Cover.FORMAT_JPEG)]
                 audio.save()
+            print(f"✅ Embedded cover into: {audio_path}")
 
         except Exception as e:
             print(f"❌ Failed to embed cover into: {audio_path} ({e})")
@@ -267,8 +268,11 @@ def encode_multiple_bitrates(parent_dir='W:\\Music\\FLAC', bitrates_desired=[320
 
 if __name__ == "__main__":
 
+    OVERWRITE_COVERS = False
+    SKIP_REENCODE = False
+
     dirs_to_reencode = []
-    if dirs_to_reencode == []:
+    if dirs_to_reencode == [] or SKIP_REENCODE:
         src_directory = os.path.dirname(os.path.abspath(__file__))
         filepath_drive_hierarchy = os.path.join(src_directory, "..", "..", "config", "alexandria_drives.config")
         drive_config = read_json(filepath_drive_hierarchy)
@@ -276,12 +280,19 @@ if __name__ == "__main__":
         drive_letter = get_drive_letter(primary_drives_name_dict['Music'][0])
         dirs_to_reencode = [drive_letter+r":\Music\FLAC"]
     
-    for directory in dirs_to_reencode:
-        embed_album_covers(directory, override_cover=True)
-        encode_multiple_bitrates(directory, bitrates_desired=[320])
+    if not SKIP_REENCODE:
+        for directory in dirs_to_reencode:
+            embed_album_covers(directory, override_cover=OVERWRITE_COVERS)
+            encode_multiple_bitrates(directory, bitrates_desired=[320])
 
     dirs_embed_covers = []
     if dirs_embed_covers == []:
-        dirs_embed_covers = [drive_letter+r":\Music\MP3s_320"]
+        src_directory = os.path.dirname(os.path.abspath(__file__))
+        filepath_drive_hierarchy = os.path.join(src_directory, "..", "..", "config", "alexandria_drives.config")
+        drive_config = read_json(filepath_drive_hierarchy)
+        primary_drives_name_dict = read_alexandria_config(drive_config)[0]
+        drive_letter = get_drive_letter(primary_drives_name_dict['Music'][0])
+        dirs_embed_covers = [drive_letter+r":\Music\MP3s_320",
+                             drive_letter+r":\Music\Various"]
     for directory in dirs_embed_covers:
-        embed_album_covers(directory, override_cover=True)
+        embed_album_covers(directory, override_cover=OVERWRITE_COVERS)

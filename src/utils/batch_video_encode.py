@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import subprocess
 import json
+import os
 from pathlib import Path
 
 from colorama import Fore, Back, Style
+from datetime import datetime
 
 # === COLORS ===
 RED = Fore.RED
@@ -18,6 +20,7 @@ BRIGHT = Style.BRIGHT
 video_codec = "libx265"
 video_crf = "20.5"
 preset = "medium"
+pix_fmt = "yuv420p"
 
 audio_codec = "aac"
 bitrate_5_1 = "640k"
@@ -27,6 +30,7 @@ bitrate_stereo = "256k"
 target_width = 1920
 target_height = 1080
 
+dir_reencoded = "Re-Encoded"
 overwrite = False
 
 # === FFMPEG/FFPROBE PATHS ===
@@ -83,24 +87,33 @@ def select_audio_settings(audio_streams):
 
 
 def build_encode_cmd(input_file: Path, output_file: Path, audio_channels: str, audio_bitrate: str,
-                     input_width: int, input_height: int):
-    """Build ffmpeg command for encoding."""
+                     input_width: int, input_height: int, pix_fmt: str, sub_codec: str, use_trim: bool = False):
+    """Build ffmpeg command for encoding, with optional start trimming."""
     vf_filters = []
     
-    # *** ADJUSTMENT: Apply scaling filter only if original resolution exceeds target 1080p ***
-    if input_width > target_width or input_height > target_height:
-        # Robust filter: Prevents upscaling and scales down to fit within 1920x1080
+    if input_width and input_height and (input_width > target_width or input_height > target_height):
         vf_filters.append(
             f"scale='if(gt(iw,{target_width}),{target_width},-1)':'if(gt(ih,{target_height}),{target_height},-1)':force_original_aspect_ratio=decrease"
         )
 
     cmd = [
-        str(FFMPEG), "-y",
+        str(FFMPEG), 
+        "-y",
+        "-err_detect", "ignore_err",
+    ]
+
+    # --- CONDITIONAL TRIM ---
+    if use_trim:
+        cmd.extend(['-ss', '0.5'])
+    # ------------------------
+
+    cmd.extend([
         "-i", str(input_file),
 
         "-c:v", video_codec,
         "-preset", preset,
         "-crf", str(video_crf),
+        '-pix_fmt', pix_fmt,
 
         "-c:a", audio_codec,
         "-b:a", audio_bitrate,
@@ -110,12 +123,11 @@ def build_encode_cmd(input_file: Path, output_file: Path, audio_channels: str, a
         "-map", "0:a?",
         "-map", "0:s?",
 
-        "-c:s", "copy",
-        "-movflags", "+faststart",
-    ]
+        # Use the dynamic subtitle codec determined in process_file
+        "-c:s", sub_codec,
+    ])
 
     if vf_filters:
-        # Insert -vf right after video codec value
         idx = cmd.index("-c:v") + 2
         cmd.insert(idx, "-vf")
         cmd.insert(idx + 1, ",".join(vf_filters))
@@ -126,7 +138,8 @@ def build_encode_cmd(input_file: Path, output_file: Path, audio_channels: str, a
 
 def process_file(f: Path, output_path: Path):
     """Process a single input file."""
-    print(f"\n{YELLOW}{BRIGHT}Inspecting{RESET}: {f.name}")
+    print(f"\n{BRIGHT}Time{RESET}: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"{YELLOW}{BRIGHT}Inspecting{RESET}: {f.name}")
 
     streams = probe_streams(f)
 
@@ -146,23 +159,29 @@ def process_file(f: Path, output_path: Path):
         title = s.get("tags", {}).get("title", "")
         print(f"{BLUE}{BRIGHT}Audio {idx}{RESET}: {codec.upper()}, {ch}ch, lang={lang.upper()}, title={title.split('@')[0]}")
 
-    # Print subtitle streams
+    # Determine Subtitle Strategy
+    # Default to 'copy' (works for MKV/PGS/VOBSUB), switch to 'srt' only if mov_text is found
+    target_sub_codec = "copy"
+    
     for s in subtitle_streams:
         idx = s.get("index")
         codec = s.get("codec_name", "unknown")
         lang = s.get("tags", {}).get("language", "und")
         title = s.get("tags", {}).get("title", "")
         print(f"{MAGENTA}{BRIGHT}Subtitle {idx}{RESET}: {codec.upper()}, lang={lang.upper()}, title={title.split('@')[0]}")
+        
+        # If we see mov_text, we MUST convert to srt because MKV doesn't support mov_text
+        if codec == "mov_text":
+            target_sub_codec = "srt"
+
+    print(f"{YELLOW}Subtitle strategy{RESET}: {target_sub_codec.upper()}")
 
     # Audio selection
     audio_channels, audio_bitrate = select_audio_settings(audio_streams)
     print(f"{YELLOW}Selected audio encoding{RESET}: {audio_channels}ch @ {audio_bitrate}")
 
-    # Output file
-    # *** ADJUSTMENT: Always output to .mkv container ***
+    # Output file setup
     new_suffix = ".mkv" 
-
-    # Construct the output file path using the original filename stem and the new suffix
     out_file_name = f.stem + new_suffix
     out_file = output_path / out_file_name
     
@@ -170,18 +189,56 @@ def process_file(f: Path, output_path: Path):
         print(f"{YELLOW}Skipping (already exists){RESET}:", out_file)
         return
 
-    # Build and run command
-    print(f"{GREEN}{BRIGHT}Encoding{RESET}: {out_file.name}")
-    cmd = build_encode_cmd(f, out_file, audio_channels, audio_bitrate, in_width, in_height)
+    # === ATTEMPT 1: NORMAL ENCODE ===
+    print(f"{GREEN}{BRIGHT}Encoding (Standard){RESET}: {out_file.name}")
     
-    # Run command and suppress output for clean batch processing
-    subprocess.run(cmd, check=True,
-                   stdout=subprocess.DEVNULL,
-                   stderr=subprocess.DEVNULL)
+    # Build command WITHOUT trim
+    cmd = build_encode_cmd(f, out_file, audio_channels, audio_bitrate, in_width, in_height, pix_fmt, 
+                           sub_codec=target_sub_codec, use_trim=False)
     
-    # subprocess.run(cmd, check=True) # For debugging, remove in production
+    success = False
 
-    # Size change
+    try:
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        success = True
+    except subprocess.CalledProcessError:
+        print(f"{RED}{BRIGHT}[FAIL]{RESET} Standard encoding failed. Attempting trim fix...")
+        
+        # Clean up the partial file from the first failed attempt
+        if out_file.exists():
+            try:
+                os.remove(out_file)
+            except OSError:
+                pass # Ignore if file is already gone
+
+        # === ATTEMPT 2: TRIMMED ENCODE ===
+        # Build command WITH trim
+        cmd = build_encode_cmd(f, out_file, audio_channels, audio_bitrate, in_width, in_height, pix_fmt, 
+                               sub_codec=target_sub_codec, use_trim=True)
+        
+        try:
+            # We use stderr=subprocess.PIPE here to capture the error message if it fails again
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+            success = True
+            print(f"{GREEN}[SUCCESS] Trimmed encoding worked.{RESET}")
+        except subprocess.CalledProcessError as e:
+            print(f"{RED}[FAILURE] Both encoding attempts failed!{RESET}")
+            
+            # Print the actual FFmpeg error so we know WHY it failed
+            print(f"{RED}FFmpeg Error Output:{RESET}")
+            try:
+                print(e.stderr.decode('utf-8'))
+            except:
+                print("Could not decode error output.")
+                
+            if out_file.exists():
+                os.remove(out_file)
+            return
+
+    if not success:
+        return
+
+    # Size change logic
     original_size = f.stat().st_size
     encoded_size = out_file.stat().st_size
     pct = (abs(original_size - encoded_size) / original_size) * 100
@@ -193,6 +250,7 @@ def process_file(f: Path, output_path: Path):
         f"({GREEN if reduced else RED}{pct:.1f}% "
         f"{'reduction' if reduced else 'increase'}{RESET})"
     )
+    print(f"{BRIGHT}Time{RESET}: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 
 def process_directory(source_path: Path):
@@ -200,10 +258,11 @@ def process_directory(source_path: Path):
     if not source_path.exists():
         print(f"{RED}Directory not found{RESET}: {source_path}")
         return
-    if "Re-Encoded" in source_path.parts:
-        print(f"{YELLOW}Skipping (is a Re-Encoded sub-directory){RESET}: {source_path}")
+    if dir_reencoded in source_path.parts:
+        print(f"{YELLOW}Skipping (is a {dir_reencoded} sub-directory){RESET}: {source_path}")
         return
-    output_path = source_path / ".." / "Re-Encoded"
+    # output_path = source_path / ".." / dir_reencoded
+    output_path = source_path / dir_reencoded
     output_path.mkdir(parents=True, exist_ok=True)
 
     files = gather_files(source_path)
@@ -234,7 +293,7 @@ def main(directories: list[str]):
 
         for source_path in dirs_to_check:
             # skip output folders to avoid re-processing encoded outputs
-            if source_path.name.lower() == "re-encoded":
+            if source_path.name.lower() == dir_reencoded.lower():
                 continue
 
             # only process directories that actually contain video files
@@ -246,6 +305,8 @@ def main(directories: list[str]):
 
 if __name__ == "__main__":
     dir_list = [
-        r"A:\Temp\Movies\To Re-Encode"
+        r"A:\Temp\Anime\To Re-Encode",
+        r"B:\Temp\To Re-Encode\Ready",
+        r"K:\Temp\To Re-Encode\Ready"
     ]
     main(dir_list)
