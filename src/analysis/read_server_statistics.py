@@ -3,6 +3,7 @@
 import os
 import sys
 
+from datetime import datetime
 from colorama import Fore, Style, init
 
 init(autoreset=True)
@@ -52,7 +53,7 @@ def read_media_statistics(bool_update=False,
 
     if bool_print:
         print(f'\n{"#"*10}\n')
-        print("Media Statistics\n")
+        print(f"Media Statistics (CAO {datetime.fromtimestamp(os.stat(filepath_statistics).st_mtime).strftime('%Y-%m-%d')})\n")
         print(f"{Fore.YELLOW}{Style.BRIGHT}Shows: {Style.NORMAL}{num_shows:,} shows, {num_show_episodes:,} episodes | {size_shows} | {duration_shows}")
         print(f"{Fore.CYAN}{Style.BRIGHT}Anime: {Style.NORMAL}{num_anime:,} series, {num_anime_episodes:,} episodes | {size_anime} | {duration_anime}")
         print(f"{Fore.MAGENTA}{Style.BRIGHT}BluRay Movies: {Style.NORMAL}{num_bluray_movies:,} | {size_movies} | {duration_bluray_movies}")

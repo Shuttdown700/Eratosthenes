@@ -3,6 +3,7 @@
 import json
 import os
 import requests
+import sys
 
 from typing import Dict, List
 
@@ -64,7 +65,8 @@ class API(object):
         Args:
             auto_delete (bool): If True, bypasses user confirmation for deleting movies.
         """
-        from analysis.update_media_list import update_media_list
+        sys.path.append(os.path.join(os.path.dirname(__file__), "analysis"))
+        from batch_update_media_list import update_media_list
         # Update movie list
         movie_list = update_media_list('movies')
         movie_list += update_media_list('anime_movies')

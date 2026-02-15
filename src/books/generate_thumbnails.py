@@ -8,7 +8,7 @@ from PIL import Image
 from colorama import Fore, init
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utilities import get_drive_letter, read_alexandria_config, read_json
+from utilities import get_drive_letter, read_alexandria_config, read_json, get_primary_root_directories
 
 init(autoreset=True)
 
@@ -83,15 +83,7 @@ def generate_pdf_and_cbz_thumbnails(root_dir: str,
 
 if __name__ == "__main__":
     # === CONFIGURATION ===
-    src_directory = os.path.dirname(os.path.abspath(__file__))
-    filepath_drive_hierarchy = os.path.join(src_directory, "..", "config", "alexandria_drives.config")
-    drive_config = read_json(filepath_drive_hierarchy)
-    primary_drives_name_dict, backup_drives_name_dict, extensions_dict = read_alexandria_config(drive_config)
-    media_type = "Books"
-    drive_names = primary_drives_name_dict[media_type]
-    drive_letters = [get_drive_letter(name) for name in drive_names if get_drive_letter(name) is not None]
-    # === FUNCTION INPUTS ===
-    root_dirs = [rf"{letter}:\{media_type}" for letter in drive_letters]
+    root_dirs = get_primary_root_directories(["Books"])
     bool_overwrite = False
     # ======================
     for directory in root_dirs:

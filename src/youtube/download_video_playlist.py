@@ -20,6 +20,8 @@ def download_yt_video_playlist(url,
     # Construct the command with properly quoted arguments
     cmd = [
         "yt-dlp",
+        "--sleep-interval", "4",
+        "--max-sleep-interval", "10",
         "-vU",
         "-f", 
         # f"bestvideo[ext={EXT_V}][height>=1080]+bestaudio[ext=m4a]/bestvideo[ext={EXT_V}]+bestaudio[ext={EXT_A}]/best",
@@ -37,6 +39,6 @@ def download_yt_video_playlist(url,
     subprocess.call(cmd)
 
 if __name__ == "__main__":
-    url_playlist = "https://www.youtube.com/watch?v=fPCEjURvaX0&list=PL2KJJamF98zjDh1KGAZsSb0p5THVDshAi"
-    sub_directory = os.path.join("A:","Temp","YouTube","The Hunger Games (but better) (2025)")
+    url_playlist = "https://www.youtube.com/watch?v=HJ_5Cv9vewA&list=PLKnEB-2tPlM_3jUhAw2g8lrBHYleXcRRK"
+    sub_directory = os.path.join("A:","Temp","YouTube","The Real Bros of Simi Valley (2017)","Season 3")
     download_yt_video_playlist(url_playlist,sub_directory)     

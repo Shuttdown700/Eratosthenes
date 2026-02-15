@@ -4,6 +4,7 @@
 *.json
 *.csv
 archive/*
+backup/*
 icons/*
 output/*
 keys/*
@@ -19,5 +20,6 @@ venv/*
 *.mp3
 *.flac
 *.pdf
+*.zip
 !output/.gitkeep
 !config/.gitkeep

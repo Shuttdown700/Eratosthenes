@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
     # Oxford World's Classics on Anna
 
-    input_directory = r"W:\Temp\Books\_Anna_EPUBs"
+    input_directory = r"W:\Temp\Books"
     output_directory = os.path.join(input_directory, "Converted PDFs")
 
 

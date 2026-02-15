@@ -4,6 +4,7 @@ import os
 import io
 import subprocess
 import shutil
+from tqdm import tqdm
 
 from PIL import Image
 from io import BytesIO
@@ -20,9 +21,13 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from utilities import (
-    read_alexandria, remove_empty_folders, generate_music_file_print_message,
-    read_json, read_alexandria_config, get_drive_letter
+    read_alexandria, remove_empty_folders,
+    read_json, read_alexandria_config, get_drive_letter, get_primary_root_directories
 )
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'utils')))
+
+from generate_audio_file_print_string import generate_audio_file_print_string
 
 # Define terminal color shortcuts
 RED = Fore.RED
@@ -156,6 +161,8 @@ def embed_album_covers(base_directory, override_cover=False):
         print("Invalid base directory.")
         return
 
+    # for dirpath, _, filenames in tqdm(os.walk(base_directory), desc="Processing Files", unit=""):
+    
     for dirpath, _, filenames in os.walk(base_directory):
         audio_files = [f for f in filenames if f.lower().endswith(AUDIO_EXTENSIONS)]
         if not audio_files:
@@ -234,7 +241,7 @@ def encode_multiple_bitrates(parent_dir='W:\\Music\\FLAC', bitrates_desired=[320
 
             check_directory(file_out)
 
-            print(f'{GREEN}{BRIGHT}Re-encoding{RESET} {generate_music_file_print_message(file_in)} '
+            print(f'{GREEN}{BRIGHT}Re-encoding{RESET} {generate_audio_file_print_string(file_in)} '
                   f'in {YELLOW}{BRIGHT}{bitrate_desired}kbps{RESET} to: {os.path.dirname(file_out)}')
             cmd = [
                 'ffmpeg',
@@ -273,12 +280,8 @@ if __name__ == "__main__":
 
     dirs_to_reencode = []
     if dirs_to_reencode == [] or SKIP_REENCODE:
-        src_directory = os.path.dirname(os.path.abspath(__file__))
-        filepath_drive_hierarchy = os.path.join(src_directory, "..", "..", "config", "alexandria_drives.config")
-        drive_config = read_json(filepath_drive_hierarchy)
-        primary_drives_name_dict = read_alexandria_config(drive_config)[0]
-        drive_letter = get_drive_letter(primary_drives_name_dict['Music'][0])
-        dirs_to_reencode = [drive_letter+r":\Music\FLAC"]
+        dirs_to_reencode = get_primary_root_directories(['Music'])
+        dirs_to_reencode = [os.path.join(d, "FLAC") for d in dirs_to_reencode if os.path.isdir(os.path.join(d, "FLAC"))]
     
     if not SKIP_REENCODE:
         for directory in dirs_to_reencode:
@@ -287,12 +290,9 @@ if __name__ == "__main__":
 
     dirs_embed_covers = []
     if dirs_embed_covers == []:
-        src_directory = os.path.dirname(os.path.abspath(__file__))
-        filepath_drive_hierarchy = os.path.join(src_directory, "..", "..", "config", "alexandria_drives.config")
-        drive_config = read_json(filepath_drive_hierarchy)
-        primary_drives_name_dict = read_alexandria_config(drive_config)[0]
-        drive_letter = get_drive_letter(primary_drives_name_dict['Music'][0])
-        dirs_embed_covers = [drive_letter+r":\Music\MP3s_320",
-                             drive_letter+r":\Music\Various"]
+        dirs_to_reencode = get_primary_root_directories(['Music'])
+        dirs_embed_covers = [os.path.join(d, "MP3s_320") for d in dirs_to_reencode]
+        dirs_embed_covers.extend([os.path.join(d, "Various") for d in dirs_to_reencode])
+
     for directory in dirs_embed_covers:
         embed_album_covers(directory, override_cover=OVERWRITE_COVERS)

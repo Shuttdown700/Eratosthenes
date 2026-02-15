@@ -9,10 +9,12 @@ from mutagen.flac import FLAC
 from colorama import init, Fore, Style
 
 import sys
+import time
 import random
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from utilities import read_json  # Adjust if needed
+from utilities import read_json
+from utilities_music import embed_lyrics, is_excluded_title, clear_comments, has_embedded_plain_lyrics
 
 # -------------------------------
 # Setup colors
@@ -25,7 +27,6 @@ RED, YELLOW, GREEN, BLUE, MAGENTA, RESET, BRIGHT = (
 # -------------------------------
 # Global config
 # -------------------------------
-EXCLUDED_TERMS = ["(Remix)", "(Live)", "(Skit)", "(Instrumental)", "(Remaster)"]
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "output", "music"))
 MIN_LYRICS_LENGTH = 50                # Minimum characters for valid lyrics
@@ -44,7 +45,6 @@ GENIUS_ACCESS_TOKEN = api_config["genius"]["access_token"]
 genius = lyricsgenius.Genius(
     GENIUS_ACCESS_TOKEN,
     skip_non_songs=True,
-    excluded_terms=EXCLUDED_TERMS,
     remove_section_headers=True,
     verbose=False,
     timeout=15,
@@ -53,7 +53,7 @@ genius = lyricsgenius.Genius(
 # -------------------------------
 # Fetch lyrics
 # -------------------------------
-def fetch_official_lyrics(title: str, artist: str, album: str, genius: lyricsgenius.Genius) -> str:
+def fetch_official_lyrics(title: str, artist: str, album: str, genius: lyricsgenius.Genius, sleep_time: int = 1) -> str:
     """Fetch lyrics from Genius API."""
     query = f"{title} {artist} {album}"
     print(f"{BLUE}{BRIGHT}Searching Genius for:{RESET} {title} by {artist} from {album}{RESET}")
@@ -91,7 +91,16 @@ def fetch_official_lyrics(title: str, artist: str, album: str, genius: lyricsgen
             if len(lyrics) < MIN_LYRICS_LENGTH:
                 return ""
             print(f"{GREEN}{BRIGHT}Fetched official lyrics for:{RESET} {title}")
+            sleep_time = 1  # Reset sleep time on success
+            time.sleep(sleep_time)
             return lyrics
+
+    except AssertionError as e:
+        if "status code: 429" in str(e).lower():
+            print(f"{YELLOW}{BRIGHT}Rate limit hit, sleeping for {sleep_time:,} {'seconds' if sleep_time != 1 else 'second'}...{RESET}")
+            time.sleep(sleep_time)  # Longer sleep on rate limit
+            sleep_time *= 2  # Exponential backoff
+            fetch_official_lyrics(title, artist, album, genius, sleep_time)
 
     except Exception as e:
         print(f"{RED}Error fetching lyrics:{RESET} {e}")
@@ -102,54 +111,6 @@ def fetch_official_lyrics(title: str, artist: str, album: str, genius: lyricsgen
 # -------------------------------
 # Helper functions
 # -------------------------------
-def is_excluded_title(title: str) -> bool:
-    """Return True if the song title contains any excluded term."""
-    for term in EXCLUDED_TERMS:
-        if term.lower() in title.lower():
-            return True
-    return False
-
-def has_embedded_lyrics(filepath: str) -> bool:
-    """Return True if the file already contains valid lyrics of sufficient length,
-    and does NOT contain known void strings (like 'www.' or 'PMEDIA')."""
-    try:
-        if filepath.lower().endswith(".mp3"):
-            audio = MP3(filepath, ID3=ID3)
-            if not audio.tags:
-                return False
-
-            # Combine all lyric and comment frames
-            frames = audio.tags.getall("USLT") + audio.tags.getall("COMM")
-            for frame in frames:
-                texts = frame.text
-                if isinstance(texts, list):
-                    for text in texts:
-                        if _is_valid_lyric_text(text):
-                            return True
-                elif isinstance(texts, str) and _is_valid_lyric_text(texts):
-                    return True
-
-        elif filepath.lower().endswith(".flac"):
-            audio = FLAC(filepath)
-            for tag in ["LYRICS", "COMMENT"]:
-                if tag in audio:
-                    for item in audio[tag]:
-                        if _is_valid_lyric_text(item):
-                            return True
-
-    except Exception as e:
-        print(f"{YELLOW}Error checking lyrics for {filepath}: {e}{RESET}")
-
-    return False
-
-def _is_valid_lyric_text(text: str) -> bool:
-    """Helper: check if text is long enough and not containing void strings."""
-    if not text:
-        return False
-    stripped = text.strip()
-    if any(void_str.lower() in stripped.lower() for void_str in VOID_LYRIC_STRINGS):
-        return False
-    return len(stripped) >= MIN_LYRICS_LENGTH
 
 
 def load_missing_lyrics_log():
@@ -174,77 +135,10 @@ def log_missing_lyrics(title: str, artist: str, album: str):
     print(f"{YELLOW}{BRIGHT}Logged missing lyrics for:{RESET} {title}")
 
 
-def clear_comments(filepath: str):
-    """Remove comment, lyrics, and subtitle frames/tags from MP3 and FLAC files."""
-    try:
-        if filepath.lower().endswith(".mp3"):
-            audio = MP3(filepath, ID3=ID3)
-            if audio.tags is None:
-                return
-            removed = False
-
-            # Remove comment frames
-            if audio.tags.getall("COMM"):
-                audio.tags.delall("COMM")
-                removed = True
-
-            # Remove unsynchronized lyrics/subtitle frames
-            if audio.tags.getall("USLT"):
-                audio.tags.delall("USLT")
-                removed = True
-
-            if removed:
-                audio.save(v2_version=3)
-                print(f"{YELLOW}{BRIGHT}Cleared COMM and USLT frames for:{RESET} {filepath}")
-
-        elif filepath.lower().endswith(".flac"):
-            audio = FLAC(filepath)
-            removed = False
-
-            # Remove standard tags
-            for tag in ["COMMENT", "LYRICS", "SUBTITLE"]:
-                if tag in audio:
-                    del audio[tag]
-                    removed = True
-
-            if removed:
-                audio.save()
-                print(f"{YELLOW}{BRIGHT}Cleared COMMENT, LYRICS, and SUBTITLE tags for:{RESET} {filepath}")
-
-    except Exception as e:
-        print(f"{RED}Error clearing comments for {filepath}: {e}{RESET}")
-
-
 # -------------------------------
 # Embed lyrics
 # -------------------------------
-def embed_lyrics(filepath: str, lyrics: str):
-    """Embed lyrics into MP3/FLAC metadata."""
-    if not lyrics:
-        print(f"{YELLOW}No lyrics to embed for {filepath}{RESET}")
-        return
 
-    try:
-        if filepath.lower().endswith(".mp3"):
-            audio = MP3(filepath, ID3=ID3)
-            if audio.tags is None:
-                audio.add_tags()
-            audio.tags.delall("USLT")
-            audio.tags.delall("COMM")
-            audio.tags.add(USLT(encoding=3, lang="eng", desc="", text=lyrics))
-            audio.tags.add(COMM(encoding=3, lang="eng", desc="Lyrics", text=lyrics))
-            audio.save(v2_version=3)
-            print(f"{MAGENTA}{BRIGHT}Lyrics embedded{RESET} into MP3 metadata for {filepath}")
-
-        elif filepath.lower().endswith(".flac"):
-            audio = FLAC(filepath)
-            audio["LYRICS"] = lyrics
-            audio["COMMENT"] = lyrics
-            audio.save()
-            print(f"{GREEN}{BRIGHT}Lyrics embedded{RESET} into FLAC metadata for {filepath}")
-
-    except Exception as e:
-        print(f"{RED}Error embedding lyrics into {filepath}: {e}{RESET}")
 
 
 # -------------------------------
@@ -294,7 +188,7 @@ def process_directory(input_dir: str,
             continue
 
         # Check if file has invalid/void lyrics (PMEDIA, etc.)
-        lyrics_invalid = not has_embedded_lyrics(filepath)
+        lyrics_invalid = not has_embedded_plain_lyrics(filepath)
         if bypass_existing and not lyrics_invalid:
             print(f"{YELLOW}{BRIGHT}Lyrics already exist and are valid, skipping:{RESET} {filepath}")
             continue

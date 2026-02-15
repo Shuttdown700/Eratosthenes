@@ -9,7 +9,6 @@ from typing import List, Tuple
 
 from utilities import (
     files_are_identical,
-    generate_music_file_print_message,
     get_drive_letter,
     get_drive_name,
     get_file_size,
@@ -21,8 +20,11 @@ from utilities import (
 )
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "analysis"))
-from analysis.read_server_statistics import read_media_statistics
-from analysis.assess_backup import main as assess_backup
+from read_server_statistics import read_media_statistics
+from assess_backup import main as assess_backup
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "utils"))
+from generate_audio_file_print_string import generate_audio_file_print_string
 
 from api import API
 
@@ -78,47 +80,74 @@ class Backup:
         self.primary_filepaths_dict = {}
         self.drive_stats_dict = {}
 
-    def backup_output_files(self, compress: bool = True) -> None:
-        """Backs up all files in the output directory (recursively) to a dated backup folder or zip archive."""
+    def backup_mgmt_files(self, compress: bool = True) -> None:
+        """Backs up both output and config directories to specific backup locations."""
         try:
-            # Define the backup base path with current date
             current_date = datetime.datetime.now().strftime('%Y%m%d')
-            backup_base = os.path.join(self.output_directory, 'backups')
-            os.makedirs(backup_base, exist_ok=True)
+            
+            # 1. Define source and destination mappings
+            # Assuming config_directory exists in the same parent as output_directory
+            parent_dir = os.path.dirname(self.output_directory)
+            config_dir = os.path.join(parent_dir, 'config')
+            icons_dir = os.path.join(parent_dir, 'icons')
+            
+            tasks = [
+                {
+                    "src": self.output_directory,
+                    "dest": os.path.join(parent_dir, 'backups', 'outputs'),
+                    "prefix": "alexandria_output_backup"
+                },
+                {
+                    "src": config_dir,
+                    "dest": os.path.join(parent_dir, 'backups', 'configs'),
+                    "prefix": "alexandria_config_backup"
+                },
+                {
+                    "src": icons_dir,
+                    "dest": os.path.join(parent_dir, 'backups', 'icons'),
+                    "prefix": "alexandria_icon_backup"
+                }
+            ]
 
-            if compress:
-                zip_path = os.path.join(backup_base, f'alexandria_output_backup_{current_date}.zip')
-                with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                    for root, _, files in os.walk(self.output_directory):
-                        if 'backups' in root:
+            for task in tasks:
+                src = task["src"]
+                dest_base = task["dest"]
+                os.makedirs(dest_base, exist_ok=True)
+
+                if compress:
+                    zip_path = os.path.join(dest_base, f"{task['prefix']}_{current_date}.zip")
+                    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                        for root, _, files in os.walk(src):
+                            # Avoid recursive backup loops
+                            if 'backups' in root or '/backup' in root:
+                                continue
+                            for filename in files:
+                                file_path = os.path.join(root, filename)
+                                relative_path = os.path.relpath(file_path, src)
+                                zipf.write(file_path, arcname=relative_path)
+                    print(f"{GREEN}Backup ZIP created: {RESET}{zip_path}")
+
+                else:
+                    # Folder-based backup logic
+                    dated_backup_dir = os.path.join(dest_base, current_date)
+                    os.makedirs(dated_backup_dir, exist_ok=True)
+
+                    for root, _, files in os.walk(src):
+                        if 'backups' in root or '/backup' in root:
                             continue
                         for filename in files:
                             file_path = os.path.join(root, filename)
-                            relative_path = os.path.relpath(file_path, self.output_directory)
-                            zipf.write(file_path, arcname=relative_path)
-                print(f"{GREEN}Backup ZIP created: {RESET}{zip_path}")
+                            relative_path = os.path.relpath(file_path, src)
+                            
+                            # Maintain subdirectory structure
+                            target_subdir = os.path.join(dated_backup_dir, os.path.dirname(relative_path))
+                            os.makedirs(target_subdir, exist_ok=True)
 
-            else:
-                backup_dir = os.path.join(backup_base, current_date)
-                os.makedirs(backup_dir, exist_ok=True)
-
-                for root, _, files in os.walk(self.output_directory):
-                    if 'backups' in root:
-                        continue
-                    for filename in files:
-                        file_path = os.path.join(root, filename)
-                        relative_path = os.path.relpath(file_path, self.output_directory)
-
-                        # Create subdirectories in backup path
-                        backup_subdir = os.path.join(backup_dir, os.path.dirname(relative_path))
-                        os.makedirs(backup_subdir, exist_ok=True)
-
-                        name, ext = os.path.splitext(filename)
-                        backup_filename = f"{name} - backup {current_date}{ext}"
-                        backup_file_path = os.path.join(backup_subdir, backup_filename)
-
-                        shutil.copy2(file_path, backup_file_path)
-                        print(f"{GREEN}Output file backed up: {RESET}{os.path.join('output', 'backups', current_date, relative_path)}")
+                            name, ext = os.path.splitext(filename)
+                            backup_filename = f"{name} - backup {current_date}{ext}"
+                            shutil.copy2(file_path, os.path.join(target_subdir, backup_filename))
+                    
+                    print(f"{GREEN}Directory backup completed for: {RESET}{src} -> {dated_backup_dir}")
 
         except Exception as e:
             print(f"Error during backup: {e}")
@@ -182,7 +211,6 @@ class Backup:
         exceptions_flagged_tmdb = [
             ""
         ]
-
 
         # Process each candidate backup tuple (primary source, backup destination)
         for backup_candidate_tuple in backup_candidate_tuples:
@@ -315,7 +343,7 @@ class Backup:
         src_directory = os.path.dirname(os.path.abspath(__file__))
         for drive_letter in backup_drives:
             whitelist_path = os.path.join(
-                src_directory, "..", "config", "show_whitelists", "active",
+                src_directory, "..", "config", "series_whitelists", "active",
                 f"{get_drive_name(drive_letter).replace(' ', '_')}_whitelist.txt"
             ).replace("\\", "/")
             order_file_contents(whitelist_path)
@@ -506,7 +534,7 @@ class Backup:
                     return self.backup_mapper(media_type, drive_backup_letter, primary_filepaths_dict, bool_recursive=True)
             tuple_filepaths_missing = self.apply_show_backup_filters(media_type, tuple_filepaths_missing)
 
-        elif media_type.lower() in ["music","audiobooks"]:
+        elif media_type.lower() in ["music"]:
             tuple_filepaths_missing = self.apply_audio_file_backup_filters(media_type, tuple_filepaths_missing)
             tuple_filepaths_existing_backup = self.apply_audio_file_backup_filters(media_type, tuple_filepaths_existing_backup)
 
@@ -612,7 +640,7 @@ class Backup:
         """Main function to initiate the Alexandria backup process."""
         print(f'\n{"#" * 10}\n\n{MAGENTA}{BRIGHT}Initiating Alexandria Backup...{RESET}\n\n{"#" * 10}\n')
         # Back up output files
-        self.backup_output_files()
+        self.backup_mgmt_files()
 
         # Update TMDb data
         api = API()
@@ -651,7 +679,7 @@ class Backup:
             media_type = os.path.split(src_file)[0].split('/')[1]
             ext = os.path.splitext(src_file)[1].lower() 
             if media_type == "Music" and ext in ['.mp3', '.flac']:
-                file_title = generate_music_file_print_message(src_file)
+                file_title = generate_audio_file_print_string(src_file)
             else:
                 file_title = '.'.join(os.path.basename(src_file).strip().split('.')[:-1])
             if os.path.isfile(src_file):

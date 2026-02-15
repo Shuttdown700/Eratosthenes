@@ -17,7 +17,7 @@ RESET = Style.RESET_ALL
 # ==========================================
 # CONFIGURATION
 # ==========================================
-ROOT_DIRECTORY = Path(r"K:\Temp\ALF Complete Series (S01 - S04) 1080p x264 Phun Psyz")
+ROOT_DIRECTORY = Path(r"F:\Temp\To Re-Encode\Ready")
 
 # 1. Define what you want to create
 TARGET_FORMAT = ".mkv"
@@ -135,7 +135,7 @@ def process_file(input_path: Path):
     args = get_ffmpeg_args(input_path, TARGET_FORMAT)
     cmd = [FFMPEG_BIN, '-i', str(input_path)] + args + ['-loglevel', 'error', str(output_path)]
 
-    print(f"{C_WARN}[CONVERTING]{RESET} {input_path.name}...")
+    print(f"{C_WARN}[CONVERTING]{RESET} {input_path.name}")
 
     try:
         subprocess.run(cmd, check=True)

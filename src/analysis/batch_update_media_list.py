@@ -72,14 +72,23 @@ def update_media_list(media_type: str) -> list:
         data = sorted(set(data), key=str.lower)
 
     # Define output path
-    dirname = media_type.replace(" ", "_").lower() if media_type != "anime_movies" else "movies"
+    
+    dirname = media_type.replace(" ", "_").lower()
+    if dirname == "anime_movies":
+        dirname = "movies"
+    elif dirname == "4k_movies":
+        dirname = "movies"
+    elif dirname == "shows":
+        dirname = "series"
+    elif dirname == "anime":
+        dirname = "series"
     output_dir = os.path.join(
         CURR_DIR, "..", "..", "output", dirname
     )
     os.makedirs(output_dir, exist_ok=True)
 
     output_filepath = os.path.join(
-        output_dir, f"{media_type.replace(' ', '_').lower()}_list.txt"
+        output_dir, f"{media_type.replace(' ', '_').lower()[:-1] if media_type.endswith('s') else media_type.replace(' ', '_').lower()}_list.txt"
     )
 
     # Write titles to file

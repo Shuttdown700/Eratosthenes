@@ -17,10 +17,12 @@ from mutagen.mp3 import MP3
 from mutagen.mp4 import MP4, MP4Cover
 from mutagen.easymp4 import EasyMP4
 
+from utilities_music import generate_audio_file_print_string
+
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from utilities import read_alexandria, remove_empty_folders, generate_music_file_print_message
+from utilities import read_alexandria, remove_empty_folders
 
 # Define terminal color shortcuts
 RED = Fore.RED
@@ -475,10 +477,10 @@ def set_year_from_folder(directory, bypass_dirs=[r"W:\Music\MP3s_320\_Playlists"
                         audio.save()
 
                 if already_correct:
-                    print(f"{YELLOW}Skipped{RESET} (already {year}): {generate_music_file_print_message(filepath)}")
+                    print(f"{YELLOW}Skipped{RESET} (already {year}): {generate_audio_file_print_string(filepath)}")
                     skipped += 1
                 else:
-                    print(f"{GREEN}Updated{RESET} year/date to {YELLOW}{year}{RESET} for: {generate_music_file_print_message(filepath)}")
+                    print(f"{GREEN}Updated{RESET} year/date to {YELLOW}{year}{RESET} for: {generate_audio_file_print_string(filepath)}")
                     updated += 1
 
             except Exception as e:
@@ -660,7 +662,7 @@ if __name__ == "__main__":
     dir_temp_essential_albums = r'W:\Temp\Download Zone\Essentials'
     dir_temp_playlist_albums = r'W:\Temp\Download Zone\Playlists'
     dir_temp_OSTs = r'W:\Temp\Download Zone\OSTs'
-    dir_custom = r"W:\Music\MP3s_320\Evanescence\(2003) Fallen (Deluxe Edition)"
+    dir_custom = r"W:\Temp\Music\Kid Cudi\(2024) INSANO (NITRO MEGA)"
     # dir_custom2 = r"W:\Music\MP3s_320\Whitney Houston\(1996) The Preacher's Wife"
 
     # rename_essentials_albums(dir_temp_essential_albums)
@@ -673,11 +675,11 @@ if __name__ == "__main__":
     # rename_comment(dir_custom, '')
 
     set_album_from_folder(dir_custom)
-    # set_artist_from_folder(dir_custom)
+    set_artist_from_folder(dir_custom)
     set_year_from_folder(dir_custom)
-    # set_track_numbers(dir_custom)
+    set_track_numbers(dir_custom)
 
     # clean_flac_titles(dir_custom)
-    # update_flac_titles_from_filename(dir_custom)
+    update_flac_titles_from_filename(dir_custom)
     # update_audiobook_mp3_titles(dir_custom)
     

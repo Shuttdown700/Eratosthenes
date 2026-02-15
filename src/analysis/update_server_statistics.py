@@ -114,7 +114,7 @@ def update_server_statistics(bool_update_duration=False, bool_print=False) -> No
     filepaths_tv_shows = []
     filepaths_anime = []
     filepaths_books = []
-    filepaths_courses = []
+    filepaths_youtube = []
     filepaths_music = []
 
     for f in primary_filepaths:
@@ -132,8 +132,8 @@ def update_server_statistics(bool_update_duration=False, bool_print=False) -> No
             filepaths_books.append(f)
         elif ':/Music/' in f:
             filepaths_music.append(f)
-        elif ':/Courses/' in f:
-            filepaths_courses.append(f)
+        elif ':/YouTube/' in f:
+            filepaths_youtube.append(f)
 
     statistics_dict = {}
 
@@ -263,18 +263,18 @@ def update_server_statistics(bool_update_duration=False, bool_print=False) -> No
         "Primary Filepaths": filepaths_music
     }
 
-    # Courses
-    num_course_files = len(filepaths_courses)
-    size_GB_courses = round(sum(get_file_size(f, "GB") for f in filepaths_courses), 2)
+    # YouTube
+    num_course_files = len(filepaths_youtube)
+    size_GB_youtube = round(sum(get_file_size(f, "GB") for f in filepaths_youtube), 2)
     if bool_update_duration:
-        duration_courses = assess_media_total_duration(filepaths_courses,print_bool=True)
+        duration_youtube = assess_media_total_duration(filepaths_youtube,print_bool=True)
     else:
-        duration_courses = statistics_dict_current.get("Courses", {}).get("Total Duration", 0)
-    statistics_dict["Courses"] = {
+        duration_youtube = statistics_dict_current.get("YouTube", {}).get("Total Duration", 0)
+    statistics_dict["YouTube"] = {
         "Number of Course Videos": num_course_files,
-        "Total Size": f"{size_GB_courses:,.2f} GB",
-        "Total Duration": duration_courses,
-        "Primary Filepaths": filepaths_courses
+        "Total Size": f"{size_GB_youtube:,.2f} GB",
+        "Total Duration": duration_youtube,
+        "Primary Filepaths": filepaths_youtube
     }
 
     # Aggregate statistics
@@ -287,13 +287,13 @@ def update_server_statistics(bool_update_duration=False, bool_print=False) -> No
         size_TB_shows + size_TB_anime + size_TB_movies +
         size_GB_anime_movies / 1000 + size_TB_uhd_movies +
         size_GB_books / 1000 + size_GB_music / 1000 +
-        size_GB_courses / 1000
+        size_GB_youtube / 1000
     )
 
     durations = [
         duration_shows, duration_anime, duration_movies,
         duration_anime_movies, duration_uhd_movies,
-        duration_music, duration_courses
+        duration_music, duration_youtube
         ]
 
     total_duration = sum_durations(durations)
@@ -313,8 +313,11 @@ def update_server_statistics(bool_update_duration=False, bool_print=False) -> No
         print(f'{Fore.GREEN}{Style.BRIGHT}{num_shows:,} TV Shows{Style.RESET_ALL} ({num_show_files:,} Episodes, {size_TB_shows:,} TB, Duration: {Fore.YELLOW}{duration_shows}{Style.RESET_ALL})')
         print(f'{Fore.RED}{Style.BRIGHT}{num_anime:,} Anime Shows{Style.RESET_ALL} ({num_anime_files:,} Episodes, {size_TB_anime:,} TB, Duration: {Fore.YELLOW}{duration_anime}{Style.RESET_ALL})')
         print(f'{Fore.CYAN}{Style.BRIGHT}{num_book_files:,} Books{Style.RESET_ALL} ({size_GB_books:,} GB)')
-        print(f'{Fore.LIGHTGREEN_EX}{Style.BRIGHT}{num_course_files:,} Course Videos{Style.RESET_ALL} ({size_GB_courses:,} GB, Duration: {Fore.YELLOW}{duration_courses}{Style.RESET_ALL})')
+        print(f'{Fore.LIGHTGREEN_EX}{Style.BRIGHT}{num_course_files:,} Course Videos{Style.RESET_ALL} ({size_GB_youtube:,} GB, Duration: {Fore.YELLOW}{duration_youtube}{Style.RESET_ALL})')
         print(f'\n{"#" * 10}\n')
 
 if __name__ == "__main__":
-    update_server_statistics(bool_update_duration=True,bool_print=True)
+    update_server_statistics(
+        bool_update_duration=True,
+        bool_print=True
+        )
