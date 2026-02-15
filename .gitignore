@@ -23,3 +23,7 @@ venv/*
 *.zip
 !output/.gitkeep
 !config/.gitkeep
+!backup/.gitkeep
+!backup/configs/.gitkeep
+!backup/icons/.gitkeep
+!backup/outputs/.gitkeep
