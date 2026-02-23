@@ -46,8 +46,8 @@ Desktop.ini
 # --- Project Specific Folders ---
 backups/
 icons/
-output/
-config/
+output/*
+config/*
 src/bin/*
 
 # --- Executables and Data ---
