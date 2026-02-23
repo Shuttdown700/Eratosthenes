@@ -1,0 +1,4 @@
+Total Music Files: 24,834
+Files with Synced Lyrics: 14,076 (56.68%)
+Files with Plain Lyrics: 3,437 (13.84%)
+Files without Lyrics: 7,301 (29.40%)

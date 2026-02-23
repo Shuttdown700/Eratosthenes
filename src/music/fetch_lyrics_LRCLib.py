@@ -61,6 +61,7 @@ def get_lyrics_LRCLib(track_name, artist_name, album_name, duration):
 
 
 def process_directory(input_dir: str,
+                      fetch_lyrics: bool = True,
                       bypass_existing_synced: bool = True,
                       bypass_existing_plain: bool = True,
                       bypass_logged_missing: bool = True,
@@ -77,6 +78,9 @@ def process_directory(input_dir: str,
     logged_missing_set = _load_logged_missing_lyrics() if bypass_logged_missing else None
 
     num_lyrics_fetched = 0
+    num_synced_lyrics = 0
+    num_plaintext_lyrics = 0
+    num_no_lyrics = 0
     if randomized_list:
         random.shuffle(filepaths)
     for idx, filepath in enumerate(filepaths):
@@ -126,47 +130,51 @@ def process_directory(input_dir: str,
         if is_excluded_title(title):
             clear_comments(filepath)
             print(f"{YELLOW}{BRIGHT}Skipping excluded title:{RESET} {title}")
+            num_no_lyrics += 1
             continue
 
         # Skip if synced exists (and bypass is on)
         if bypass_existing_synced and has_synced:
             print(f"{YELLOW}{BRIGHT}Synced lyrics exist (file or embedded), skipping:{RESET} {filepath}")
+            num_synced_lyrics += 1
             continue
         
         item_tuple = (artist,album,title)
         if bypass_logged_missing and logged_missing_set and item_tuple in logged_missing_set:
-            clear_comments(filepath)
-            print(f"{YELLOW}{BRIGHT}Previously logged missing lyrics, skipping fetch and cleared comments:{RESET} {title}")
+            # clear_comments(filepath)
+            # print(f"{YELLOW}{BRIGHT}Previously logged missing lyrics, skipping fetch:{RESET} {title}")
+            num_no_lyrics += 1
             continue
 
         # Skip if plain exists (and bypass is on) - ONLY if we don't care about upgrading to synced
         # Typically, if we want synced, we shouldn't skip just because plain exists.
         # But per your logic:
         if bypass_existing_plain and has_plain and not has_synced:
-             print(f"{YELLOW}{BRIGHT}Plain lyrics exist, skipping:{RESET} {filepath}")
+            #  print(f"{YELLOW}{BRIGHT}Plain lyrics exist, skipping:{RESET} {filepath}")
+             num_plaintext_lyrics += 1
              continue
 
         # Duration validation
         if duration == 0:
             print(f"{YELLOW}{BRIGHT}Duration is 0, skipping fetch for:{RESET} {filepath}")
+            num_no_lyrics += 1
             continue
 
         # --- Fetching ---
         
-        # If we are here, we are fetching. Clean old junk if we are forcing an update.
-        if not has_synced and not has_plain:
-            # Only clear if we are starting fresh/empty, or logic dictates
-            pass 
-
-        results = get_lyrics_LRCLib(title, artist, album, duration)
+        if fetch_lyrics:
+            results = get_lyrics_LRCLib(title, artist, album, duration)
+        else:
+            print(f"{YELLOW}{BRIGHT}Fetch disabled, skipping API call for:{RESET} {filepath}")
+            continue
         
         if not isinstance(results, dict):
             # Handle error strings or None
             if results is None:
                 print(f"{RED}No lyrics found.{RESET}")
-                _log_missing_lyrics(title, artist, album)
             else:
                 print(f"{RED}{results}{RESET}")
+            _log_missing_lyrics(title, artist, album)
             continue
 
         lyrics_plain = results.get('plainLyrics')
@@ -176,21 +184,29 @@ def process_directory(input_dir: str,
         
         if lyrics_to_embed:
             if lyrics_synced:
-                 print(f"{GREEN}{BRIGHT}Fetched and embedding {YELLOW}synced{GREEN} lyrics{RESET}")
+                print(f"{GREEN}{BRIGHT}Fetched and embedding {YELLOW}synced{GREEN} lyrics{RESET}")
+                num_synced_lyrics += 1
             else:
-                 print(f"{GREEN}{BRIGHT}Fetched and embedding {YELLOW}plain{GREEN} lyrics{RESET}")
+                num_plaintext_lyrics += 1
+                print(f"{GREEN}{BRIGHT}Fetched and embedding {YELLOW}plain{GREEN} lyrics{RESET}")
             
             embed_lyrics(filepath, lyrics_to_embed)
         else:
              print(f"{RED}API returned entry but lyrics fields were empty.{RESET}")
              _log_missing_lyrics(title, artist, album)
+             num_no_lyrics += 1
+             continue
 
         _save_lyrics_in_target_directory(filepath, lyrics_plain, lyrics_synced)
 
         time.sleep(random.uniform(1, 5))
         num_lyrics_fetched += 1
-
-
+    print(f"\n{BRIGHT}{GREEN}Processing complete!{RESET}")
+    print(f"Lyrics fetched: {num_lyrics_fetched:,}")
+    print(f"Synced lyrics: {num_synced_lyrics:,} ({num_synced_lyrics/len(filepaths)*100:.2f}%)")
+    print(f"Plain lyrics: {num_plaintext_lyrics:,} ({num_plaintext_lyrics/len(filepaths)*100:.2f}%)")
+    print(f"No lyrics: {num_no_lyrics:,} ({num_no_lyrics/len(filepaths)*100:.2f}%)")
+    _save_lyric_stats(len(filepaths), num_synced_lyrics, num_plaintext_lyrics, num_no_lyrics)
 
 
 # -------------------------------
@@ -272,6 +288,21 @@ def _save_lyrics_in_target_directory(filepath: str, plain_lyrics: str, synced_ly
     except Exception as e:
         print(f"{RED}Error saving lyrics files for {filepath}: {e}{RESET}")
 
+
+def _save_lyric_stats(total_music_files, synced_count, plain_count, no_lyrics_count):
+    """Save lyric fetching statistics to a file."""
+    stats_path = os.path.join(SCRIPT_DIR, "..", "..", "output", "music", "lyric_fetch_stats.txt")
+    try:
+        with open(stats_path, "w", encoding="utf-8") as f:
+            f.write(f"Total Music Files: {total_music_files:,}\n")
+            f.write(f"Files with Synced Lyrics: {synced_count:,} ({synced_count/total_music_files*100:.2f}%)\n")
+            f.write(f"Files with Plain Lyrics: {plain_count:,} ({plain_count/total_music_files*100:.2f}%)\n")
+            f.write(f"Files without Lyrics: {no_lyrics_count:,} ({no_lyrics_count/total_music_files*100:.2f}%)\n")
+        print(f"{GREEN}Lyric fetch statistics saved to:{RESET} {stats_path}")
+    except Exception as e:
+        print(f"{RED}Could not save lyric stats: {e}{RESET}")
+
+
 def _load_logged_missing_lyrics():
     """Load previously logged missing lyrics into a set of tuples."""
     missing_set = set()
@@ -297,11 +328,12 @@ if __name__ == "__main__":
     if os.path.exists(input_dir):
         process_directory(
             input_dir,
+            fetch_lyrics=True,
             bypass_existing_synced=True,
-            bypass_existing_plain=False,
+            bypass_existing_plain=True,
             bypass_logged_missing=True,
             randomized_list=False,
-            max_lyrics_fetched=20_000
+            max_lyrics_fetched=40_000
         )
     else:
         print(f"{RED}Directory not found: {input_dir}{RESET}")

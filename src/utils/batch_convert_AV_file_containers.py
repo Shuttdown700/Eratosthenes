@@ -17,7 +17,7 @@ RESET = Style.RESET_ALL
 # ==========================================
 # CONFIGURATION
 # ==========================================
-ROOT_DIRECTORY = Path(r"F:\Temp\To Re-Encode\Ready")
+ROOT_DIRECTORY = Path(r"T:\Encoding Zone\03 Refinement Zone")
 
 # 1. Define what you want to create
 TARGET_FORMAT = ".mkv"

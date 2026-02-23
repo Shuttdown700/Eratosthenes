@@ -71,7 +71,7 @@ def organize_into_buckets(backup_locations, all_titles, bool_print_no_backup=Tru
             no_backup_titles.append(title)
 
     if bool_print_no_backup and no_backup_titles:
-        print(f"\n{Fore.RED}{Style.BRIGHT}Titles with NO backups:{Style.RESET_ALL}")
+        print(f"{Fore.RED}{Style.BRIGHT}Titles with NO backups:{Style.RESET_ALL}")
         for title in no_backup_titles:
             print(f"{Fore.YELLOW}{title}{Style.RESET_ALL}")
 

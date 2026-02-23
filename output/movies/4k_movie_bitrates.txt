@@ -1,0 +1,67 @@
+Bitrate (Mbps)  Size (GB)  Duration (m) File
+--------------------------------------------------------------------------------
+24.55           20.89      121.8        A:\4k movies\Joker (2019) (2160p BluRay x265 HEVC 10bit HDR MLPFBA 7.1 SAMPA)\Joker (2019) (2160p BluRay x265 HDR SAMPA).mkv
+24.22           19.13      113.1        A:\4k movies\Twister (1996) (2160p BluRay x265 HEVC 10bit HDR TrueHD 7.1 Atmos r00t)\Twister (1996) (2160p BluRay x265 10bit HDR r00t).mkv
+22.07           23.41      151.8        A:\4k movies\Black Hawk Down (2001) Extended (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Black Hawk Down (2001) Extended (2160p BluRay x265 10bit HDR Tigole).mkv
+21.98           26.01      169.4        A:\4k movies\Saving Private Ryan (1998) REPACK (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Saving Private Ryan (1998) (2160p BluRay x265 10bit HDR Tigole).mkv
+21.89           17.42      114.0        A:\4k movies\The Goonies (1985) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\The Goonies (1985) (2160p BluRay x265 10bit HDR Tigole).mkv
+21.81           16.26      106.7        A:\4k movies\Tropic Thunder (2008) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\Tropic Thunder (2008) (2160p BluRay x265 10bit HDR Tigole).mkv
+21.80           19.18      126.0        A:\4k movies\Star Wars - Episode V - The Empire Strikes Back (1980) 4K80v1.0 (2160p BluRay x265 HEVC 10bit AAC 5.1 Tigole)\Star Wars - Episode V - The Empire Strikes Back (1980) 4K80v1.0 (2160p BluRay x265 10bit Tigole).mkv
+21.78           25.72      169.1        A:\4k movies\Interstellar (2014) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\Interstellar (2014) (2160p x265 10bit HDR Tigole).mkv
+21.74           27.10      178.5        A:\4k movies\Avatar (2009) Extended (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\Avatar (2009) Extended (2160p BluRay x265 10bit HDR Tigole).mkv
+21.04           21.09      143.5        A:\4k movies\Transformers (2007) (2160p BluRay x265 HEVC 10bit HDR MLPFBA 7.1 SAMPA) REPACK\Transformers (2007) (2160p BluRay x265 HDR SAMPA).mkv
+20.94           18.64      127.4        A:\4k movies\Hereditary (2018) (2160p BluRay x265 HEVC 10bit HDR DTS 5.1 SAMPA)\Hereditary (2018) (2160p BluRay x265 HDR SAMPA).mkv
+20.71           17.15      118.6        A:\4k movies\The Silence of the Lambs (1991) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\The Silence of the Lambs (1991) (2160p BluRay x265 10bit HDR Tigole).mkv
+20.29           21.09      148.8        A:\4k movies\2001 - A Space Odyssey (1968) V2 (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\2001 - A Space Odyssey (1968) V2 (2160p BluRay x265 10bit HDR Tigole).mkv
+19.99           16.80      120.4        A:\4k movies\Mad Max - Fury Road (2015) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Mad Max - Fury Road (2015) (2160p BluRay x265 10bit HDR Tigole).mkv
+19.86           21.43      154.5        A:\4k movies\Pulp Fiction (1994) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\Pulp Fiction (1994) (2160p BluRay x265 10bit HDR Tigole).mkv
+19.79           23.29      168.5        A:\4k movies\Pirates of the Caribbean - At World's End (2007) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Pirates of the Caribbean - At World's End (2007) (2160p BluRay x265 10bit HDR Tigole).mkv
+19.72           16.19      117.5        A:\4k movies\Blade Runner (1982) Final Cut V2 (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Blade Runner (1982) Final Cut V2 (2160p BluRay x265 10bit HDR Tigole).mkv
+19.02           14.15      106.5        A:\4k movies\Gattaca (1997) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Gattaca (1997) (2160p BluRay x265 10bit HDR Tigole).mkv
+18.85           15.18      115.3        A:\4k movies\Indiana Jones and the Raiders of the Lost Ark (1981) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Indiana Jones and the Raiders of the Lost Ark (1981) (2160p BluRay x265 10bit HDR Tigole).mkv
+18.77           12.45      94.9         A:\4k movies\Talk to Me (2023) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Talk to Me (2023) (2160p BluRay x265 10bit HDR Tigole).mkv
+18.53           15.69      121.2        A:\4k movies\Spider-Man (2002) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Spider-Man (2002) (2160p BluRay x265 10bit HDR Tigole).mkv
+18.36           16.35      127.5        A:\4k movies\Spider-Man 2 (2004) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Spider-Man 2 (2004) (2160p BluRay x265 10bit HDR Tigole).mkv
+18.22           11.88      93.4         A:\4k movies\A Christmas Story (1983) (2160p BluRay x265 HEVC 10bit HDR AAC 2.0 Tigole)\A Christmas Story (1983) (2160p BluRay x265 10bit HDR Tigole).mkv
+18.18           12.03      94.8         A:\4k movies\Dr. Strangelove (1964) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\Dr. Strangelove (1964) (2160p BluRay x265 10bit HDR Tigole).mkv
+18.17           24.77      195.1        A:\4k movies\Schindler's List (1993) 25th Anniv (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Schindler's List (1993) 25th Anniv (2160p BluRay x265 10bit HDR Tigole).mkv
+18.14           15.71      123.9        A:\4k movies\Jaws (1975) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Jaws (1975) (2160p BluRay x265 10bit HDR Tigole).mkv
+17.88           12.85      102.9        A:\4k movies\The Truman Show (1998) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\The Truman Show (1998) (2160p BluRay x265 10bit HDR Tigole).mkv
+17.83           12.53      100.6        A:\4k movies\Drive (2011) (V2 2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Drive (2011) (V2 2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole).mkv
+17.77           18.70      150.7        A:\4k movies\Pirates of the Caribbean - Dead Man's Chest (2006) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Pirates of the Caribbean - Dead Man's Chest (2006) (2160p BluRay x265 10bit HDR Tigole).mkv
+17.73           16.57      133.8        A:\4k movies\Rain Man (1988) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\Rain Man (1988) (2160p BluRay x265 10bit HDR Tigole).mkv
+17.68           12.30      99.6         A:\4k movies\Willy Wonka & the Chocolate Factory (1971) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\Willy Wonka & the Chocolate Factory (1971) (2160p BluRay x265 10bit HDR Tigole).mkv
+17.58           14.50      118.1        A:\4k movies\Fear and Loathing in Las Vegas (1998) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\Fear and Loathing in Las Vegas (1998) (2160p BluRay x265 10bit HDR Tigole).mkv
+17.38           16.26      134.0        A:\4k movies\Rogue One - A Star Wars Story (2016) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Rogue One - A Star Wars Story (2016) (2160p BluRay x265 10bit HDR Tigole).mkv
+17.18           17.10      142.5        A:\4k movies\The Shawshank Redemption (1994) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\The Shawshank Redemption (1994) (2160p BluRay x265 10bit HDR Tigole).mkv
+16.90           19.20      162.7        A:\4k movies\Blade Runner 2049 (2017) (UHD BluRay x265 2160p DV HDR DDP 7.1 hallowed[TGx])\Blade Runner 2049 (2017) (UHD BluRay x265 2160p DV HDR DDP 7.1 hallowed[TGx]).mkv
+16.90           12.05      102.1        A:\4k movies\American Psycho (2000) Uncut (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\American Psycho (2000) Uncut (2160p BluRay x265 10bit HDR Tigole).mkv
+16.66           10.76      92.5         A:\4k movies\Planes, Trains and Automobiles (1987) REPACK (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\Planes, Trains and Automobiles (1987) (2160p BluRay x265 10bit HDR Tigole).mkv
+16.65           17.23      148.1        A:\4k movies\Inception (2010) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\Inception (2010) (2160p x265 10bit HDR Tigole).mkv
+16.64           13.58      116.8        A:\4k movies\The Whale (2022) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\The Whale (2022) (2160p BluRay x265 10bit HDR Tigole).mkv
+16.50           17.62      152.9        A:\4k movies\Inglourious Basterds (2009) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\Inglourious Basterds (2009) (2160p BluRay x265 10bit HDR Tigole).mkv
+16.26           14.05      123.7        A:\4k movies\The Day After Tomorrow (2004) (2160p WEB-DL x265 HEVC DV HDR10 DTS-HD MA 5.1 Wrath)\The Day After Tomorrow (2004) (2160p WEB-DL x265 HEVC DV HDR10 DTS-HD MA 5.1 Wrath).mkv
+16.16           25.63      227.0        A:\4k movies\Lawrence of Arabia (1962) Restored (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Lawrence of Arabia (1962) Restored (2160p BluRay x265 10bit HDR Tigole).mkv
+15.95           11.47      103.0        A:\4k movies\Ferris Bueller's Day Off (1986) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Ferris Bueller's Day Off (1986) (2160p BluRay x265 10bit HDR Tigole).mkv
+15.91           15.80      142.1        A:\4k movies\Forrest Gump (1994) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Forrest Gump (1994) (2160p BluRay x265 10bit HDR Tigole).mkv
+15.41           15.09      140.1        A:\4k movies\Star Wars - Episode III - Revenge of the Sith (2005) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Star Wars - Episode III - Revenge of the Sith (2005) (2160p BluRay x265 10bit HDR Tigole).mkv
+15.24           14.35      134.8        A:\4k movies\Star Wars - Episode VI - Return of the Jedi (1983) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Star Wars - Episode VI - Return of the Jedi (1983) (2160p BluRay x265 10bit HDR Tigole).mkv
+15.13           15.53      147.0        A:\4k movies\All Quiet on the Western Front (2022) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 German Tigole)\All Quiet on the Western Front (2022) (2160p BluRay x265 10bit HDR Tigole).mkv
+14.95           15.89      152.2        A:\4k movies\The Dark Knight (2008) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\The Dark Knight (2008) (2160p x265 10bit HDR Tigole).mkv
+14.90           14.19      136.3        A:\4k movies\The Matrix (1999) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\The Matrix (1999) (2160p BluRay x265 10bit HDR Tigole).mkv
+14.66           11.18      109.1        A:\4k movies\The Lighthouse (2019) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\The Lighthouse (2019) (2160p BluRay x265 10bit HDR Tigole).mkv
+14.62           9.79       95.9         A:\4k movies\Dredd (2012) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Dredd (2012) (2160p BluRay x265 10bit HDR Tigole).mkv
+14.54           10.34      101.8        A:\4k movies\The Wizard of Oz (1939) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\The Wizard of Oz (1939) (2160p BluRay x265 10bit HDR Tigole).mkv
+14.34           10.70      106.8        A:\4k movies\Whiplash (2014) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Whiplash (2014) (2160p BluRay x265 10bit HDR Tigole).mkv
+14.27           11.52      115.6        A:\4k movies\Smile (2022) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Smile (2022) (2160p BluRay x265 10bit HDR Tigole).mkv
+14.23           14.29      143.8        A:\4k movies\The Shining (1980) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\The Shining (1980) (2160p BluRay x265 10bit HDR Tigole).mkv
+14.08           14.98      152.4        A:\4k movies\Harry Potter and the Sorcerer's Stone (2001) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Harry Potter and the Sorcerer's Stone (2001) (2160p BluRay x265 10bit HDR Tigole).mkv
+13.36           13.36      143.2        A:\4k movies\Pirates of the Caribbean - The Curse of the Black Pearl (2003) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Pirates of the Caribbean - The Curse of the Black Pearl (2003) (2160p BluRay x265 10bit HDR Tigole).mkv
+13.29           12.82      138.1        A:\4k movies\Shutter Island (2010) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\Shutter Island (2010) (2160p BluRay x265 10bit HDR Tigole).mkv
+13.02           8.75       96.2         A:\4k movies\Spaceballs (1987) (2160p UHD BluRay x265 10bit Hdr AAC 5.1 Shutt)\Spaceballs (1987) (2160p UHD BluRay x265 10bit Hdr AAC 5.1 Shutt).mkv
+13.01           11.34      124.8        A:\4k movies\Star Wars - Episode IV - A New Hope (1977) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Star Wars - Episode IV - A New Hope (1977) (2160p BluRay x265 10bit HDR Tigole).mkv
+12.69           13.04      147.1        A:\4k movies\Midsommar (2019) (2160p BluRay x265 HEVC 10bit HDR AAC 5.1 Tigole)\Midsommar (2019) (2160p BluRay x265 10bit HDR Tigole).mkv
+11.84           9.84       119.0        A:\4k movies\1917 (2019) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\1917 (2019) (2160p BluRay x265 10bit HDR Tigole).mkv
+9.82            7.42       108.3        A:\4k movies\Ex Machina (2014) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Ex Machina (2014) (2160p BluRay x265 10bit HDR Tigole).mkv
+9.43            8.97       136.2        A:\4k movies\Star Wars - Episode I - The Phantom Menace (1999) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Star Wars - Episode I - The Phantom Menace (1999) (2160p BluRay x265 10bit HDR Tigole).mkv
+5.56            5.53       142.5        A:\4k movies\Star Wars - Episode II - Attack of the Clones (2002) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole)\Star Wars - Episode II - Attack of the Clones (2002) (2160p BluRay x265 HEVC 10bit HDR AAC 7.1 Tigole).mkv

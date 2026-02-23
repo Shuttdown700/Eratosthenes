@@ -1,0 +1,11 @@
+Bitrate Statistics (Mbps)
+=========================
+Total Files:      43114
+Mean Bitrate:     3.06 Mbps
+Median Bitrate:   2.84 Mbps
+Std Deviation:    1.53 Mbps
+95% Conf Interval: [0.07 - 6.06] Mbps
+
+Distribution Context:
+ - Files below lower CI might be low quality (Candidates for upgrade).
+ - Files above upper CI might be inefficient (Candidates for re-encoding).

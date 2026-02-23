@@ -380,7 +380,7 @@ def main() -> None:
     # Hardcoded target directories (as requested in original script)
     # Could be replaced by args.directories if desired
     target_directories = [
-        r"F:\Temp\To Re-Encode\Ready",
+        r"T:\Encoding Zone\02 Ready",
     ]
     
     for d in target_directories:

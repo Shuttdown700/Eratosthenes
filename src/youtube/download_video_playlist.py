@@ -39,6 +39,6 @@ def download_yt_video_playlist(url,
     subprocess.call(cmd)
 
 if __name__ == "__main__":
-    url_playlist = "https://www.youtube.com/watch?v=HJ_5Cv9vewA&list=PLKnEB-2tPlM_3jUhAw2g8lrBHYleXcRRK"
-    sub_directory = os.path.join("A:","Temp","YouTube","The Real Bros of Simi Valley (2017)","Season 3")
+    url_playlist = "https://www.youtube.com/watch?v=rO9pOJbvkEA&list=PL8dPuuaLjXtMweg6Yx9MHP01n_yUyaf9H"
+    sub_directory = os.path.join("A:","Temp","YouTube","Crash Course - Sex Education")
     download_yt_video_playlist(url_playlist,sub_directory)     

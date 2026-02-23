@@ -1,19 +1,38 @@
-*.exe
-*.pyc
-*.config
-*.json
-*.csv
-archive/*
-backup/*
-icons/*
-output/*
-keys/*
-config/*
-src/bin/*
-src/__pycache__/*
-src/music/temp/*
-venv/*
-.vscode/* 
+# --- Python Specific ---
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+.venv
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+
+# --- IDEs and Editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- System Files ---
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# --- Media Files (General) ---
+# Ignores video, audio, and archives everywhere
 *.mp4
 *.mkv
 *.m4v
@@ -21,9 +40,28 @@ venv/*
 *.flac
 *.pdf
 *.zip
-!output/.gitkeep
-!config/.gitkeep
-!backup/.gitkeep
-!backup/configs/.gitkeep
-!backup/icons/.gitkeep
-!backup/outputs/.gitkeep
+*.tar.gz
+*.7z
+
+# --- Project Specific Folders ---
+backups/
+icons/
+output/
+config/
+src/bin/*
+
+# --- Executables and Data ---
+*.exe
+*.config
+*.json
+*.csv
+*.log
+*.sqlite
+
+# --- Whitelist (Keep directory structure) ---
+# Allow .gitkeep files so empty directories can be tracked in Git
+!**/backup/
+!**/output/
+!**/config/
+!**/src/bin/
+!**/.gitkeep

@@ -657,13 +657,9 @@ def search_for_missing_properties(root_dir):
 
 if __name__ == "__main__":
     # Example usage:
-    dir_root_FLAC = r'W:\Music\FLAC'
-    dir_root_mp3320 = r'W:\Music\MP3s_320'
-    dir_temp_essential_albums = r'W:\Temp\Download Zone\Essentials'
-    dir_temp_playlist_albums = r'W:\Temp\Download Zone\Playlists'
-    dir_temp_OSTs = r'W:\Temp\Download Zone\OSTs'
-    dir_custom = r"W:\Temp\Music\Kid Cudi\(2024) INSANO (NITRO MEGA)"
-    # dir_custom2 = r"W:\Music\MP3s_320\Whitney Houston\(1996) The Preacher's Wife"
+    # dir_root_FLAC = r'W:\Music\FLAC'
+    # dir_root_mp3320 = r'W:\Music\MP3s_320'
+    dir_custom = r"W:\Temp\Music\Nicki Minaj\(2023) Pink Friday 2"
 
     # rename_essentials_albums(dir_temp_essential_albums)
     # rename_playlist_albums(dir_temp_playlist_albums)
@@ -671,7 +667,6 @@ if __name__ == "__main__":
     
     # rename_album(dir_custom, "Evanescence (Deluxe Edition)")
     # rename_artist(dir_custom, 'Evanescence')
-    # rename_artist(dir_custom2, 'Whitney Houston')
     # rename_comment(dir_custom, '')
 
     set_album_from_folder(dir_custom)
