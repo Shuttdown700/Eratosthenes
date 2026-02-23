@@ -44,8 +44,8 @@ Desktop.ini
 *.7z
 
 # --- Project Specific Folders ---
-backups/
-icons/
+backups/*
+icons/*
 output/*
 config/*
 src/bin/*
