@@ -1,0 +1,124 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Alexandria Drives Configuration Schema",
+    "description": "Schema for validating the primary and backup drive hierarchies for Alexandria media management.",
+    "type": "object",
+    "additionalProperties": {
+        "type": "object",
+        "properties": {
+            "primary_drives": {
+                "type": "array",
+                "description": "List of primary drives housing this media type.",
+                "items": {
+                    "type": "string"
+                },
+                "minItems": 1
+            },
+            "extensions": {
+                "type": "array",
+                "description": "Approved file extensions for this media type.",
+                "items": {
+                    "type": "string",
+                    "pattern": "^\\.[a-zA-Z0-9]+$"
+                },
+                "minItems": 1
+            },
+            "backup_drives": {
+                "description": "Backup destinations, which can either be a simple list of drives or a detailed configuration object.",
+                "anyOf": [
+                    {
+                        "type": "array",
+                        "description": "Simple list of backup drives (used for Shows, Books, Anime, etc.).",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "type": "object",
+                        "description": "Detailed backup drive configurations (used for Movies and Music).",
+                        "additionalProperties": {
+                            "anyOf": [
+                                {
+                                    "type": "object",
+                                    "description": "Movie/Anime Movie backup filter configuration.",
+                                    "properties": {
+                                        "forced_new_movie_backup": {
+                                            "type": "string",
+                                            "enum": ["True", "False", "true", "false"]
+                                        },
+                                        "rating_minimum": {
+                                            "type": "number",
+                                            "minimum": 0,
+                                            "maximum": 10
+                                        },
+                                        "rating_maximum": {
+                                            "type": "number",
+                                            "minimum": 0,
+                                            "maximum": 10
+                                        },
+                                        "release_year_minimum": {
+                                            "type": "integer"
+                                        },
+                                        "release_year_maximum": {
+                                            "type": "integer"
+                                        },
+                                        "maximum_file_size_GB": {
+                                            "type": "number",
+                                            "exclusiveMinimum": 0
+                                        },
+                                        "backup_unknown_ratings": {
+                                            "type": "string",
+                                            "enum": ["True", "False", "true", "false"]
+                                        },
+                                        "backup_exclusion_genres": {
+                                            "type": "array",
+                                            "items": { "type": "string" }
+                                        },
+                                        "backup_exclusion_strings": {
+                                            "type": "array",
+                                            "items": { "type": "string" }
+                                        },
+                                        "backup_exclusion_override_strings": {
+                                            "type": "array",
+                                            "items": { "type": "string" }
+                                        }
+                                    },
+                                    "required": [
+                                        "rating_minimum",
+                                        "rating_maximum",
+                                        "release_year_minimum",
+                                        "release_year_maximum",
+                                        "maximum_file_size_GB",
+                                        "backup_unknown_ratings",
+                                        "backup_exclusion_genres",
+                                        "backup_exclusion_strings",
+                                        "backup_exclusion_override_strings"
+                                    ]
+                                },
+                                {
+                                    "type": "object",
+                                    "description": "Music backup filter configuration.",
+                                    "properties": {
+                                        "quality": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "minItems": 1
+                                        }
+                                    },
+                                    "required": ["quality"]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "required": [
+            "primary_drives",
+            "extensions",
+            "backup_drives"
+        ]
+    }
+}

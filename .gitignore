@@ -2,10 +2,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
-venv/
+venv/*
 .env
 .venv
-env/
+env/*
 build/
 develop-eggs/
 dist/
@@ -60,8 +60,9 @@ src/bin/*
 
 # --- Whitelist (Keep directory structure) ---
 # Allow .gitkeep files so empty directories can be tracked in Git
-!**/backup/
-!**/output/
-!**/config/
-!**/src/bin/
+!**/backup/.gitkeep
+!**/output/.gitkeep
+!**/config/.gitkeep
+!**/config/schema.json
+!**/src/bin/.gitkeep
 !**/.gitkeep

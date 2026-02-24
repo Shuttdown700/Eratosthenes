@@ -129,12 +129,12 @@ def get_movie_live_backup_status():
 
     for root in movie_roots:
         # Optimization: Use a single drive name lookup per root
-        drive_letter = get_drive_name(root[0]) 
+        drive_name = get_drive_name(root[0]) 
         for _, _, files in os.walk(root):
             for file in files:
                 title = os.path.splitext(file)[0].strip()
-                if title in all_movies:
-                    backup_locations[title].append(drive_letter)
+                if title in all_movies and backup_locations[title].count(drive_name) < 1:
+                    backup_locations[title].append(drive_name)
 
     detect_same_drive_duplicates(backup_locations)
     buckets = organize_into_buckets(backup_locations, all_movies, bool_print_no_backup=False)
