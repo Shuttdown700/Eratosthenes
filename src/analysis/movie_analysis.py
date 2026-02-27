@@ -8,7 +8,7 @@ from adjustText import adjust_text
 
 def run_movie_analytics(directory):
     csv_path = os.path.join(directory, "tmdb.csv")
-    output_subdir = os.path.join(directory, "shuttflix_insights")
+    output_subdir = os.path.join(directory, "graphics")
     if not os.path.exists(output_subdir):
         os.makedirs(output_subdir)
     
@@ -63,7 +63,7 @@ def run_movie_analytics(directory):
         plt.savefig(os.path.join(output_subdir, filename), dpi=300, bbox_inches='tight')
         plt.close()
 
-    # --- 01. VOLUME: 5-Year Intervals ---
+    # --- VOLUME: 5-Year Intervals ---
     plt.figure(figsize=(12, 6))
     counts = df['Five_Year'].value_counts().sort_index()
     total = counts.sum()
@@ -74,28 +74,27 @@ def run_movie_analytics(directory):
     plt.title('Library Growth: 5-Year Release Intervals [Shuttflix]', fontsize=14, fontweight='bold')
     plt.ylabel('Movie Count')
     plt.xlabel('Release Year Interval')
-    save_plot('01_volume_5yr.png')
+    save_plot('movie_release_years.png')
 
-    # --- 02. RUNTIME: Dist with 4 High/4 Low Anomalies ---
+    # --- RUNTIMES ---
     plt.figure(figsize=(12, 7))
     df_runtime = df[df['Runtime_Min'] > 0].dropna(subset=['Runtime_Min'])
-    plt.hist(df_runtime['Runtime_Min'], bins=45, color='#8e44ad', alpha=0.6, edgecolor='white')
-    sorted_run = df_runtime.sort_values('Runtime_Min')
-    extremes = pd.concat([sorted_run.tail(4)])
-    texts = [plt.text(r['Runtime_Min'], 5, r['Display_Title'], fontsize=8, fontweight='bold') for _, r in extremes.iterrows()]
-    adjust_text(texts, arrowprops=dict(arrowstyle='->', color='black', lw=0.5))
+    plt.hist(df_runtime['Runtime_Min'] / 60, bins=45, color='#8e44ad', alpha=0.6, edgecolor='white')
     plt.title('Runtime Distribution & Extremes [Shuttflix]', fontsize=14, fontweight='bold')
-    plt.xlabel('Minutes')
-    save_plot('02_runtime.png')
+    plt.xlabel('Hours')
+    plt.ylabel('Movie Count')
+    save_plot('movie_runtimes.png')
 
-    # --- 03. BUDGET: Inflation Trend ---
+    # --- BUDGET: Adjusted Trend ---
     plt.figure(figsize=(10, 6))
     df_finance.groupby('Five_Year')['Adj_Budget'].median().plot(kind='line', marker='o', color='#c0392b', linewidth=2)
     plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(currency_fmt))
     plt.title('Median Inflation-Adjusted Budget (2026$) [Shuttflix]', fontsize=14, fontweight='bold')
-    save_plot('03_budget_trend.png')
+    plt.xlabel('Release Year Interval')
+    plt.ylabel('Median Adjusted Budget')
+    save_plot('movie_adjusted_budget_trend.png')
 
-    # --- 04. STUDIO PROFILE: Volume vs. Investment [Shuttflix] ---
+    # --- POPULAR STUDIOS: Production ---
     plt.figure(figsize=(12, 7))
     
     # Explode and filter production companies
@@ -123,9 +122,9 @@ def run_movie_analytics(directory):
     plt.ylabel('Production Studio')
     plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(currency_fmt))
     
-    save_plot('04_studio_profile.png')
+    save_plot('movie_popular_studios.png')
 
-    # --- 05. GENRE EVOLUTION: Top 5 Genres per Decade [Shuttflix] ---
+    # --- GENRE EVOLUTION: Top Genres ---
     plt.figure(figsize=(12, 7))
     
     # Explode genres and group by decade
@@ -157,9 +156,9 @@ def run_movie_analytics(directory):
     plt.legend(title="Top Genres", bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.grid(True, linestyle='--', alpha=0.7)
     
-    save_plot('05_genre_evolution.png')
+    save_plot('movie_genre_evolution.png')
 
-    # --- 06. GENRES: Commonality with % ---
+    # --- GENRES: Commonality with % ---
     plt.figure(figsize=(10, 7))
     exp_gen = df.explode('Genres_List')
     exp_gen = exp_gen[exp_gen['Genres_List'].notna() & (exp_gen['Genres_List'] != '')]
@@ -169,50 +168,11 @@ def run_movie_analytics(directory):
     for i, v in enumerate(g_counts):
         ax.text(v + 1, i, f'{(v/g_total)*100:.1f}%', va='center', fontsize=9)
     plt.title('Most Frequent Genres (% of Top 15) [Shuttflix]', fontsize=14, fontweight='bold')
-    save_plot('06_genres.png')
+    plt.xlabel('Movie Count')
+    plt.ylabel('Genre')
+    save_plot('movie_genre_distribution.png')
 
-    # --- 07. ANOMALIES: Inflation-Adjusted Cost vs Revenue ---
-    plt.figure(figsize=(12, 8))
-    plt.scatter(df_finance['Adj_Budget'], df_finance['Adj_Revenue'], alpha=0.2, color='#7f8c8d')
-    # Identify 4 most expensive and 4 highest revenue (all adjusted)
-    peaks = pd.concat([df_finance.sort_values('Adj_Budget').tail(4), 
-                       df_finance.sort_values('Adj_Revenue').tail(4)]).drop_duplicates()
-    texts_peaks = [plt.text(r['Adj_Budget'], r['Adj_Revenue'], r['Display_Title'], fontsize=8, fontweight='bold') for _, r in peaks.iterrows()]
-    adjust_text(texts_peaks, arrowprops=dict(arrowstyle='->', color='red', lw=1))
-    
-    plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(currency_fmt))
-    plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(currency_fmt))
-    plt.xlabel('Production Budget (Adjusted 2026$)', fontsize=11)
-    plt.ylabel('Box Office Revenue (Adjusted 2026$)', fontsize=11)
-    plt.title('Adjusted Financial Scale & Outliers [Shuttflix]', fontsize=14, fontweight='bold')
-    save_plot('07_adj_financial_peaks.png')
-
-    # --- 08. PRODUCTION: Studio Share [Shuttflix] ---
-    plt.figure(figsize=(10, 7))
-    exp_prod = df.explode('Prod_List')
-    exp_prod = exp_prod[exp_prod['Prod_List'].notna() & (exp_prod['Prod_List'] != '')]
-    
-    # Calculate counts and percentages
-    s_counts = exp_prod['Prod_List'].value_counts()
-    s_pct = s_counts / s_counts.sum()
-    
-    # Group studios with < 2% share into "Other"
-    threshold = 0.02
-    main_studios = s_counts[s_pct >= threshold]
-    other_studios_sum = s_counts[s_pct < threshold].sum()
-    
-    if other_studios_sum > 0:
-        main_studios['Other Studios'] = other_studios_sum
-    
-    main_studios.plot(kind='pie', autopct='%1.1f%%', cmap='Set3', startangle=140, pctdistance=0.85)
-    plt.title('Primary Production Studio Share [Shuttflix]', fontsize=14, fontweight='bold')
-    plt.ylabel('')
-    # Draw a circle at the center to make it a donut (optional, cleaner for many slices)
-    centre_circle = plt.Circle((0,0), 0.70, fc='white')
-    plt.gca().add_artist(centre_circle)
-    save_plot('08_studio_share.png')
-
-    # --- 09. SEASONALITY: Monthly Bar with % ---
+    # --- RELEASE SEASONALITY ---
     plt.figure(figsize=(11, 6))
     month_counts = df['Release_Date'].dt.month.value_counts().sort_index()
     m_total = month_counts.sum()
@@ -222,19 +182,11 @@ def run_movie_analytics(directory):
                     ha='center', va='center', xytext=(0, 9), textcoords='offset points', fontsize=8)
     plt.xticks(range(0, 12), ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], rotation=0)
     plt.title('Release Seasonality [Shuttflix]', fontsize=14, fontweight='bold')
-    save_plot('09_seasonality_bar.png')
+    plt.xlabel('Release Month')
+    plt.ylabel('Movie Count')
+    save_plot('movie_release_seasonality.png')
 
-    # --- 10. TREND: Runtime Evolution ---
-    plt.figure(figsize=(11, 6))
-    plt.scatter(df_runtime['Release_Year'], df_runtime['Runtime_Min'], alpha=0.15, color='#2c3e50', s=15)
-    z = np.polyfit(df_runtime['Release_Year'], df_runtime['Runtime_Min'], 1)
-    p = np.poly1d(z)
-    plt.plot(df_runtime['Release_Year'], p(df_runtime['Release_Year']), color='#e74c3c', linestyle='--', linewidth=2)
-    plt.title('Historical Evolution of Movie Runtimes [Shuttflix]', fontsize=14, fontweight='bold')
-    plt.xlabel('Release Year'), plt.ylabel('Minutes')
-    save_plot('10_runtime_trend.png')
-
-    # --- 11. RATINGS: Annual Distribution (Candle/Box Chart) [Shuttflix] ---
+    # --- RATINGS: Annual Distribution (Candle/Box Chart) ---
     plt.figure(figsize=(16, 7))
     
     # Filter for years from 1920 onwards
@@ -266,7 +218,7 @@ def run_movie_analytics(directory):
     plt.xlabel('Release Year')
     plt.grid(axis='y', linestyle='--', alpha=0.4)
     
-    save_plot('11_rating_annual_candles.png')
+    save_plot('movie_rating_candle_distributions.png')
 
     # Summary Statistics Output
     print("-" * 30)

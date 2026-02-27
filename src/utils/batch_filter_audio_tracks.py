@@ -263,7 +263,7 @@ def main() -> None:
 
     # Define directories here if not passed via CLI
     target_directories = args.directories if args.directories else [
-        r"F:\Temp\To Remove Foreign Languages"
+        r"T:\Encoding Zone\02 Ready\The Stand (1994) Season 1 S01 + Extras (1080p BluRay x265 HEVC 10bit AAC 2.0 RCVR)"
     ]
 
     for d in target_directories:

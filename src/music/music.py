@@ -74,10 +74,6 @@ def identify_popular_artists_without_albums(music_dir):
 
 
 
-    # # Rename essentials albums:
-    # dir_temp_essential_albums = 'W:/Temp/MP3s_320_Essentials/'
-    # rename_essentials_albums(dir_temp_essential_albums)
-
 # # Identify popular artists without albums:
 # dir_identify_popular_artists = 'W:/Music/MP3s_320/'
 # identify_popular_artists_without_albums(dir_identify_popular_artists)

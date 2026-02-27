@@ -168,7 +168,7 @@ def generate_statistics(media_type, video_data, output_dir):
     ax2.set_xlabel('Bitrate (Mbps)')
     
     # Save the plot
-    plot_file = output_dir / f"{media_type.lower()[:-1].replace(' ', '_') if media_type.endswith('s') and media_type != 'series' else media_type.lower().replace(' ', '_')}_bitrate_distribution.png"
+    plot_file = output_dir / "graphics" / f"{media_type.lower()[:-1].replace(' ', '_') if media_type.endswith('s') and media_type != 'series' else media_type.lower().replace(' ', '_')}_bitrate_distribution.png"
     plt.tight_layout()
     plt.savefig(plot_file)
     plt.close() # Close memory to prevent leaks

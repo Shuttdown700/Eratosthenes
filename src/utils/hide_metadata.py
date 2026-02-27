@@ -1,66 +1,60 @@
 import argparse
 import ctypes
 import os
-import stat
 import sys
-from typing import Dict, List, Optional
+from pathlib import Path
+from typing import Dict, Optional
 
-from pandas import read_json
+from colorama import Fore, Style, init
+from tqdm import tqdm
+
+# Initialize colorama
+init(autoreset=True)
 
 # --- path setup for local imports ---
-# Add the parent directory to sys.path to import from ../utilities.py
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
 try:
     from utilities import (
-        get_drive_letter,
+        get_volume_root,
         read_alexandria,
-        read_alexandria_config
+        read_alexandria_config,
+        read_json
     )
 except ImportError as e:
-    print(f"Error importing from utilities.py: {e}")
-    print("Ensure 'utilities.py' exists in the parent directory.")
+    print(f"{Fore.RED}Error importing from utilities.py: {e}{Style.RESET_ALL}")
     sys.exit(1)
 
-# --- Third-party imports ---
-try:
-    import win32api
-    import win32con
-    from alive_progress import alive_bar
-except ImportError as e:
-    print(f"Error: Missing dependency. {e}")
-    sys.exit(1)
+
+# OS Detection and Windows constants
+IS_WINDOWS = sys.platform.startswith('win')
+FILE_ATTRIBUTE_HIDDEN = 0x02
 
 
 def set_hidden_attribute(filepath: str, hide: bool) -> None:
-    """
-    Sets or unsets the Windows hidden file attribute.
-    """
+    """Sets or unsets the Windows hidden file attribute using native ctypes."""
+    if not IS_WINDOWS:
+        return
+
     try:
-        # GetFileAttributesW returns a bitmask of file attributes
         attrs = ctypes.windll.kernel32.GetFileAttributesW(filepath)
         if attrs == -1:
             return  # File not found or error
 
         if hide:
-            # Check if NOT already hidden
-            if not (attrs & win32con.FILE_ATTRIBUTE_HIDDEN):
-                print(f'Hiding: {filepath}')
-                win32api.SetFileAttributes(
-                    filepath, win32con.FILE_ATTRIBUTE_HIDDEN
-                )
+            # Hide if not already hidden
+            if not (attrs & FILE_ATTRIBUTE_HIDDEN):
+                ctypes.windll.kernel32.SetFileAttributesW(filepath, attrs | FILE_ATTRIBUTE_HIDDEN)
         else:
-            # Check if IS hidden
-            if attrs & win32con.FILE_ATTRIBUTE_HIDDEN:
-                print(f'Unhiding photo file: {filepath}')
-                # Bitwise operation to remove the hidden flag
-                ctypes.windll.kernel32.SetFileAttributesW(
-                    filepath, attrs & ~win32con.FILE_ATTRIBUTE_HIDDEN
-                )
+            # Unhide if it is hidden
+            if attrs & FILE_ATTRIBUTE_HIDDEN:
+                ctypes.windll.kernel32.SetFileAttributesW(filepath, attrs & ~FILE_ATTRIBUTE_HIDDEN)
+                
     except Exception as e:
-        print(f"Error processing attributes for {filepath}: {e}")
+        # Using tqdm.write prevents the print statement from breaking the progress bar visually
+        tqdm.write(f"{Fore.RED}Error processing attributes for {filepath}: {e}{Style.RESET_ALL}")
 
 
 def hide_metadata(
@@ -69,8 +63,12 @@ def hide_metadata(
 ) -> None:
     """
     Hides metadata files (.jpg, .nfo, .png) in drives or a specific directory.
-    If files are in /Photos/ or /Courses/, they are unhidden instead.
+    Only applies to Windows file properties. Will skip execution on Linux.
     """
+    if not IS_WINDOWS:
+        print(f"{Fore.YELLOW}Notice: Metadata hiding is configured for Windows only. Skipping process on this OS.{Style.RESET_ALL}")
+        return
+
     extensions_list = ['.jpg', '.nfo', '.png']
     base_directories = []
 
@@ -79,22 +77,21 @@ def hide_metadata(
         if os.path.exists(target_directory):
             base_directories = [target_directory]
         else:
-            print(f"Error: Directory '{target_directory}' does not exist.")
+            print(f"{Fore.RED}Error: Directory '{target_directory}' does not exist.{Style.RESET_ALL}")
             return
     elif drive_config is not None:
-        # Unpack the first two return values from the config reader
-        primary_drives, backup_drives = read_alexandria_config(drive_config)[:2]
+        primary_drives, backup_drives, _ = read_alexandria_config(drive_config)
 
         for key, val in primary_drives.items():
             base_directories.extend(
-                [f'{get_drive_letter(v)}:/{key}' for v in val]
+                [os.path.join(get_volume_root(v), key) for v in val if get_volume_root(v)]
             )
         for key, val in backup_drives.items():
             base_directories.extend(
-                [f'{get_drive_letter(v)}:/{key}' for v in val]
+                [os.path.join(get_volume_root(v), key) for v in val if get_volume_root(v)]
             )
     else:
-        print("Error: Must provide either drive_config or target_directory.")
+        print(f"{Fore.RED}Error: Must provide either drive_config or target_directory.{Style.RESET_ALL}")
         return
 
     # 2. Get file list using the utility function
@@ -103,62 +100,44 @@ def hide_metadata(
     if not filepaths:
         count = len(base_directories)
         label = "directory" if count == 1 else "directories"
-        print(f'No metadata files in any of the {count} {label}!')
+        print(f'{Fore.GREEN}No metadata files found in any of the {count} {label}!{Style.RESET_ALL}')
         return
 
-    # 3. Process files
+    # 3. Process files using tqdm
     title_text = f'Processing {", ".join(extensions_list)} files'
-    with alive_bar(len(filepaths), title=title_text, bar='classic') as bar:
-        for filepath in filepaths:
-            # Normalize path separators for consistent string matching
-            norm_path = filepath.replace('\\', '/')
+    
+    for filepath in tqdm(filepaths, desc=title_text, unit="file", dynamic_ncols=True):
+        path_obj = Path(filepath)
 
-            # Determine logic: Unhide if Protected, Hide otherwise
-            is_protected = '/Photos/' in norm_path or '/Courses/' in norm_path
+        # Determine logic: Unhide if Protected, Hide otherwise
+        is_protected = "Photos" in path_obj.parts or "Courses" in path_obj.parts
 
-            if is_protected:
-                set_hidden_attribute(filepath, hide=False)
-            else:
-                set_hidden_attribute(filepath, hide=True)
-
-            bar()
+        if is_protected:
+            set_hidden_attribute(filepath, hide=False)
+        else:
+            set_hidden_attribute(filepath, hide=True)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description="Hide metadata files in specified locations."
+        description="Hide metadata files in specified locations (Windows Only)."
     )
     
-    # Create a mutually exclusive group (User must choose one, but not both)
     group = parser.add_mutually_exclusive_group(required=True)
-    
-    group.add_argument(
-        '--dir',
-        type=str,
-        help="A specific directory path to scan."
-    )
-    group.add_argument(
-        '--config',
-        action='store_true',
-        help="Use the default configuration file to scan drives."
-    )
+    group.add_argument('--dir', type=str, help="A specific directory path to scan.")
+    group.add_argument('--config', action='store_true', help="Use the default configuration file to scan drives.")
 
     args = parser.parse_args()
 
     if args.dir:
         hide_metadata(target_directory=args.dir)
-    
     else:
         src_directory = os.path.dirname(os.path.abspath(__file__))
         filepath_drive_hierarchy = os.path.join(src_directory, "..", "..", "config", "alexandria_drives.config")
+        
+        if not os.path.exists(filepath_drive_hierarchy):
+            print(f"{Fore.RED}Error: Config file not found at {filepath_drive_hierarchy}{Style.RESET_ALL}")
+            sys.exit(1)
+            
         drive_config = read_json(filepath_drive_hierarchy)
         hide_metadata(drive_config=drive_config)
-
-
-
-        # Note: Since read_alexandria_config takes a dict, you would typically
-        # load a JSON/YAML file here. For now, we pass a placeholder or 
-        # assume the utility handles the file path if modified.
-        # Example: import json; config = json.load(open(args.config))
-        print("Config file loading requires specific implementation.")
-        # hide_metadata(drive_config=loaded_config_dict)
