@@ -369,18 +369,18 @@ def main() -> None:
     args = parser.parse_args()
 
     # Determine Encoder Mode
-    if args.cpu:
-        Config.set_encoder("cpu")
-    else:
-        # Default is GPU if --cpu is not specified
+    if args.gpu:
         Config.set_encoder("gpu")
+    else:
+        # Default is CPU if --gpu is not specified
+        Config.set_encoder("cpu")
 
     check_dependencies()
     
     # Hardcoded target directories (as requested in original script)
     # Could be replaced by args.directories if desired
     target_directories = [
-        r"T:\Encoding Zone\02 Ready",
+        r"T:\ShuttFlix-Temp\Movies\_Needs_Encoding",
     ]
     
     for d in target_directories:

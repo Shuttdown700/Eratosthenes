@@ -1,0 +1,17 @@
+alive_progress==3.1.5
+colorama==0.4.6
+ffmpeg==1.4
+ffmpeg_python==0.2.0
+lyricsgenius==3.7.6
+matplotlib==3.10.8
+mutagen==1.47.0
+numpy==2.4.2
+pandas==3.0.1
+pdf2image==1.17.0
+Pillow==12.1.1
+py7zr==1.0.0
+pydub==0.25.1
+PyPDF2==3.0.1
+Requests==2.32.5
+tqdm==4.67.1
+tvdb_v4_official==1.1.0

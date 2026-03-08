@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 import zipfile
+import argparse
 from pathlib import Path
 from typing import List, Tuple, Union
 
@@ -16,7 +17,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "analysis"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "utils"))
 
 from read_server_statistics import read_media_statistics
-from assess_backup import main as assess_backup
+from assess_backup import get_movie_live_backup_status, get_series_configured_backup_status, update_all_media_lists
 from generate_audio_file_print_string import generate_audio_file_print_string
 from api import API
 
@@ -33,7 +34,8 @@ from utilities import (
     read_file_as_list,
     order_file_contents,
     remove_empty_folders,
-    human_readable_size
+    human_readable_size,
+    validate_json_file
 )
 
 # Colors
@@ -55,9 +57,15 @@ class Backup:
         self.output_directory = os.path.join(os.path.dirname(self.src_directory), "output")
         self.filepath_statistics = os.path.join(self.output_directory, "alexandria_media_statistics.json")
         self.filepath_alexandria_media_details = os.path.join(self.output_directory, "alexandria_media_details.json")
+        self.filepath_backup_log = os.path.join(self.output_directory, "backup.log")
+
+        # Ensure output directory exists for the log
+        os.makedirs(self.output_directory, exist_ok=True)
 
         # Read configuration and initialize dictionaries
         self.drive_config = read_json(self.filepath_drive_hierarchy)
+        if not validate_json_file(self.filepath_drive_hierarchy):
+            raise ValueError("Invalid drive hierarchy JSON file.")
         self.primary_drives_name_dict, self.backup_drives_name_dict, self.extensions_dict = read_alexandria_config(self.drive_config)
         
         self.primary_drives_root_dict = {}
@@ -105,6 +113,15 @@ class Backup:
         self.primary_filepaths_dict = {}
         self.drive_stats_dict = {}
 
+    def _log_event(self, message: str) -> None:
+        """Appends a timestamped message to the backup log."""
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            with open(self.filepath_backup_log, 'a', encoding='utf-8') as log_file:
+                log_file.write(f"[{timestamp}] {message}\n")
+        except Exception as e:
+            print(f"{RED}Error writing to log file: {e}{RESET}")
+
     def _get_name_from_path(self, filepath: str) -> str:
         """Helper to resolve a human readable drive name from a file path."""
         for root, name in self.root_to_name.items():
@@ -142,6 +159,7 @@ class Backup:
                                 relative_path = os.path.relpath(file_path, src)
                                 zipf.write(file_path, arcname=relative_path)
                     print(f"{GREEN}Backup ZIP created: {RESET}{zip_path}")
+                    self._log_event(f"SUCCESS | MGMT Backup | ZIPPED: {zip_path}")
 
                 else:
                     dated_backup_dir = os.path.join(dest_base, current_date)
@@ -161,9 +179,11 @@ class Backup:
                             shutil.copy2(file_path, os.path.join(target_subdir, backup_filename))
                     
                     print(f"{GREEN}Directory backup completed for: {RESET}{src} -> {dated_backup_dir}")
+                    self._log_event(f"SUCCESS | MGMT Backup | DIRECTORY: {src} -> {dated_backup_dir}")
 
         except Exception as e:
             print(f"Error during backup: {e}")
+            self._log_event(f"FAILED  | MGMT Backup | ERROR: {e}")
 
     def apply_movie_backup_filters(self, media_type: str, backup_candidate_tuples: List[Tuple[str, str]], backup_volume_root: str) -> List[Tuple[str, str]]: 
         """Filter movie backups using ratings, blocked keywords, file sizes, tmdb data."""
@@ -287,7 +307,6 @@ class Backup:
 
             path_parts = Path(file_src).parts
             # Assuming structure: Root/Media_Type/Show_Name/Season/File
-            # We dynamically search the parts for the media type directory to safely get the show name
             try:
                 media_idx = [p.lower() for p in path_parts].index(media_type.lower())
                 show_with_year = path_parts[media_idx + 1]
@@ -332,22 +351,15 @@ class Backup:
         for filepath_primary, filepath_backup_candidate in backup_candidate_tuples:
             path_obj = Path(filepath_primary)
             
-            # 1. Start with the immediate parent directory of the file
             parent_dir = path_obj.parent
-            
-            # 2. If the immediate parent is a "Disc" folder, step up one level to the Album folder
             if "disc " in parent_dir.name.lower() or "cd " in parent_dir.name.lower():
                 album_dir = parent_dir.parent
             else:
                 album_dir = parent_dir
                 
-            # 3. Extract quality assuming "AlbumName_QUALITY" format
             dir_quality = album_dir.name.split("_")[-1].lower() if "_" in album_dir.name else ""
-            
-            # 4. Determine final quality 
             file_quality = 'flac' if path_obj.suffix.lower() == '.flac' else dir_quality
 
-            # Check quality against your config
             if file_quality not in backup_quality:
                 if os.path.isfile(filepath_backup_candidate):
                     backup_filepaths_revoked.append(filepath_backup_candidate)
@@ -396,9 +408,11 @@ class Backup:
                 try:
                     print(f'\t{RED}{BRIGHT}Deleting: {RESET}{revoked_file}')
                     os.remove(revoked_file)
+                    self._log_event(f"DELETED | Revoked File | DEST: {revoked_file}")
                     num_files_deleted += 1
                 except Exception as e:
                     print(f'\t[WARN] Error deleting {revoked_file}: {e}')
+                    self._log_event(f"FAILED  | Delete Revoked File | DEST: {revoked_file} | ERROR: {e}")
                     
         return num_files_deleted
 
@@ -423,7 +437,6 @@ class Backup:
         filepaths_primary = primary_filepaths_dict[media_type]
         filepaths_backup = read_alexandria([backup_path_base], self.extensions_dict[media_type])
 
-        # Safely map primary files to their relative destination path based on the media_type folder
         primary_rel_map = {}
         for fp in filepaths_primary:
             for p_root in self.primary_drives_root_dict[media_type]:
@@ -464,7 +477,6 @@ class Backup:
             tuple_filepaths_missing = self.apply_audio_file_backup_filters(media_type, tuple_filepaths_missing, backup_volume_root)
             tuple_filepaths_existing_backup = self.apply_audio_file_backup_filters(media_type, tuple_filepaths_existing_backup, backup_volume_root)
 
-        # Identify excess and current backup files
         filepaths_backup_excess = []
         filepaths_backup_current = []
         
@@ -484,7 +496,6 @@ class Backup:
 
     def assess_backup_feasibility(self, missing_filepaths: list, modified_filepaths: list) -> Tuple[float, float]:
         """Determine the feasibility of a backup by calculating required and remaining space."""
-        # Find roots dynamically based on the backup destination file paths
         backup_drives = set()
         for _, backup_path in missing_filepaths + modified_filepaths:
             for root in self.backup_volume_roots:
@@ -505,7 +516,6 @@ class Backup:
         if backup_tuples:
             total_gb = sum(get_file_size(src, "GB") for src, _ in backup_tuples)
             
-            # Determine destination root
             destination_path = backup_tuples[0][1]
             dest_root = next((r for r in self.backup_volume_roots if destination_path.startswith(r)), None)
             
@@ -533,13 +543,23 @@ class Backup:
     def main(self) -> None:
         """Main function to initiate the Alexandria backup process."""
         print(f'\n{"#" * 10}\n\n{MAGENTA}{BRIGHT}Initiating Alexandria Backup...{RESET}\n\n{"#" * 10}\n')
+        
+        # Write a header block to the log file for this specific run
+        with open(self.filepath_backup_log, 'a', encoding='utf-8') as log_file:
+            log_file.write(f"\n{'='*60}\n")
+            log_file.write(f"BACKUP INITIATED: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            log_file.write(f"{'='*60}\n")
+
         self.backup_mgmt_files()
 
-        api = API()
-        print(f'\n{"#" * 10}\n')
-        print(f"{YELLOW}{BRIGHT}Refreshing{RESET} TMDb Movie Data\n")
-        api.tmdb_movies_fetch()
-        print(f'\n{"#" * 10}\n')
+        # Only update TMDb if Movies, 4K Movies, or Anime Movies are in the selected media types list
+        movie_categories = {"Movies", "4K Movies", "Anime Movies"}
+        if any(mc in self.media_types for mc in movie_categories):
+            api = API()
+            print(f'\n{"#" * 10}\n')
+            print(f"{YELLOW}{BRIGHT}Refreshing{RESET} TMDb Movie Data\n")
+            api.tmdb_movies_fetch()
+            print(f'\n{"#" * 10}\n')
 
         for backup_volume_root in self.all_volume_roots:
             drive_backup_name = self.root_to_name.get(backup_volume_root, "Unknown Drive")
@@ -551,13 +571,20 @@ class Backup:
             self._log_remaining_space(backup_volume_root, drive_backup_name)
 
         self._display_drive_statistics()
-        assess_backup()
+        update_all_media_lists()
+        get_movie_live_backup_status()
+        get_series_configured_backup_status()
         read_media_statistics(bool_update=False, bool_print=True)
 
         print(f'\n{"#" * 10}\n\n{GREEN}{BRIGHT}Alexandria Backup Complete{RESET}\n\n{"#" * 10}\n')
+        
+        # Log completion
+        with open(self.filepath_backup_log, 'a', encoding='utf-8') as log_file:
+            log_file.write(f"BACKUP COMPLETE: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            log_file.write(f"\n{'='*60}\n")
 
     def _process_file_pairs(self, file_pairs: List[Tuple[str, str]], action: str, media_type: str) -> None:
-        """Process a list of file pairs natively using shutil."""
+        """Process a list of file pairs natively using shutil and logs the outcome."""
         for src_file, dest_file in file_pairs:
             ext = os.path.splitext(src_file)[1].lower() 
             if media_type.lower() == "music" and ext in ['.mp3', '.flac']:
@@ -577,10 +604,11 @@ class Backup:
                     f"-> {GREEN}{dest_name}{RESET}"
                 )
                 try:
-                    # Native cross-platform file copy replacing subprocess shell commands
                     shutil.copy2(src_file, dest_file)
+                    self._log_event(f"SUCCESS | {action} | SRC: {src_file} | DEST: {dest_file}")
                 except Exception as e:
                     print(f"{RED}Error:{RESET} Failed to copy {file_title}: {e}")
+                    self._log_event(f"FAILED  | {action} | SRC: {src_file} | DEST: {dest_file} | ERROR: {e}")
 
     def _process_media_type_for_drive(self, media_type: str, backup_volume_root: str, drive_backup_name: str) -> None:
         """Process backup for a specific media type on a backup drive."""
@@ -588,7 +616,6 @@ class Backup:
             self._handle_undirected_backups(media_type, backup_volume_root)
             return
 
-        # Skip if this drive is the primary source for this media
         if backup_volume_root in self.primary_drives_root_dict.get(media_type, []):
             return
 
@@ -613,7 +640,6 @@ class Backup:
         else:
             self.backup_function(missing, modified, media_type)
 
-        # Remove empty sub-directories
         directories = primary_parent_paths + [os.path.join(backup_volume_root, media_type)]
         directories = list(dict.fromkeys(directories))
         remove_empty_folders(directories, print_line_prefix="\t", print_header="\n")
@@ -653,5 +679,31 @@ class Backup:
         print('\n##########\n')
 
 if __name__ == '__main__':
+    # Initialize Backup to load the config mapping first
     backup = Backup()
+    
+    # Initialize Argparse
+    parser = argparse.ArgumentParser(description="Alexandria Backup Utility")
+    
+    # Dynamically generate arguments based on the keys in alexandria_drives.config
+    for m_type in backup.media_types:
+        flag_name = f"--{m_type.lower().replace(' ', '-')}"
+        dest_name = m_type.lower().replace(' ', '_')
+        parser.add_argument(flag_name, action='store_true', dest=dest_name, help=f"Run backup only for {m_type}")
+
+    args = parser.parse_args()
+    args_dict = vars(args)
+
+    # Check which flags the user actually passed
+    selected_media_types = []
+    for m_type in backup.media_types:
+        dict_key = m_type.lower().replace(' ', '_')
+        if args_dict.get(dict_key):
+            selected_media_types.append(m_type)
+            
+    # If any specific flags were used, overwrite the default 'run all' list
+    if selected_media_types:
+        backup.media_types = selected_media_types
+        print(f"{Fore.CYAN}{Style.BRIGHT}Filtering backup to specific media types: {', '.join(backup.media_types)}{Style.RESET_ALL}")
+        
     backup.main()

@@ -39,6 +39,6 @@ def download_yt_video_playlist(url,
     subprocess.call(cmd)
 
 if __name__ == "__main__":
-    url_playlist = "https://www.youtube.com/watch?v=rO9pOJbvkEA&list=PL8dPuuaLjXtMweg6Yx9MHP01n_yUyaf9H"
-    sub_directory = os.path.join("A:","Temp","YouTube","Crash Course - Sex Education")
+    url_playlist = "https://www.youtube.com/watch?v=edYaacE3rHE&t=229s"
+    sub_directory = os.path.join("T:","ShuttFlix-Temp","YouTube","Music")
     download_yt_video_playlist(url_playlist,sub_directory)     

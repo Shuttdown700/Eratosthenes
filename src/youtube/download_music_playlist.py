@@ -78,9 +78,6 @@ def download_yt_music_playlist(url, output_directory):
         print(f"Error executing yt-dlp: {e}")
 
 if __name__ == "__main__":
-    # Example Channel URL: Use the @handle for the most reliable method
-    url_channel = "https://www.youtube.com/watch?v=qtcRddExVJk&list=PL50qCY5SNEoeEPbW0P_CDo1KG7TUauPKs" 
-    
-    sub_directory = os.path.join("W:", "Temp", "YouTube", "Audiobook Downloads") 
-    
-    download_yt_music_playlist(url_channel, sub_directory)
+    url = "https://www.youtube.com/watch?v=edYaacE3rHE&t=229s"
+    sub_directory = os.path.join("T:","ShuttFlix-Temp","YouTube","Music")
+    download_yt_music_playlist(url, sub_directory)

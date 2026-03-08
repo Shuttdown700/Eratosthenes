@@ -1,5 +1,6 @@
 DEV Notes: Alexandria Media Manager
 
+- json validator for all config files prior to reading (throws random errors that make me go down rabbit holes)
 - need a function that executes an automated backup restore process
 - a function that backs up all nfo, jpg, png, etc files in the exact same folder structure as the primaries
 - function that prints the closest movie release date to your birthday

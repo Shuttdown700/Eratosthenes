@@ -34,6 +34,7 @@ def generate_audio_file_print_string(
             album_name = audio_file.get('album', [''])[0]
             album_artist = audio_file.get('albumartist', [''])[0]
             artist = audio_file.get('artist', [''])[0]
+            ext = "FLAC"
 
         elif file_path_lower.endswith('.mp3'):
             audio_file = MP3(file_path, ID3=ID3)
@@ -53,6 +54,7 @@ def generate_audio_file_print_string(
             album_name = get_text_frame('TALB')
             album_artist = get_text_frame('TPE2')  # album artist
             artist = get_text_frame('TPE1')        # track artist
+            ext = "MP3"
 
         # 🚀 ADDED M4A/MP4 SUPPORT
         elif file_path_lower.endswith(('.m4a', '.mp4')):
@@ -114,6 +116,8 @@ def generate_audio_file_print_string(
             parts.append(album_name)
         if include_artist and album_artist:
             parts.append(album_artist)
+        if ext:
+            parts.append(f"{GREEN}{BRIGHT}{ext}{RESET}")
 
         if not parts:
             return f"Unknown Track: {file_path}"

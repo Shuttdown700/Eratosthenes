@@ -66,6 +66,9 @@ def files_are_identical(file1: str, file2: str, method: str = "size") -> bool:
 
 def read_json(filepath: str | Path, default: dict = None) -> dict:
     """Read JSON file safely, returning default if it fails."""
+    if not validate_json_file(filepath):    
+        print(f"{RED}{BRIGHT}Error:{RESET} Invalid JSON format in file: {filepath}")
+        return default if default is not None else {}
     try:
         with open(filepath, "r", encoding='utf8') as file:
             return json.load(file)
@@ -144,6 +147,9 @@ def get_volume_root(volume_name: str) -> Optional[str]:
     Cross-platform: Gets drive letter (Windows) or mount path (Linux) 
     from a volume name.
     """
+    # 1. Sanitize the input to kill whitespace and newlines immediately
+    clean_name = volume_name.strip()
+    
     if IS_WINDOWS:
         # Windows: Check A-Z drives
         drives = [f"{chr(i)}:\\" for i in range(65, 91) if does_volume_exist(f"{chr(i)}:\\")]
@@ -152,19 +158,25 @@ def get_volume_root(volume_name: str) -> Optional[str]:
             result = ctypes.windll.kernel32.GetVolumeInformationW(
                 drive, vol_name_buf, 260, None, None, None, None, 0
             )
-            if result != 0 and vol_name_buf.value.strip().lower() == volume_name.lower():
-                return drive.rstrip('\\') # Returns 'C:'
+            if result != 0 and vol_name_buf.value.strip().lower() == clean_name.lower():
+                return drive.rstrip('\\')
         return None
     else:
         # Linux: Check common mount directories for the volume name
         common_mounts = [
-            f"/mnt/{volume_name}",
-            f"/media/{os.environ.get('USER', 'root')}/{volume_name}",
-            f"/run/media/{os.environ.get('USER', 'root')}/{volume_name}"
+            f"/mnt/{clean_name}",
+            f"/mnt/{clean_name.lower()}",
+            f"/media/{os.environ.get('USER', 'root')}/{clean_name}",
+            f"/run/media/{os.environ.get('USER', 'root')}/{clean_name}"
         ]
+        
+        # Debugging step: See exactly what Python is testing
+        # print(f"DEBUG: Checking mounts for '{clean_name}': {common_mounts}")
+        
         for mount in common_mounts:
             if os.path.ismount(mount) or os.path.exists(mount):
                 return mount
+                
         return None
 
 
@@ -236,6 +248,9 @@ def get_primary_root_directories(media_types: List[str]) -> List[str]:
     """Returns a list of root directories for primary drives."""
     src_directory = os.path.dirname(os.path.abspath(__file__))
     filepath = os.path.join(src_directory, "..", "config", "alexandria_drives.config")
+    if not validate_json_file(filepath):    
+        print(f"{RED}{BRIGHT}Error:{RESET} Invalid JSON format in file: {filepath}")
+        return []
     drive_config = read_json(filepath)
     primary_drives_dict, _, _ = read_alexandria_config(drive_config)
     
@@ -252,6 +267,9 @@ def get_backup_root_directories(media_types: List[str]) -> List[str]:
     """Returns a list of root directories for backup drives."""
     src_directory = os.path.dirname(os.path.abspath(__file__))
     filepath = os.path.join(src_directory, "..", "config", "alexandria_drives.config")
+    if not validate_json_file(filepath):    
+        print(f"{RED}{BRIGHT}Error:{RESET} Invalid JSON format in file: {filepath}")
+        return []
     drive_config = read_json(filepath)
     _, backup_drives_dict, _ = read_alexandria_config(drive_config)
     
@@ -557,3 +575,42 @@ def human_readable_size(size_in_gb: float) -> Tuple[float, str]:
             return size_in_bytes, unit
         size_in_bytes /= 1024
     return size_in_bytes, "TB"
+
+
+def validate_json_file(filepath: str | Path, verbose: bool = True) -> bool:
+    """Validates whether a file contains properly formatted JSON."""
+    import json
+    import os
+    from colorama import Fore, Style
+    
+    if not os.path.exists(filepath):
+        if verbose:
+            print(f"{Fore.RED}{Style.BRIGHT}Validation Error:{Style.RESET_ALL} File not found at '{filepath}'")
+        return False
+
+    try:
+        with open(filepath, 'r', encoding='utf-8') as file:
+            json.load(file)
+        return True
+        
+    except json.JSONDecodeError as e:
+        if verbose:
+            print(f"\n{Fore.RED}{Style.BRIGHT}JSON Format Error in '{filepath}':{Style.RESET_ALL}")
+            print(f"\t{Fore.YELLOW}-> {e.msg} on line {e.lineno}, column {e.colno}{Style.RESET_ALL}\n")
+        return False
+        
+    except Exception as e:
+        if verbose:
+            print(f"{Fore.RED}{Style.BRIGHT}Unexpected error reading '{filepath}':{Style.RESET_ALL} {e}")
+        return False
+    
+
+if __name__ == '__main__':
+    print("\n"+"#"*50+"\n")
+    print("Running utilities.py tests...\n")
+    # Example usage of the validate_json_file function
+    test_filepath = os.path.join(os.path.dirname(__file__), "..", "config", "alexandria_drives.config")
+    is_valid = validate_json_file(test_filepath)
+    print(f"Is the JSON file valid? {GREEN if is_valid else RED}{is_valid}{RESET}")
+    print("\n"+"#"*50+"\n")
+
