@@ -374,6 +374,54 @@ class Backup:
 
         return backup_tuple_accepted
 
+    def apply_game_backup_filters(self, media_type: str, backup_candidate_tuples: List[Tuple[str, str]], backup_volume_root: str) -> List[Tuple[str, str]]:
+        """Filter game backups based on allowed sub-directories (types) in config."""
+        if not backup_candidate_tuples:
+            return []
+
+        drive_name = self.root_to_name.get(backup_volume_root)
+        if not drive_name:
+            return backup_candidate_tuples
+
+        # Extract the allowed types for this specific drive
+        config_node = self.drive_config[media_type]['backup_drives'].get(drive_name, {})
+        allowed_types = config_node.get("types", [])
+
+        # If no types are specified, allow everything to back up normally
+        if not allowed_types:
+            return backup_candidate_tuples
+
+        allowed_types_lower = [t.lower() for t in allowed_types]
+
+        backup_tuple_accepted = []
+        backup_filepaths_blocked = []
+        backup_filepaths_revoked = []
+
+        for filepath_primary, filepath_backup_candidate in backup_candidate_tuples:
+            path_obj = Path(filepath_primary)
+            
+            try:
+                # Find the media type (e.g. "Games") in the path to locate the sub-directory right after it
+                media_idx = [p.lower() for p in path_obj.parts].index(media_type.lower())
+                game_category = path_obj.parts[media_idx + 1]
+            except (ValueError, IndexError):
+                game_category = ""
+
+            # Check if the folder after "Games/" is in our allowed types list (e.g., "Emulation")
+            if game_category.lower() not in allowed_types_lower:
+                if os.path.isfile(filepath_backup_candidate):
+                    backup_filepaths_revoked.append(filepath_backup_candidate)
+                else:
+                    backup_filepaths_blocked.append(filepath_backup_candidate)
+                continue
+
+            backup_tuple_accepted.append((filepath_primary, filepath_backup_candidate))
+
+        if backup_filepaths_revoked:
+            self.remove_revoked_files(backup_filepaths_revoked)
+
+        return backup_tuple_accepted
+
     def remove_revoked_files(self, filepaths_backup_revoked: list) -> int:
         """Removes excess files from backup drives."""
         num_files_deleted = 0
@@ -476,6 +524,10 @@ class Backup:
         elif media_type.lower() in ["music"]:
             tuple_filepaths_missing = self.apply_audio_file_backup_filters(media_type, tuple_filepaths_missing, backup_volume_root)
             tuple_filepaths_existing_backup = self.apply_audio_file_backup_filters(media_type, tuple_filepaths_existing_backup, backup_volume_root)
+            
+        elif media_type.lower() in ["games"] and self.root_to_name.get(backup_volume_root).lower() not in ["thorn"]:
+            tuple_filepaths_missing = self.apply_game_backup_filters(media_type, tuple_filepaths_missing, backup_volume_root)
+            tuple_filepaths_existing_backup = self.apply_game_backup_filters(media_type, tuple_filepaths_existing_backup, backup_volume_root)
 
         filepaths_backup_excess = []
         filepaths_backup_current = []
@@ -541,47 +593,55 @@ class Backup:
             self._process_file_pairs(modified_tuples, action="Updating", media_type=media_type)
 
     def main(self) -> None:
-        """Main function to initiate the Alexandria backup process."""
-        print(f'\n{"#" * 10}\n\n{MAGENTA}{BRIGHT}Initiating Alexandria Backup...{RESET}\n\n{"#" * 10}\n')
-        
-        # Write a header block to the log file for this specific run
-        with open(self.filepath_backup_log, 'a', encoding='utf-8') as log_file:
-            log_file.write(f"\n{'='*60}\n")
-            log_file.write(f"BACKUP INITIATED: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            log_file.write(f"{'='*60}\n")
+        try:
+            """Main function to initiate the Alexandria backup process."""
+            print(f'\n{"#" * 10}\n\n{MAGENTA}{BRIGHT}Initiating Alexandria Backup...{RESET}\n\n{"#" * 10}\n')
+            
+            # Write a header block to the log file for this specific run
+            with open(self.filepath_backup_log, 'a', encoding='utf-8') as log_file:
+                log_file.write(f"\n{'='*60}\n")
+                log_file.write(f"BACKUP INITIATED: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                log_file.write(f"{'='*60}\n")
 
-        self.backup_mgmt_files()
+            self.backup_mgmt_files()
 
-        # Only update TMDb if Movies, 4K Movies, or Anime Movies are in the selected media types list
-        movie_categories = {"Movies", "4K Movies", "Anime Movies"}
-        if any(mc in self.media_types for mc in movie_categories):
-            api = API()
-            print(f'\n{"#" * 10}\n')
-            print(f"{YELLOW}{BRIGHT}Refreshing{RESET} TMDb Movie Data\n")
-            api.tmdb_movies_fetch()
-            print(f'\n{"#" * 10}\n')
+            # Only update TMDb if Movies, 4K Movies, or Anime Movies are in the selected media types list
+            movie_categories = {"Movies", "4K Movies", "Anime Movies"}
+            if any(mc in self.media_types for mc in movie_categories):
+                api = API()
+                print(f'\n{"#" * 10}\n')
+                print(f"{YELLOW}{BRIGHT}Refreshing{RESET} TMDb Movie Data\n")
+                api.tmdb_movies_fetch()
+                print(f'\n{"#" * 10}\n')
 
-        for backup_volume_root in self.all_volume_roots:
-            drive_backup_name = self.root_to_name.get(backup_volume_root, "Unknown Drive")
-            print(f'\n### {GREEN}{BRIGHT}{drive_backup_name} ({backup_volume_root}){RESET} ###')
+            for backup_volume_root in self.all_volume_roots:
+                try:
+                    drive_backup_name = self.root_to_name.get(backup_volume_root, "Unknown Drive")
+                    print(f'\n### {GREEN}{BRIGHT}{drive_backup_name} ({backup_volume_root}){RESET} ###')
 
-            for media_type in self.media_types:
-                self._process_media_type_for_drive(media_type, backup_volume_root, drive_backup_name)
+                    for media_type in self.media_types:
+                        self._process_media_type_for_drive(media_type, backup_volume_root, drive_backup_name)
 
-            self._log_remaining_space(backup_volume_root, drive_backup_name)
+                    self._log_remaining_space(backup_volume_root, drive_backup_name)
+                except PermissionError:
+                    print(f"{RED}Permission denied for drive: {backup_volume_root}. Skipping...{RESET}")
+                    self._log_event(f"FAILED  | Permission Denied | DRIVE: {backup_volume_root}")
 
-        self._display_drive_statistics()
-        update_all_media_lists()
-        get_movie_live_backup_status()
-        get_series_configured_backup_status()
-        read_media_statistics(bool_update=False, bool_print=True)
+            self._display_drive_statistics()
+            update_all_media_lists()
+            get_movie_live_backup_status()
+            get_series_configured_backup_status()
+            read_media_statistics(bool_update=False, bool_print=True)
 
-        print(f'\n{"#" * 10}\n\n{GREEN}{BRIGHT}Alexandria Backup Complete{RESET}\n\n{"#" * 10}\n')
-        
-        # Log completion
-        with open(self.filepath_backup_log, 'a', encoding='utf-8') as log_file:
-            log_file.write(f"BACKUP COMPLETE: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-            log_file.write(f"\n{'='*60}\n")
+            print(f'\n{"#" * 10}\n\n{GREEN}{BRIGHT}Alexandria Backup Complete{RESET}\n\n{"#" * 10}\n')
+            
+            # Log completion
+            with open(self.filepath_backup_log, 'a', encoding='utf-8') as log_file:
+                log_file.write(f"BACKUP COMPLETE: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                log_file.write(f"\n{'='*60}\n")
+        except Exception as e:
+            print(f"{RED}An error occurred during the backup process: {e}{RESET}")
+            self._log_event(f"FAILED  | Backup Process Error | ERROR: {e}")
 
     def _process_file_pairs(self, file_pairs: List[Tuple[str, str]], action: str, media_type: str) -> None:
         """Process a list of file pairs natively using shutil and logs the outcome."""
@@ -652,13 +712,15 @@ class Backup:
         )
 
     def _handle_undirected_backups(self, media_type: str, backup_volume_root: str) -> None:
-        """Handle undirected backups for drives that are not explicitly associated with a media type."""
-        root_path = os.path.join(backup_volume_root, media_type)
-        if os.path.exists(root_path):
-            undirected_files = read_alexandria([root_path], self.extensions_dict[media_type])
-            if undirected_files:
-                self.remove_revoked_files(undirected_files)
-                remove_empty_folders([root_path])
+            """Handle undirected backups for drives that are not explicitly associated with a media type."""
+            if media_type.lower() == "games":
+                return
+            root_path = os.path.join(backup_volume_root, media_type)
+            if os.path.exists(root_path):
+                undirected_files = read_alexandria([root_path], self.extensions_dict[media_type])
+                if undirected_files:
+                    self.remove_revoked_files(undirected_files)
+                    remove_empty_folders([root_path])
 
     def _log_remaining_space(self, backup_volume_root: str, drive_backup_name: str) -> None:
         """Log the remaining space on the backup drive."""

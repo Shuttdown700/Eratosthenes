@@ -263,7 +263,8 @@ def main() -> None:
 
     # Define directories here if not passed via CLI
     target_directories = args.directories if args.directories else [
-        r"T:\ShuttFlix-Temp\Movies\_Needs_Encoding"
+        r"T:\ShuttFlix-Temp\Movies\_Needs_Encoding",
+        r"T:\ShuttFlix-Temp\Shows\Downloads\One Piece S02 (2026) 1080p WEBRip x265 DDP 5.1 ESub"
     ]
 
     for d in target_directories:

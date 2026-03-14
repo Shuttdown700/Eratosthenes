@@ -381,6 +381,7 @@ def main() -> None:
     # Could be replaced by args.directories if desired
     target_directories = [
         r"T:\ShuttFlix-Temp\Movies\_Needs_Encoding",
+        r"T:\ShuttFlix-Temp\Shows\Downloads\To Re-Encode"
     ]
     
     for d in target_directories:
