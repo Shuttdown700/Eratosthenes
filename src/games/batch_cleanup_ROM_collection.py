@@ -2,7 +2,7 @@ import os
 import re
 
 # Set this to your directory path if running from elsewhere, e.g., "C:\\ROMs"
-DIRECTORY = r"V:\Temp\saturn" 
+DIRECTORY = r"V:\Temp\Sega Dreamcast" 
 
 # Add exactly matching filenames or partial strings here that you NEVER want deleted
 EXCLUSIONS = []
@@ -38,6 +38,9 @@ def parse_rom_info(filename):
     is_hack = 'hack' in tags_string
     is_subset = 'subset' in tags_string
     
+    # 2.5 Flag Prototypes, Betas, and Demos for outright removal
+    is_proto = bool(re.search(r'\b(proto|beta|demo|sample)\b', tags_string))
+    
     # Translations: Fan translations of USA/Europe games (standalone language tags)
     is_translated = False
     for t in tags_lower:
@@ -53,6 +56,9 @@ def parse_rom_info(filename):
     lang_pattern = r'^[a-z]{2}(-[a-z]{2})?(,[a-z]{2}(-[a-z]{2})?)*$'
     version_pattern = r'^(rev\s*\w+|v\d+(\.\d+)*|beta\s*\d*|proto\s*\d*|demo|sample|alt)$'
     
+    # Added a pattern to explicitly recognize serial numbers (e.g., slus-21358, sles-12345)
+    serial_pattern = r'^[a-z]{3,4}-\d{3,5}$'
+    
     non_standard_tags = []
     for tag in tags_raw:
         t_clean = tag.strip().lower()
@@ -61,11 +67,13 @@ def parse_rom_info(filename):
         if t_clean in ['hack', 'unl', 'pirate', 'aftermarket'] or 'subset' in t_clean:
             continue
             
-        # Check if it's a known language, region, or version
+        # Check if it's a known language, region, version, or serial number
         is_safe = False
         if re.match(lang_pattern, t_clean) or re.match(r'^m\d+$', t_clean): 
             is_safe = True
         elif re.match(version_pattern, t_clean): 
+            is_safe = True
+        elif re.match(serial_pattern, t_clean):
             is_safe = True
         else:
             parts = re.split(r'[, ]+', t_clean)
@@ -112,25 +120,29 @@ def parse_rom_info(filename):
             digits = ''.join(filter(str.isdigit, val))
             version_score = int(digits) if digits else 1
             
-    v_match = re.search(r'\bv([0-9]+)\.([0-9]+)\b', tags_string)
+    # FIXED: Now matches up to three version numbers (Major.Minor.Patch)
+    v_match = re.search(r'\bv([0-9]+)\.([0-9]+)(?:\.([0-9]+))?\b', tags_string)
     if v_match:
-        v_score = int(v_match.group(1)) * 10 + int(v_match.group(2))
-        version_score = max(version_score, v_score)
+        major = int(v_match.group(1))
+        minor = int(v_match.group(2))
+        patch = int(v_match.group(3)) if v_match.group(3) else 0
         
-    if 'proto' in tags_string or 'beta' in tags_string:
-        version_score = -1
+        # Calculate a tiered score (e.g. v1.6.5 = 10605)
+        v_score = (major * 10000) + (minor * 100) + patch
+        version_score = max(version_score, v_score)
         
     return {
         'filename': filename,
         'base_name': base_name,
         'track': track,
         'is_english': is_english,
+        'is_proto': is_proto,
         'region_score': region_score,
         'version_score': version_score
     }
 
 def main():
-    extensions= ['.zip','.7z','.rar','.gz','.chd','.iso','.bin','.cue','.img','.nrg','.mdf','.n64']
+    extensions= ['.zip','.7z','.rar','.gz','.chd','.iso','.bin','.cue','.img','.nrg','.mdf','.n64','.rvz']
     all_files = [f for f in os.listdir(DIRECTORY) if f.lower().endswith(tuple(extensions))]
     if not all_files:
         print(f"{Colors.RED}No files found in the specified directory.{Colors.RESET}")
@@ -150,6 +162,8 @@ def main():
         info = parse_rom_info(rom)
         if not info['is_english']:
             delete_candidates.append((rom, "Non-English/Foreign Release"))
+        elif info['is_proto']:
+            delete_candidates.append((rom, "Prototype/Beta/Demo Release"))
         else:
             group_key = f"{info['base_name']} ({info['track']})"
             
@@ -159,9 +173,8 @@ def main():
 
     for group_key, versions in games_by_group.items():
         if len(versions) > 1:
-            # SORTS BY REGION FIRST, THEN VERSION. 
-            # This ensures (USA) always defeats (Europe) or (Japan)(En) regardless of the version number.
-            versions.sort(key=lambda x: (x['region_score'], x['version_score'], -len(x['filename'])), reverse=True)
+            # SORTS BY REGION FIRST, THEN VERSION, THEN FILENAME LENGTH, THEN ALPHABETICALLY
+            versions.sort(key=lambda x: (x['region_score'], x['version_score'], len(x['filename']), x['filename']), reverse=True)
             keeper = versions[0]
             for duplicate in versions[1:]:
                 reason = f"Superseded by '{keeper['filename']}' ({keeper['track']} track)"
