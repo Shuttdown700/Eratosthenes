@@ -7,6 +7,7 @@ def clean_name(name: str, has_extension: bool = True, strip_tags: bool = False) 
     Strips trailing parenthetical region tags from strings if strip_tags is True.
     Handles both filenames (with extensions) and directory/base names.
     """
+    name = name.replace('.xiso','').strip()
     if not strip_tags:
         return name
 

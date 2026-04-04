@@ -143,7 +143,7 @@ def organize_into_buckets(backup_locations, all_titles, sizes_dict=None, bool_pr
         
         # Only print the confirmation if there were actually missing titles
         if no_backup_titles:
-            print(f"{Fore.RED}Missing backup list{Style.RESET_ALL} saved: {no_backup_filepath}")
+            print(f"{Fore.GREEN}{Style.BRIGHT}Missing backup list saved{Style.RESET_ALL}: {no_backup_filepath}")
 
     return _finalize_buckets(buckets, sizes_dict)
 
@@ -187,7 +187,7 @@ def get_series_configured_backup_status():
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(buckets, f, indent=4, ensure_ascii=False)
 
-    print(f"Detailed {Fore.GREEN}series configured backup summary{Style.RESET_ALL} saved: {output_path}")
+    print(f"Detailed {Fore.GREEN}{Style.BRIGHT}series configured backup summary saved{Style.RESET_ALL}: {output_path}")
 
 
 def get_series_live_backup_status():
@@ -236,7 +236,7 @@ def get_series_live_backup_status():
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(buckets, f, indent=4, ensure_ascii=False)
 
-    print(f"Detailed {Fore.GREEN}series live backup summary{Style.RESET_ALL} saved: {output_path}")
+    print(f"Detailed {Fore.GREEN}{Style.BRIGHT}series live backup summary saved{Style.RESET_ALL}: {output_path}")
 
 
 def get_movie_live_backup_status():
@@ -286,7 +286,7 @@ def get_movie_live_backup_status():
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(buckets, f, indent=4, ensure_ascii=False)
 
-    print(f"Detailed {Fore.GREEN}movie live backup summary{Style.RESET_ALL} saved: {output_path}")
+    print(f"Detailed {Fore.GREEN}{Style.BRIGHT}movie live backup summary saved{Style.RESET_ALL}: {output_path}")
 
 
 def main():

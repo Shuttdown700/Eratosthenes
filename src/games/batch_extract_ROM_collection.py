@@ -31,10 +31,10 @@ BRIGHT = Style.BRIGHT
 
 
 SOURCE_DIRECTORIES = [
-    r"I:\Games\Sega Model 3"
+    r"T:\ShuttFlix-Temp\Games\Xbox"
 ]
 OUTPUT_DIRECTORIES = [
-    r"V:\Games\Emulation\Game Files\Sega Model 3"
+    r"T:\ShuttFlix-Temp\Games\Xbox\Extracted"
 ]
 
 IS_DRY_RUN = False

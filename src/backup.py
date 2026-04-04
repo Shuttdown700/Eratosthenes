@@ -58,6 +58,7 @@ class Backup:
         self.filepath_statistics = os.path.join(self.output_directory, "alexandria_media_statistics.json")
         self.filepath_alexandria_media_details = os.path.join(self.output_directory, "alexandria_media_details.json")
         self.filepath_backup_log = os.path.join(self.output_directory, "backup.log")
+        self.bypass_delete = False
 
         # Ensure output directory exists for the log
         os.makedirs(self.output_directory, exist_ok=True)
@@ -438,6 +439,10 @@ class Backup:
             print(f'\t{RED}{BRIGHT}[ALERT] Revoked Backup File: {RESET} {filepath}')
             total_size_gb += get_file_size(filepath, "GB")
 
+        if self.bypass_delete:
+            print(f'\n\t{YELLOW}{BRIGHT}[INFO]{RESET} --bypass-delete flag active. Skipping deletion of {len(filepaths_backup_revoked):,} revoked files ({int(total_size_gb):,} GB).')
+            return 0
+        
         confirmation_message = (
             f'\n\tDo you want to {RED}{BRIGHT}delete{RESET} these {len(filepaths_backup_revoked):,} revoked backup files '
             f'({int(total_size_gb):,} GB)? [Y/N] '
@@ -746,7 +751,8 @@ if __name__ == '__main__':
     
     # Initialize Argparse
     parser = argparse.ArgumentParser(description="Alexandria Backup Utility")
-    
+    parser.add_argument('--bypass-delete', action='store_true', help="Automatically skip deleting any revoked backups without prompting")
+
     # Dynamically generate arguments based on the keys in alexandria_drives.config
     for m_type in backup.media_types:
         flag_name = f"--{m_type.lower().replace(' ', '-')}"
@@ -754,6 +760,7 @@ if __name__ == '__main__':
         parser.add_argument(flag_name, action='store_true', dest=dest_name, help=f"Run backup only for {m_type}")
 
     args = parser.parse_args()
+    backup.bypass_delete = args.bypass_delete
     args_dict = vars(args)
 
     # Check which flags the user actually passed
@@ -766,6 +773,8 @@ if __name__ == '__main__':
     # If any specific flags were used, overwrite the default 'run all' list
     if selected_media_types:
         backup.media_types = selected_media_types
-        print(f"{Fore.CYAN}{Style.BRIGHT}Filtering backup to specific media types: {', '.join(backup.media_types)}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}{Style.BRIGHT}Filtering backup to specific media types{Style.RESET_ALL}: {', '.join(backup.media_types)}")
+    if backup.bypass_delete:
+        print(f"{Fore.YELLOW}{Style.BRIGHT}Bypass delete flag is active.{Style.RESET_ALL} The script will not prompt to delete revoked backup files and will skip deletion.")
         
     backup.main()

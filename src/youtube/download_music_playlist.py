@@ -48,7 +48,7 @@ def download_yt_music_playlist(url, output_directory):
         # FIX: Use M4A. This forces the compatible container for embedding.
         # It ensures the highest quality while avoiding the .webm error.
         "--extract-audio",
-        "--audio-format", "m4a", # <--- Changed to M4A for compatibility
+        "--audio-format", "mp3",
         "--audio-quality", "0", 
         
         # 5. Metadata and art 
@@ -78,6 +78,6 @@ def download_yt_music_playlist(url, output_directory):
         print(f"Error executing yt-dlp: {e}")
 
 if __name__ == "__main__":
-    url = "https://www.youtube.com/watch?v=edYaacE3rHE&t=229s"
-    sub_directory = os.path.join("T:","ShuttFlix-Temp","YouTube","Music")
+    url = "https://www.youtube.com/watch?v=OuRvOCf9mJ4&list=PLwJjxqYuirCLkq42mGw4XKGQlpZSfxsYd&index=3"
+    sub_directory = os.path.join("T:","ShuttFlix-Temp","YouTube","Music","8-bit Music")
     download_yt_music_playlist(url, sub_directory)

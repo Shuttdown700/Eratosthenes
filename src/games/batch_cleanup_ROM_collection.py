@@ -2,7 +2,7 @@ import os
 import re
 
 # Set this to your directory path if running from elsewhere, e.g., "C:\\ROMs"
-DIRECTORY = r"V:\Temp\Sega Dreamcast" 
+DIRECTORY = r"V:\Games\Emulation\Game Files\Sony PlayStation (PSX)" 
 
 # Add exactly matching filenames or partial strings here that you NEVER want deleted
 EXCLUSIONS = []
@@ -29,17 +29,17 @@ def parse_rom_info(filename):
     
     # 1. Determine if English (Foreign games without an English tag get flagged)
     is_english = True 
-    if re.search(r'\b(japan|taiwan|china|korea|france|germany|es|it|nl|sv|pt)\b', tags_string):
+    if re.search(r'\b(japan|taiwan|china|korea|asia|france|sweden|brazil|germany|es|it|nl|sv|pt|chinese|chinese version|ch|Jjapan, asia|japan , korea|netherlands|italy|switzerland|russian|russia|poland|portugal|spain|germany|greece|norway|denmark|finland)\b', tags_string):
         if not re.search(r'\b(en|usa|europe|world|uk|australia|ue)\b', tags_string):
             is_english = False
 
     # 2. Track & Mod Identification
-    is_unl = bool(re.search(r'\b(unl|pirate|aftermarket)\b', tags_string))
+    is_unl = bool(re.search(r'\b(proto|prototype|hack|beta|demo|sample|unl|pirate|aftermarket|homebrew|program|pd|subset)\b', tags_string))
     is_hack = 'hack' in tags_string
     is_subset = 'subset' in tags_string
     
     # 2.5 Flag Prototypes, Betas, and Demos for outright removal
-    is_proto = bool(re.search(r'\b(proto|beta|demo|sample)\b', tags_string))
+    is_proto = bool(re.search(r'\b(proto|prototype|hack|beta|demo|sample|unl|pirate|aftermarket|homebrew|program|pd|subset)\b', tags_string))
     
     # Translations: Fan translations of USA/Europe games (standalone language tags)
     is_translated = False
@@ -142,7 +142,7 @@ def parse_rom_info(filename):
     }
 
 def main():
-    extensions= ['.zip','.7z','.rar','.gz','.chd','.iso','.bin','.cue','.img','.nrg','.mdf','.n64','.rvz']
+    extensions= ['.zip','.7z','.rar','.gz','.chd','.iso','.bin','.cue','.img','.nrg','.mdf','.n64','.rvz','.nes','.pce']
     all_files = [f for f in os.listdir(DIRECTORY) if f.lower().endswith(tuple(extensions))]
     if not all_files:
         print(f"{Colors.RED}No files found in the specified directory.{Colors.RESET}")

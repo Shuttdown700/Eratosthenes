@@ -18,6 +18,13 @@ from utilities_music import (
     has_embedded_plain_lyrics
 )
 
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from utilities import (
+    get_primary_root_directories
+)
+
 # Initialize Colorama
 init(autoreset=True)
 RED = Fore.RED
@@ -141,7 +148,7 @@ def process_directory(input_dir: str,
         
         item_tuple = (artist,album,title)
         if bypass_logged_missing and logged_missing_set and item_tuple in logged_missing_set:
-            # clear_comments(filepath)
+            clear_comments(filepath)
             # print(f"{YELLOW}{BRIGHT}Previously logged missing lyrics, skipping fetch:{RESET} {title}")
             num_no_lyrics += 1
             continue
@@ -323,17 +330,19 @@ def _load_logged_missing_lyrics():
 
 if __name__ == "__main__":
     # Example input directory
-    input_dir = r"W:\Music\MP3s_320"
+    dirs_primary = get_primary_root_directories(['Music'])
+    dirs_primary = [os.path.join(d, "MP3s_320") for d in dirs_primary if os.path.isdir(os.path.join(d, "MP3s_320"))]
     
-    if os.path.exists(input_dir):
-        process_directory(
-            input_dir,
-            fetch_lyrics=True,
-            bypass_existing_synced=True,
-            bypass_existing_plain=True,
-            bypass_logged_missing=True,
-            randomized_list=False,
-            max_lyrics_fetched=40_000
-        )
-    else:
-        print(f"{RED}Directory not found: {input_dir}{RESET}")
+    for dir_primary in dirs_primary:
+        if os.path.exists(dir_primary):
+            process_directory(
+                dir_primary,
+                fetch_lyrics=True,
+                bypass_existing_synced=True,
+                bypass_existing_plain=True,
+                bypass_logged_missing=True,
+                randomized_list=False,
+                max_lyrics_fetched=40_000
+            )
+        else:
+            print(f"{RED}Directory not found: {dir_primary}{RESET}")

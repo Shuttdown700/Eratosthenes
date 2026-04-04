@@ -300,7 +300,7 @@ def convert_to_chd(source_dir: str, dest_dir: str, chdman_path: str = 'chdman', 
                         print(f"{RED}  -> Converted, but failed to delete loose files: {e}{RESET}")
 
         # 3. HANDLE DIRECTORIES
-        elif item.is_dir():
+        elif item.is_dir() and item not in OUTPUT_DIRECTORIES:
             item_size_str = format_size(get_size(item))
             
             if dry_run:
@@ -348,10 +348,10 @@ if __name__ == "__main__":
 
     # --- Configuration ---
     SOURCE_DIRECTORIES = [
-        r"V:\Temp\Sega Dreamcast\CUE"
+        r"T:\ShuttFlix-Temp\Games\PSX"
     ]
     OUTPUT_DIRECTORIES = [
-        r"V:\Temp\Sega Dreamcast\CUE"
+        r"T:\ShuttFlix-Temp\Games\PSX\Converted"
     ]
 
     IS_DRY_RUN = args.dry_run

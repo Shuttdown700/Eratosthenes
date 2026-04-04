@@ -210,7 +210,7 @@ def embed_album_covers(base_directory, override_cover=False):
                 embed_image(file_path, image_path)
 
 
-def encode_multiple_bitrates(parent_dir='W:\\Music\\FLAC', bitrates_desired=[320]):
+def encode_multiple_bitrates(parent_dir='V:\\Music\\FLAC', bitrates_desired=[320]):
     """Encodes audio files in the specified parent directory to multiple bitrates."""
     os.chdir(os.path.join(os.path.realpath(os.path.dirname(__file__)), "..", "bin"))
 
