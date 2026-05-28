@@ -3,6 +3,8 @@ from pathlib import Path
 from collections import Counter
 import sys
 
+from sympy import Add
+
 from utilities_games import format_size
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -40,6 +42,7 @@ def get_region(filename: str, regions: list[str] = ["USA", "Europe", "Japan"]) -
 def generate_lists(root_dir: str, regions: list[str] = ["USA", "Europe", "Japan"]) -> None:
     root_path = Path(root_dir)
     output_path = Path(OUTPUT_DIRECTORY)
+    aggregate_output_file_path = output_path / "Game List - All Systems.txt"
 
     if not root_path.exists() or not root_path.is_dir():
         print(f"{Colors.YELLOW}Error: Root directory not found at {root_dir}{Colors.RESET}")
@@ -50,7 +53,7 @@ def generate_lists(root_dir: str, regions: list[str] = ["USA", "Europe", "Japan"
     
     print(f"\n{Colors.CYAN}Scanning {root_dir} for console directories...{Colors.RESET}\n")
 
-    for console_dir in root_path.iterdir():
+    for i,console_dir in enumerate(root_path.iterdir()):
         if not console_dir.is_dir():
             continue
 
@@ -114,6 +117,13 @@ def generate_lists(root_dir: str, regions: list[str] = ["USA", "Europe", "Japan"
             # --- Write File List (Without Extensions) ---
             for f in sorted(files, key=lambda x: x.stem.lower()):
                 out_file.write(f" - {f.stem}\n")
+        
+        with open(output_file_path, "r") as output_file:
+            output_content = output_file.read()
+        
+        write_mode = "a" if i > 0 else "w"
+        with open(aggregate_output_file_path, write_mode) as aggregate_file:
+            aggregate_file.write(output_content)
 
         print(f"{Colors.GREEN}Generated:{Colors.RESET} {output_file_path.name} ({total_files:,} games, {formatted_size})")
 
@@ -129,7 +139,7 @@ if __name__ == "__main__":
     game_directories = [os.path.join(d,"Emulation","Game Files") for d in game_directories]
     
     # Define the specific regions to look for. "Other" and "Untagged" are handled automatically.
-    regions = ["USA", "Europe", "Japan", "France"]  
+    regions = ["USA", "Europe", "Japan", "France", "Australia", "Germany", "Korea"]  
     
     for game_dir in game_directories:
         generate_lists(game_dir, regions)

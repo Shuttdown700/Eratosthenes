@@ -1,0 +1,23 @@
+### 4th Console Generation / 1st Handheld Generation ###
+[X] Nintendo Game Boy (1989)
+[X] Atari Lynx (1989)
+[✓] Sega Game Gear (1991)
+[X] NEC TurboExpress (1991)
+
+### 5th Console Generation / 2nd Handheld Generation ###
+[X] Nintendo Virtual Boy (1994)
+[X] Sega Genesis Nomand (1995)
+[X] Game Boy Color (1998)
+[X] Neo Geo Pocket Color (1999)
+
+### 6th Console Generation / 3rd Handheld Generation ###
+[X] Game Boy Advance (2001)
+[X] Nokia N-Gage (2003)
+
+### 7th Console Generation / 4th Handheld Generation ###
+[X] Nintendo DS (2004)
+[X] Sony PSP (2004)
+
+### 8th Console Generation / 5th Handheld Generation ###
+[X] Nintendo 3DS (2011)
+[X] PlayStation Vita (2012)

@@ -1,12 +1,6 @@
 import os
 import re
 
-# Set this to your directory path if running from elsewhere, e.g., "C:\\ROMs"
-DIRECTORY = r"V:\Games\Emulation\Game Files\Sony PlayStation (PSX)" 
-
-# Add exactly matching filenames or partial strings here that you NEVER want deleted
-EXCLUSIONS = []
-
 class Colors:
     GREEN = '\033[92m'
     YELLOW = '\033[93m'
@@ -14,10 +8,32 @@ class Colors:
     CYAN = '\033[96m'
     RESET = '\033[0m'
 
+def has_region_tag(filename):
+    """Checks if a ROM filename contains a known region tag."""
+    tags_list = re.findall(r'\(([^)]+)\)|\[([^\]]+)\]', filename)
+    tags_raw = [t[0] or t[1] for t in tags_list]
+    tags_lower = [t.lower().strip() for t in tags_raw]
+    tags_string = " ".join(tags_lower)
+    
+    # Comprehensive list of standard region keywords
+    region_keywords = r'\b(japan|taiwan|china|korea|asia|france|sweden|mexico|brazil|germany|es|it|nl|sv|pt|chinese|ch|netherlands|italy|switzerland|russian|russia|poland|portugal|spain|greece|norway|denmark|finland|en|usa|europe|world|uk|australia|ue|canada|india|czech|unknown)\b'
+    
+    if re.search(region_keywords, tags_string):
+        return True
+        
+    # Check for standard shortcode region identifiers (like U, E, J, W from GoodTools)
+    exact_short_codes = {'u', 'e', 'j', 'w', 'us', 'eu', 'uk', 'kr', 'tw', 'cn', 'br'}
+    for tag in tags_lower:
+        parts = re.split(r'[, ]+', tag)
+        if any(p in exact_short_codes for p in parts):
+            return True
+            
+    return False
+
 def parse_rom_info(filename):
     # Extract base name (everything before the first '(' or '[')
     base_name_match = re.match(r'^([^\[\(]+)', filename)
-    base_name = base_name_match.group(1).strip() if base_name_match else filename.replace('.zip', '')
+    base_name = base_name_match.group(1).lower().strip() if base_name_match else filename.replace('.zip', '').lower()
     
     lower_name = filename.lower()
     
@@ -29,17 +45,17 @@ def parse_rom_info(filename):
     
     # 1. Determine if English (Foreign games without an English tag get flagged)
     is_english = True 
-    if re.search(r'\b(japan|taiwan|china|korea|asia|france|sweden|brazil|germany|es|it|nl|sv|pt|chinese|chinese version|ch|Jjapan, asia|japan , korea|netherlands|italy|switzerland|russian|russia|poland|portugal|spain|germany|greece|norway|denmark|finland)\b', tags_string):
+    if re.search(r'\b(japan|taiwan|china|korea|asia|france|sweden|brazil|germany|es|it|r|nl|sv|pt|chinese|chinese version|ch|Jjapan, asia|japan , korea|netherlands|italy|switzerland|russian|russia|poland|portugal|spain|germany|greece|norway|denmark|finland)\b', tags_string):
         if not re.search(r'\b(en|usa|europe|world|uk|australia|ue)\b', tags_string):
             is_english = False
 
     # 2. Track & Mod Identification
-    is_unl = bool(re.search(r'\b(proto|prototype|hack|beta|demo|sample|unl|pirate|aftermarket|homebrew|program|pd|subset)\b', tags_string))
+    is_unl = bool(re.search(r'\b(proto|prototype|hack|beta|demo|sample|unl|pirate|aftermarket|homebrew|program|pd|subset|sachen|p1|!)\b', tags_string))
     is_hack = 'hack' in tags_string
     is_subset = 'subset' in tags_string
     
     # 2.5 Flag Prototypes, Betas, and Demos for outright removal
-    is_proto = bool(re.search(r'\b(proto|prototype|hack|beta|demo|sample|unl|pirate|aftermarket|homebrew|program|pd|subset)\b', tags_string))
+    is_proto = bool(re.search(r'\b(proto|prototype|hack|beta|demo|sample|unl|pirate|aftermarket|homebrew|program|pd|subset|sachen|p1|!)\b', tags_string))
     
     # Translations: Fan translations of USA/Europe games (standalone language tags)
     is_translated = False
@@ -48,11 +64,11 @@ def parse_rom_info(filename):
         if t in ['ru', 'pt', 'pt-br', 'tr', 'pl', 'zh', 'ar'] and not is_unl and not is_hack:
             is_translated = True
         # If a USA game has a standalone foreign language tag, it's almost certainly a fan translation patch
-        if t in ['es', 'fr', 'de', 'it', 'nl', 'sv'] and 'usa' in tags_lower and not is_unl and not is_hack:
+        if t in ['es', 'fr', 'de', 'it', 'nl', 'sv', 't'] and 'usa' in tags_lower and not is_unl and not is_hack:
             is_translated = True
 
     # 3. Find unique variant tags to protect distinct mods (e.g. "Luigi", "Widescreen", "Zelda64rus")
-    safe_words = {'usa', 'europe', 'japan', 'world', 'australia', 'uk', 'france', 'germany', 'spain', 'italy', 'sweden', 'korea', 'taiwan', 'china', 'brazil', 'u', 'e', 'j', 'w', 'en'}
+    safe_words = {'usa', 'europe', 'japan', 'world', 'australia', 'uk', 'france', 'germany', 'spain', 'italy', 'sweden', 'korea', 'taiwan', 'china', 'brazil', 'u', 'e', 'j', 'w', 'en', 't-en'}
     lang_pattern = r'^[a-z]{2}(-[a-z]{2})?(,[a-z]{2}(-[a-z]{2})?)*$'
     version_pattern = r'^(rev\s*\w+|v\d+(\.\d+)*|beta\s*\d*|proto\s*\d*|demo|sample|alt)$'
     
@@ -141,18 +157,52 @@ def parse_rom_info(filename):
         'version_score': version_score
     }
 
-def main():
-    extensions= ['.zip','.7z','.rar','.gz','.chd','.iso','.bin','.cue','.img','.nrg','.mdf','.n64','.rvz','.nes','.pce']
-    all_files = [f for f in os.listdir(DIRECTORY) if f.lower().endswith(tuple(extensions))]
+def main(directory, exclusions):
+    extensions = ['.zip','.7z','.rar','.gz','.chd','.iso','.bin','.cue','.img','.nrg','.mdf','.n64','.rvz','.nes','.pce','.pbp']
+    all_files = [f for f in os.listdir(directory) if f.lower().endswith(tuple(extensions))]
     if not all_files:
-        print(f"{Colors.RED}No files found in the specified directory.{Colors.RESET}")
+        print(f"\n{Colors.RED}No files found in the {Colors.RESET}{os.path.basename(directory)}{Colors.RED} directory.{Colors.RESET}")
         return
 
     roms = []
     for f in all_files:
-        if any(excl.lower() in f.lower() for excl in EXCLUSIONS):
+        if any(excl.lower() in f.lower() for excl in exclusions):
             print(f"{Colors.GREEN}[PROTECTED]{Colors.RESET} {f}")
             continue
+            
+        # --- NEW: Fix multiple (Unknown) tags ---
+        # Finds 2 or more consecutive instances of "(Unknown)" (ignoring case/spacing) and replaces with a single one.
+        clean_f = re.sub(r'(?:\s*\(\s*unknown\s*\)){2,}', ' (Unknown)', f, flags=re.IGNORECASE)
+        if clean_f != f:
+            old_path = os.path.join(directory, f)
+            new_path = os.path.join(directory, clean_f)
+            try:
+                if not os.path.exists(new_path):
+                    os.rename(old_path, new_path)
+                    print(f"{Colors.GREEN}[FIXED DOUBLE TAG]{Colors.RESET} '{f}' -> '{clean_f}'")
+                    f = clean_f # Update filename variable so the rest of the loop uses the corrected name
+                else:
+                    print(f"{Colors.RED}[CONFLICT]{Colors.RESET} Cannot fix '{f}', '{clean_f}' already exists.")
+            except Exception as e:
+                print(f"{Colors.RED}Error fixing {f}:{Colors.RESET} {e}")
+        # ----------------------------------------
+
+        # Region Check and File Renaming Logic
+        if not has_region_tag(f):
+            name, ext = os.path.splitext(f)
+            new_f = f"{name} (Unknown){ext}"
+            old_path = os.path.join(directory, f)
+            new_path = os.path.join(directory, new_f)
+            try:
+                if not os.path.exists(new_path):
+                    os.rename(old_path, new_path)
+                    print(f"{Colors.YELLOW}[RENAMED - NO REGION]{Colors.RESET} '{f}' -> '{new_f}'")
+                    f = new_f
+                else:
+                    print(f"{Colors.RED}[CONFLICT]{Colors.RESET} Cannot rename '{f}', '{new_f}' already exists.")
+            except Exception as e:
+                print(f"{Colors.RED}Error renaming {f}:{Colors.RESET} {e}")
+                
         roms.append(f)
 
     delete_candidates = []
@@ -181,10 +231,10 @@ def main():
                 delete_candidates.append((duplicate['filename'], reason))
 
     if not delete_candidates:
-        print(f"\n{Colors.GREEN}Directory is completely clean! No files need to be deleted.{Colors.RESET}")
+        print(f"\n{Colors.GREEN}Directory for {Colors.RESET}{os.path.basename(directory)}{Colors.GREEN} is completely clean! No files need to be deleted.{Colors.RESET}")
         return
 
-    print(f"\n{Colors.CYAN}--- DELETE CANDIDATES ROLLUP ---{Colors.RESET}")
+    print(f"\n{Colors.CYAN}--- DELETE CANDIDATES ROLLUP FOR {os.path.basename(directory).upper()} ---{Colors.RESET}")
     for filename, reason in delete_candidates:
         print(f"{Colors.YELLOW}[DELETE]{Colors.RESET} {filename}")
         print(f"         {Colors.RED}Reason:{Colors.RESET} {reason}")
@@ -196,7 +246,7 @@ def main():
     
     if confirm == 'y':
         for filename, _ in delete_candidates:
-            file_path = os.path.join(DIRECTORY, filename)
+            file_path = os.path.join(directory, filename)
             try:
                 os.remove(file_path)
                 print(f"{Colors.GREEN}Deleted:{Colors.RESET} {filename}")
@@ -206,5 +256,54 @@ def main():
     else:
         print(f"\n{Colors.YELLOW}Operation cancelled. No files were deleted.{Colors.RESET}")
 
+def batch_cleanup_rom_collection():
+    # Set this to your directory path if running from elsewhere, e.g., "C:\\ROMs"
+    DIRECTORIES = [
+    r"V:\Games\Emulation\Game Files\3DO Interactive Multiplayer",
+    r"V:\Games\Emulation\Game Files\Atari 2600",
+    r"V:\Games\Emulation\Game Files\Atari 5200",
+    r"V:\Games\Emulation\Game Files\Atari 7800",
+    r"V:\Games\Emulation\Game Files\Atari Jaguar",
+    r"V:\Games\Emulation\Game Files\Atari Lynx",
+    r"V:\Games\Emulation\Game Files\Commodore 64",
+    r"V:\Games\Emulation\Game Files\Commodore Amiga CD32",
+    r"V:\Games\Emulation\Game Files\Microsoft Xbox",
+    r"V:\Games\Emulation\Game Files\NEC TurboGrafx-16",
+    r"V:\Games\Emulation\Game Files\NEC TurboGrafx-CD",
+    r"V:\Games\Emulation\Game Files\Nintendo 3DS",
+    r"V:\Games\Emulation\Game Files\Nintendo 64",
+    r"V:\Games\Emulation\Game Files\Nintendo DS",
+    r"V:\Games\Emulation\Game Files\Nintendo Entertainment System",
+    r"V:\Games\Emulation\Game Files\Nintendo Game Boy",
+    r"V:\Games\Emulation\Game Files\Nintendo Game Boy Color",
+    r"V:\Games\Emulation\Game Files\Nintendo Game Boy Advance",
+    r"V:\Games\Emulation\Game Files\Nintendo GameCube",
+    # r"V:\Games\Emulation\Game Files\Nintendo Switch",
+    r"V:\Games\Emulation\Game Files\Nintendo Wii",
+    r"V:\Games\Emulation\Game Files\Sega 32X",
+    r"V:\Games\Emulation\Game Files\Sega CD",
+    r"V:\Games\Emulation\Game Files\Sega Dreamcast",
+    r"V:\Games\Emulation\Game Files\Sega Game Gear",
+    r"V:\Games\Emulation\Game Files\Sega Genesis (aka Mega Drive)",
+    r"V:\Games\Emulation\Game Files\Sega Master System",
+    r"V:\Games\Emulation\Game Files\Sega Saturn",
+    r"V:\Games\Emulation\Game Files\SNK Neo Geo CD",
+    r"V:\Games\Emulation\Game Files\SNK Neo Geo Pocket",
+    r"V:\Games\Emulation\Game Files\SNK Neo Geo Pocket Color",
+    # r"V:\Games\Emulation\Game Files\SNK Neo-Geo AES",
+    r"V:\Games\Emulation\Game Files\Sony PlayStation (PSX)",
+    r"V:\Games\Emulation\Game Files\Sony PlayStation 2",
+    # r"V:\Games\Emulation\Game Files\Sony PlayStation 3",
+    r"V:\Games\Emulation\Game Files\Sony PSP",
+    r"V:\Games\Emulation\Game Files\Super Nintendo Entertainment System"
+    ]
+
+    EXCLUSIONS = ["King's Field (Japan) (T-En)"]
+
+    for directory in DIRECTORIES:
+        # Add exactly matching filenames or partial strings here that you NEVER want deleted
+        main(directory, EXCLUSIONS)
+    print(f"\n{Colors.GREEN}All directories processed.{Colors.RESET}")
+
 if __name__ == "__main__":
-    main()
+    batch_cleanup_rom_collection()

@@ -1,0 +1,50 @@
+### 1st Generation ###
+[X] Magnavox Odyssey (1972)
+
+### 2nd Generation ###
+[X] Fairchild Channel F (1976)
+[X] Atari 2600
+[X] Magnavox Odyssey 2 (1978)
+[X] Intellivision (1980)
+[X] ColecoVision (1982)
+[X] Atari 5200
+
+### 3rd Generation ###
+[✓] Nintendo Entertainment System (1985)
+[X] Sega Master System (1986)
+[X] Atari 7800 (1986)
+[X] Atari XEGS (1987)
+
+### 4th Generation ###
+[X] NEC TurboGrafx-16 (1987)
+[✓] Sega Genesis / Mega Drive (1989)
+[X] NEC TurboGrafx-CD (1989)
+[X] SNK Neo Geo (1990)
+[✓] Super Nintendo Entertainment System (1991)
+[X] Phillips CD-i (1991)
+[X] Sega CD/Mega-CD (1992)
+[X] SNK Neo Geo CD (1996)
+
+### 5th Generation ###
+[X] Panasonic 3DO (1993)
+[X] Atari Jaguar (1993)
+[X] Sega Saturn (1994)
+[X] Amiga CD32 (1994)
+[X] Sega 32X (1994)
+[X] Sega Saturn (1995)
+[✓] Sony Playstation (1995)
+[X] Atari Jaguar CD (1995)
+[X] Nintendo 64 (1996)
+[X] Apple Pippin (1996)
+
+### 6th Generation ###
+[X] Sega Dreamcast (1998)
+[✓] Sony PlayStation 2 (2000)
+[✓] Nintendo GameCube (2001)
+[X] Microsoft Xbox (2001)
+
+### 7th Generation ###
+[X] Nintendo Wii (2006)
+
+### 8th Generation ###
+[X] Nintendo Switch (2017)

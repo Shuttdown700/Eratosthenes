@@ -31,16 +31,16 @@ BRIGHT = Style.BRIGHT
 
 
 SOURCE_DIRECTORIES = [
-    r"T:\ShuttFlix-Temp\Games\Xbox"
+    r"V:\Games\Emulation\Game Files\Nintendo Wii"
 ]
 OUTPUT_DIRECTORIES = [
-    r"T:\ShuttFlix-Temp\Games\Xbox\Extracted"
+    r"V:\Games\Emulation\Game Files\Nintendo Wii"
 ]
 
 IS_DRY_RUN = False
 
 
-def process_archives(source_dir: str, dest_dir: str, unwanted_files: list, dry_run: bool = False, strip_tags: bool = False):
+def process_archives(source_dir: str, dest_dir: str, unwanted_files: list, dry_run: bool = False, strip_tags: bool = False, sub_folder: bool = False):
     """
     Extracts archives into subdirectories named after the archive file,
     removes unwanted files, optionally strips region tags, and deletes the original archives.
@@ -66,11 +66,18 @@ def process_archives(source_dir: str, dest_dir: str, unwanted_files: list, dry_r
         archive_size_str = format_size(get_size(archive))
         
         # Determine the name for the new folder based on the archive's name
-        folder_name = clean_name(archive.stem, has_extension=False, strip_tags=strip_tags)
-        specific_dest_path = dest_path / folder_name
+        if sub_folder:
+            folder_name = clean_name(archive.stem, has_extension=False, strip_tags=strip_tags)
+            specific_dest_path = dest_path / folder_name
+        else:
+            specific_dest_path = dest_path
+            folder_name = None # Not used when not creating subfolders
 
         if dry_run:
-            print(f"{YELLOW}[DRY RUN]{RESET} Would extract '{archive.name}' [{archive_size_str}] into folder '{folder_name}'")
+            if sub_folder:
+                print(f"{YELLOW}[DRY RUN]{RESET} Would extract '{archive.name}' [{archive_size_str}] into folder '{folder_name}'")
+            else:
+                print(f"{YELLOW}[DRY RUN]{RESET} Would extract '{archive.name}' [{archive_size_str}] into '{dest_path.name}'")
             print(f"{YELLOW}[DRY RUN]{RESET} Would delete listed unwanted files (e.g., {', '.join(unwanted_files[:2])})")
             print(f"{YELLOW}[DRY RUN]{RESET} Would delete original archive '{archive.name}'\n")
             continue

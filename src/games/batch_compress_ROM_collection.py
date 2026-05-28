@@ -23,10 +23,10 @@ BRIGHT = Style.BRIGHT
 
 
 SOURCE_DIRECTORIES = [
-    r"V:\Games\Emulation\Game Files\SNK Neo Geo Pocket Color"
+    r"V:\Games\Emulation\Game Files\Nintendo Wii"
 ]
 OUTPUT_DIRECTORIES = [
-    r"V:\Games\Emulation\Game Files\SNK Neo Geo Pocket Color"
+    r"V:\Games\Emulation\Game Files\Nintendo Wii"
 ]
 
 IS_DRY_RUN = False

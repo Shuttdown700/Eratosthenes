@@ -158,11 +158,11 @@ if __name__ == "__main__":
     PLAYLIST_FILE = os.path.join(INPUT_FOLDER, TEXT_FILE_NAME)
     
     # Define output paths
-    OUTPUT_DIR = r"W:\Temp\Music" 
-    OUTPUT_NAME = "test_mix.mp3"
+    OUTPUT_DIR = r"T:\ShuttFlix-Temp\YouTube\Music" 
+    OUTPUT_NAME = "Home - Even Dumber Awful Song From Hell.mp3"
     
     # Mix settings
-    FADE_DURATION = 5000 
+    FADE_DURATION = 1000 
     OVERWRITE_EXISTING = True
     RANDOMIZE_PLAYLIST = True 
 

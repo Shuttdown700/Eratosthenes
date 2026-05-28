@@ -10,7 +10,7 @@ import sys
 import time
 import filecmp
 from pathlib import Path
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, List, Tuple, Union
 
 from alive_progress import alive_bar
 from colorama import init, Fore, Style
@@ -22,31 +22,59 @@ RED, YELLOW, GREEN, BLUE, MAGENTA, RESET, BRIGHT = (
     Style.RESET_ALL, Style.BRIGHT
 )
 
+
 # OS Detection for Cross-Platform compatibility
 IS_WINDOWS = sys.platform.startswith('win')
 
+
 def read_alexandria(
     parent_dirs: List[str],
-    extensions: List[str] = ['.mp4', '.mkv', '.m4v', '.pdf', '.mp3', '.flac']
+    extensions: List[str] = ['.mp4', '.mkv', '.m4v', '.pdf', '.mp3', '.flac'],
+    exclude_dirs: Optional[List[str]] = ["Vita3k"]
 ) -> List[str]:
-    """Returns all files of a given extension from a list of parent directories."""
+    """Returns all files of a given extension from a list of parent directories, ignoring exclusions anywhere in the path."""
     assert isinstance(parent_dirs, list) and isinstance(extensions, list), \
         "Arguments must be lists."
     
+    # 1. Standardize exclusions to lowercase for case-insensitive matching
+    if exclude_dirs is None:
+        exclude_dirs = []
+    exclude_set = set(d.lower() for d in exclude_dirs)
+
     all_filepaths = []
+    
     for idx_p, p in enumerate(parent_dirs):
-        for root, _, files in os.walk(p):
-            # Handle variable extensions per parent dir if passed as nested list
-            if isinstance(extensions[0], list) and len(extensions) >= idx_p + 1:
-                extension_list = extensions[idx_p]
-            else:
-                extension_list = extensions
+        
+        # 2. BASE PATH CHECK: Does the starting parent path already contain a banned folder?
+        p_parts = [part.lower() for part in Path(p).parts]
+        if any(exc in p_parts for exc in exclude_set):
+            continue # Skip this entire parent directory immediately
+
+        # 3. Resolve extensions once per parent dir
+        if not extensions:
+            extension_list = []
+        elif len(extensions) >= idx_p + 1 and isinstance(extensions, list) and isinstance(extensions[idx_p], list):
+            extension_list = extensions[idx_p]
+        else:
+            extension_list = extensions
             
+        ext_set = set(ext.lower() for ext in extension_list) if extension_list else set()
+
+        for root, dirs, files in os.walk(p):
+            
+            # 4. THE TREE PRUNING
+            if exclude_set:
+                dirs[:] = [d for d in dirs if d.lower() not in exclude_set]
+
+            # 5. File Collection
             for file in files:
-                _, ext = os.path.splitext(file)
-                if ext.lower() in extension_list:
+                if not ext_set:
                     all_filepaths.append(os.path.join(root, file))
-                    
+                else:
+                    _, ext = os.path.splitext(file)
+                    if ext.lower() in ext_set:
+                        all_filepaths.append(os.path.join(root, file))
+                        
     return all_filepaths
 
 

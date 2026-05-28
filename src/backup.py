@@ -16,6 +16,7 @@ from colorama import Fore, Back, Style
 sys.path.append(os.path.join(os.path.dirname(__file__), "analysis"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "utils"))
 
+
 from read_server_statistics import read_media_statistics
 from assess_backup import get_movie_live_backup_status, get_series_configured_backup_status, update_all_media_lists
 from generate_audio_file_print_string import generate_audio_file_print_string
@@ -376,52 +377,62 @@ class Backup:
         return backup_tuple_accepted
 
     def apply_game_backup_filters(self, media_type: str, backup_candidate_tuples: List[Tuple[str, str]], backup_volume_root: str) -> List[Tuple[str, str]]:
-        """Filter game backups based on allowed sub-directories (types) in config."""
-        if not backup_candidate_tuples:
-            return []
+            """Filter game backups based on allowed sub-directories (types) and exclusions in config."""
+            if not backup_candidate_tuples:
+                return []
 
-        drive_name = self.root_to_name.get(backup_volume_root)
-        if not drive_name:
-            return backup_candidate_tuples
+            drive_name = self.root_to_name.get(backup_volume_root)
+            if not drive_name:
+                return backup_candidate_tuples
 
-        # Extract the allowed types for this specific drive
-        config_node = self.drive_config[media_type]['backup_drives'].get(drive_name, {})
-        allowed_types = config_node.get("types", [])
-
-        # If no types are specified, allow everything to back up normally
-        if not allowed_types:
-            return backup_candidate_tuples
-
-        allowed_types_lower = [t.lower() for t in allowed_types]
-
-        backup_tuple_accepted = []
-        backup_filepaths_blocked = []
-        backup_filepaths_revoked = []
-
-        for filepath_primary, filepath_backup_candidate in backup_candidate_tuples:
-            path_obj = Path(filepath_primary)
+            # Safely extract the config for this specific drive
+            config_node = self.drive_config.get(media_type, {}).get('backup_drives', {}).get(drive_name, {})
             
-            try:
-                # Find the media type (e.g. "Games") in the path to locate the sub-directory right after it
-                media_idx = [p.lower() for p in path_obj.parts].index(media_type.lower())
-                game_category = path_obj.parts[media_idx + 1]
-            except (ValueError, IndexError):
-                game_category = ""
+            allowed_types = config_node.get("types", [])
+            excluded_directories = config_node.get("excluded_directories", []) # Fixed typo
 
-            # Check if the folder after "Games/" is in our allowed types list (e.g., "Emulation")
-            if game_category.lower() not in allowed_types_lower:
-                if os.path.isfile(filepath_backup_candidate):
-                    backup_filepaths_revoked.append(filepath_backup_candidate)
-                else:
-                    backup_filepaths_blocked.append(filepath_backup_candidate)
-                continue
+            # If no filters of either kind exist, allow everything to back up normally
+            if not allowed_types and not excluded_directories:
+                return backup_candidate_tuples
 
-            backup_tuple_accepted.append((filepath_primary, filepath_backup_candidate))
+            allowed_types_lower = [t.lower() for t in allowed_types]
+            excluded_directories_lower = [e.lower() for e in excluded_directories]
 
-        if backup_filepaths_revoked:
-            self.remove_revoked_files(backup_filepaths_revoked)
+            backup_tuple_accepted = []
+            backup_filepaths_blocked = []
+            backup_filepaths_revoked = []
 
-        return backup_tuple_accepted
+            for filepath_primary, filepath_backup_candidate in backup_candidate_tuples:
+                path_obj = Path(filepath_primary)
+                
+                try:
+                    # Find the media type (e.g. "Games") in the path to locate the sub-directory right after it
+                    media_idx = [p.lower() for p in path_obj.parts].index(media_type.lower())
+                    game_category = path_obj.parts[media_idx + 1]
+                except (ValueError, IndexError):
+                    game_category = ""
+
+                # Check 1: Is there an allowed list, and is this category NOT on it?
+                is_unallowed_category = bool(allowed_types_lower) and (game_category.lower() not in allowed_types_lower)
+                
+                # Check 2: Does the primary path contain any of the excluded strings?
+                is_excluded_path = any(exc in filepath_primary.lower() for exc in excluded_directories_lower)
+
+                # If it fails EITHER check, block or revoke it
+                if is_unallowed_category or is_excluded_path:
+                    continue
+                    # if os.path.isfile(filepath_backup_candidate):
+                    #     backup_filepaths_revoked.append(filepath_backup_candidate)
+                    # else:
+                    #     backup_filepaths_blocked.append(filepath_backup_candidate)
+                    # continue
+
+                backup_tuple_accepted.append((filepath_primary, filepath_backup_candidate))
+
+            if backup_filepaths_revoked:
+                self.remove_revoked_files(backup_filepaths_revoked)
+
+            return backup_tuple_accepted
 
     def remove_revoked_files(self, filepaths_backup_revoked: list) -> int:
         """Removes excess files from backup drives."""

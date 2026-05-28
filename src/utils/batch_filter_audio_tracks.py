@@ -263,7 +263,7 @@ def main() -> None:
 
     # Define directories here if not passed via CLI
     target_directories = args.directories if args.directories else [
-        r"I:\Movies\Wild Hogs (2007)"
+        r"T:\ShuttFlix-Temp\Movies\Processing"
     ]
 
     for d in target_directories:

@@ -276,7 +276,7 @@ def encode_multiple_bitrates(parent_dir='V:\\Music\\FLAC', bitrates_desired=[320
 if __name__ == "__main__":
 
     OVERWRITE_COVERS = False
-    SKIP_REENCODE = False
+    SKIP_REENCODE = True
 
     dirs_to_reencode = []
     if dirs_to_reencode == [] or SKIP_REENCODE:
@@ -288,7 +288,7 @@ if __name__ == "__main__":
             embed_album_covers(directory, override_cover=OVERWRITE_COVERS)
             encode_multiple_bitrates(directory, bitrates_desired=[320])
 
-    dirs_embed_covers = []
+    dirs_embed_covers = [r"G:\Music\MP3s_320\Buckethead"]
     if dirs_embed_covers == []:
         dirs_to_reencode = get_primary_root_directories(['Music'])
         dirs_embed_covers = [os.path.join(d, "MP3s_320") for d in dirs_to_reencode]

@@ -348,10 +348,10 @@ if __name__ == "__main__":
 
     # --- Configuration ---
     SOURCE_DIRECTORIES = [
-        r"T:\ShuttFlix-Temp\Games\PSX"
+        r"T:\ShuttFlix-Temp\Games\psx"
     ]
     OUTPUT_DIRECTORIES = [
-        r"T:\ShuttFlix-Temp\Games\PSX\Converted"
+        r"T:\ShuttFlix-Temp\Games\psx\Converted"
     ]
 
     IS_DRY_RUN = args.dry_run

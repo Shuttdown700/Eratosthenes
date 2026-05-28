@@ -659,14 +659,14 @@ if __name__ == "__main__":
     # Example usage:
     # dir_root_FLAC = r'W:\Music\FLAC'
     # dir_root_mp3320 = r'W:\Music\MP3s_320'
-    dir_custom = r"T:\ShuttFlix-Temp\Music\8-Bit Music (Original Quality)"
+    dir_custom = r"G:\Music\MP3s_320\Buckethead\(1992) Bucketheadland\Disc 2"
 
     # rename_essentials_albums(dir_temp_essential_albums)
     # rename_playlist_albums(dir_temp_playlist_albums)
     # rename_OTSs(dir_temp_OSTs)  
     
-    rename_album(dir_custom, "8-Bit Background Music")
-    rename_artist(dir_custom, 'Various Artists')
+    rename_album(dir_custom, "Bucketheadland")
+    rename_artist(dir_custom, 'Buckethead')
     rename_comment(dir_custom, '')
 
     # set_album_from_folder(dir_custom)
