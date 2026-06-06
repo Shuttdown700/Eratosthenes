@@ -34,14 +34,14 @@
 [X] Sega Saturn (1995)
 [✓] Sony Playstation (1995)
 [X] Atari Jaguar CD (1995)
-[X] Nintendo 64 (1996)
+[✓] Nintendo 64 (1996)
 [X] Apple Pippin (1996)
 
 ### 6th Generation ###
-[X] Sega Dreamcast (1998)
+[✓] Sega Dreamcast (1998)
 [✓] Sony PlayStation 2 (2000)
 [✓] Nintendo GameCube (2001)
-[X] Microsoft Xbox (2001)
+[✓] Microsoft Xbox (2001)
 
 ### 7th Generation ###
 [X] Nintendo Wii (2006)

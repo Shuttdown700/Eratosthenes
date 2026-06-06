@@ -23,10 +23,10 @@ BRIGHT = Style.BRIGHT
 
 
 SOURCE_DIRECTORIES = [
-    r"V:\Games\Emulation\Game Files\Nintendo Wii"
+    r"V:\Games\Emulation\Game Files\Nintendo 64"
 ]
 OUTPUT_DIRECTORIES = [
-    r"V:\Games\Emulation\Game Files\Nintendo Wii"
+    r"V:\Games\Emulation\Game Files\Nintendo 64"
 ]
 
 IS_DRY_RUN = False

@@ -31,7 +31,7 @@ BRIGHT = Style.BRIGHT
 
 
 SOURCE_DIRECTORIES = [
-    r"V:\Games\Emulation\Game Files\Nintendo Wii"
+    r"T:\ShuttFlix-Temp\Games\wii"
 ]
 OUTPUT_DIRECTORIES = [
     r"V:\Games\Emulation\Game Files\Nintendo Wii"
