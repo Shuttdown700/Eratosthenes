@@ -6,10 +6,16 @@ from datetime import datetime
 from colorama import Fore, Style, init
 init() # Initializes colorama so colors render properly on Windows
 
+
 # --- ADB / Odin 2 Portal config ---
 ADB = os.path.join(os.path.dirname(__file__), "..", "bin", "adb-platform-tools", "adb.exe")
-
 ODIN_ADDR = "10.0.0.25:5555"
+odin_save_locations = {
+    "Odin 2 Portal - NetherSX2":  "/sdcard/Android/data/xyz.aethersx2.android/files/memcards/",
+    "Odin 2 Portal - Dolphin": "/sdcard/Android/data/org.dolphinemu.dolphinemu/files/GC/USA/",
+    "Odin 2 Portal - Eden": "/sdcard/android/data/dev.eden.eden_emulator/files/nand/user/save"
+}
+
 
 game_save_locations = {
     "LaunchBox": r"T:\LaunchBox\Saves",
@@ -19,10 +25,13 @@ game_save_locations = {
     "Project64": r"C:\Users\brend\Project64 3.0\Save",
     "PCSX2": r"C:\Users\brend\Documents\PCSX2\memcards",
     "Dolphin - GameCube": r"C:\Users\brend\AppData\Roaming\Dolphin Emulator\GC",
-    "Dolphin - Wii": r"C:\Users\brend\AppData\Roaming\Dolphin Emulator\Wii\title",
+    "Dolphin - Wii": r"C:\Users\brend\AppData\Roaming\Dolphin Emulator\Wii\title\00010000",
+    "Dolphin - Mii Saves": r"C:\Users\brend\AppData\Roaming\Dolphin Emulator\Wii\shared2\menu",
     "Sega Model 2 Emulator": r"C:\Users\brend\Sega Model 2 Emulator\NVDATA",
     "Sega Supermodel": r"C:\Users\brend\Sega Supermodel Emulator\NVRAM",
     "RPCS3": r"C:\Users\brend\RPCS3\dev_hdd0\home\00000001\savedata",
+    "Xenia (Edge)": r"C:\Users\brend\Documents\Xenia\content",
+    "Xenia (Canary)": r"C:\Users\brend\Xenia\content",
     "Ryubing Ryujinx": r"C:\Users\brend\Nintendo Swith Emulators\Ryujinx 1.3.3\portable\bis\user\save",
     "Azahar": r"C:\Users\brend\AppData\Roaming\Azahar\sdmc\Nintendo 3DS\00000000000000000000000000000000\00000000000000000000000000000000",
     "PPSSPP": r"C:\Users\brend\Documents\PPSSPP\PSP\SAVEDATA",
@@ -33,13 +42,6 @@ game_save_locations = {
     "Miyoo Mini Plus": r"\\10.0.0.193\Saves"
 }
 
-# Odin 2 Portal save locations (pulled over wireless ADB, not the filesystem).
-# These are Android paths. /sdcard is shared storage; a microSD card is
-# /storage/XXXX-XXXX (find the UUID with:  adb shell ls /storage ).
-odin_save_locations = {
-    "Odin 2 Portal - NetherSX2":  "/sdcard/Android/data/xyz.aethersx2.android/files/memcards/",
-    "Odin 2 Portal - Dolphin": "/sdcard/Android/data/org.dolphinemu.dolphinemu/files/GC/USA/",
-}
 
 def is_device_online(ip_address):
     """Sends a single ping with a 1-second timeout to check if the device is active."""
@@ -88,7 +90,7 @@ def adb_pull_dir(addr, remote, local_dest):
     run_adb(["-s", addr, "pull", "-a", remote.rstrip("/") + "/.", local_dest])
 
 def run_backup(game_save_locations, odin_save_locations, backup_location):
-    print(f"Starting emulator save backup at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" + "="*50)
+    print(f"Starting emulator save backup to {backup_location} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" + "="*50)
     
     success_count = 0
     fail_count = 0
@@ -161,5 +163,7 @@ def run_backup(game_save_locations, odin_save_locations, backup_location):
     print(f"Backup complete. {success_count} succeeded, {fail_count} skipped/failed.")
 
 if __name__ == "__main__":
-    backup_location = r"I:\Backup\Emulator Game Saves"
-    run_backup(game_save_locations, odin_save_locations, backup_location)
+    backup_locations = [r"I:\Backup\Emulator Game Saves",
+                        r"T:\LaunchBox\Backups\Emulator Game Saves"]
+    for backup_location in backup_locations:
+        run_backup(game_save_locations, odin_save_locations, backup_location)

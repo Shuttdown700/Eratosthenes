@@ -380,7 +380,7 @@ def main() -> None:
     # Hardcoded target directories (as requested in original script)
     # Could be replaced by args.directories if desired
     target_directories = [
-        r"T:\ShuttFlix-Temp\Movies\Processing"
+        r"T:\ShuttFlix-Temp\Movies"
     ]
     
     for d in target_directories:

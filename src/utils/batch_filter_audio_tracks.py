@@ -263,7 +263,11 @@ def main() -> None:
 
     # Define directories here if not passed via CLI
     target_directories = args.directories if args.directories else [
-        r"T:\ShuttFlix-Temp\Movies\Processing"
+        r"T:\ShuttFlix-Temp\Shows\Code Lyoko\Season 1",
+        r"T:\ShuttFlix-Temp\Shows\Code Lyoko\Season 2",
+        r"T:\ShuttFlix-Temp\Shows\Code Lyoko\Season 3",
+        r"T:\ShuttFlix-Temp\Shows\Code Lyoko\Season 4",
+        r"T:\ShuttFlix-Temp\Shows\Code Lyoko\Season 0",
     ]
 
     for d in target_directories:

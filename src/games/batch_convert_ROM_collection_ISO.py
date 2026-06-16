@@ -201,10 +201,10 @@ if __name__ == "__main__":
 
     # --- Configuration ---
     SOURCE_DIRECTORIES = [
-        r"T:\ShuttFlix-Temp\Games\dreamcast\Converted",
+        r"T:\ShuttFlix-Temp\Games\ps2",
     ]
     OUTPUT_DIRECTORIES = [
-        r"T:\ShuttFlix-Temp\Games\dreamcast\Extracted",
+        r"T:\ShuttFlix-Temp\Games\ps2\Converted",
     ]
 
     SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

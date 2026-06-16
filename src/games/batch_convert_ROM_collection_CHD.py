@@ -435,7 +435,7 @@ if __name__ == "__main__":
         r"T:\ShuttFlix-Temp\Games\dreamcast",
     ]
     OUTPUT_DIRECTORIES = [
-        r"T:\ShuttFlix-Temp\Games\dreamcast\Converted",
+        r"T:\ShuttFlix-Temp\Games\dreamcast",
     ]
 
     IS_DRY_RUN = args.dry_run

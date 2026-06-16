@@ -298,8 +298,9 @@ def batch_cleanup_rom_collection():
     r"V:\Games\Emulation\Game Files\Super Nintendo Entertainment System"
     ]
 
-    EXCLUSIONS = ["King's Field (Japan) (T-En)",
-                  "Metal Wolf Chaos (Japan)"]
+    EXCLUSIONS = ["King's Field (Japan) (T-En)","Raiden DX (Japan)",
+                  "Metal Wolf Chaos (Japan)",
+                  "DoDonPachi (Japan)"]
 
     for directory in DIRECTORIES:
         # Add exactly matching filenames or partial strings here that you NEVER want deleted
