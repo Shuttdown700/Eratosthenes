@@ -432,10 +432,10 @@ if __name__ == "__main__":
 
     # --- Configuration ---
     SOURCE_DIRECTORIES = [
-        r"T:\ShuttFlix-Temp\Games\dreamcast",
+        r"T:\ShuttFlix-Temp\Games\tgcd",
     ]
     OUTPUT_DIRECTORIES = [
-        r"T:\ShuttFlix-Temp\Games\dreamcast",
+        r"T:\ShuttFlix-Temp\Games\tgcd",
     ]
 
     IS_DRY_RUN = args.dry_run

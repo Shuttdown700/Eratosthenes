@@ -31,10 +31,10 @@ BRIGHT = Style.BRIGHT
 
 
 SOURCE_DIRECTORIES = [
-    r"T:\ShuttFlix-Temp\Games\wii"
+    r"V:\Games\Emulation\Game Files\Atari Jaguar CD"
 ]
 OUTPUT_DIRECTORIES = [
-    r"V:\Games\Emulation\Game Files\Nintendo Wii"
+    r"V:\Games\Emulation\Game Files\Atari Jaguar CD"
 ]
 
 IS_DRY_RUN = False

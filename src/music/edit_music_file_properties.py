@@ -13,6 +13,10 @@ from mutagen.flac import FLAC, Picture
 from mutagen.id3 import (
     ID3, TIT2, TPE1, TPE2, TALB, TRCK, TYER, TDRC, TCON, COMM, APIC, TPOS, error
 )
+import mutagen
+from mutagen.flac import FLAC
+from mutagen.easyid3 import EasyID3
+from mutagen.id3 import ID3NoHeaderError
 from mutagen.mp3 import MP3
 from mutagen.mp4 import MP4, MP4Cover
 from mutagen.easymp4 import EasyMP4
@@ -596,28 +600,79 @@ def clean_flac_titles(directory):
                 print(f"{RED}{BRIGHT}Error processing{RESET} {filename}: {e}")
 
 
-def update_flac_titles_from_filename(directory):
+def update_titles_from_filename(directory):
     """
-    Update the TITLE tag in FLAC files by extracting text after the first XX-XX pattern.
-    Works for filenames like:
-    'Avenged Sevenfold - Waking The Fallen_ Resurrected - 01-15 Chapter Four.flac'
+    Update tags in FLAC and MP3 files from their filenames.
+
+    Rich  : '1.Ice Cube (1991) - Death Certificate - The Funeral.mp3'
+            -> track, artist, year, album, title
+    AAT   : 'Ice Cube - Bootlegs & B-Sides - 01 - Robin Hood.mp3'
+            -> artist, album, track, title  (no year)
+    Simple: '... - 01-15 Chapter Four.flac'
+            -> title only (text after the first XX-XX marker)
     """
-    track_pattern = re.compile(r"\d{1,2}-\d{1,2}\s+(.*)\.flac$", re.IGNORECASE)
+    rich_pattern = re.compile(
+        r"^\s*(\d+)\s*\.\s*(.+?)\s*\((\d{4})\)\s+-\s+(.+?)\s+-\s+(.+?)\.(?:flac|mp3)$",
+        re.IGNORECASE,
+    )
+    aat_pattern = re.compile(
+        r"^(.+?)\s+-\s+(.+?)\s+-\s+(\d{1,3})\s+-\s+(.+?)\.(?:flac|mp3)$",
+        re.IGNORECASE,
+    )
+    simple_pattern = re.compile(
+        r"\d{1,2}-\d{1,2}\s+(.*)\.(?:flac|mp3)$", re.IGNORECASE
+    )
+
+    # canonical key -> (FLAC/Vorbis key, EasyID3 key)
+    KEYMAP = {
+        "title":       ("TITLE", "title"),
+        "artist":      ("ARTIST", "artist"),
+        "album":       ("ALBUM", "album"),
+        "date":        ("DATE", "date"),
+        "tracknumber": ("TRACKNUMBER", "tracknumber"),
+    }
 
     for root, _, files in os.walk(directory):
         for file in files:
-            if file.lower().endswith(".flac"):
-                match = track_pattern.search(file)
-                if not match:
-                    print(f"{YELLOW}{BRIGHT}Skipping{RESET} {file}, does not match expected pattern")
-                    continue
+            ext = os.path.splitext(file)[1].lower()
+            if ext not in (".flac", ".mp3"):
+                continue
 
-                track_title = match.group(1).strip()
-                filepath = os.path.join(root, file)
+            tags = {}
+            m = rich_pattern.search(file)
+            if m:
+                track, artist, year, album, title = (g.strip() for g in m.groups())
+                tags = {"tracknumber": track, "artist": artist, "date": year,
+                        "album": album, "title": title}
+            elif (m := aat_pattern.search(file)):
+                artist, album, track, title = (g.strip() for g in m.groups())
+                tags = {"artist": artist, "album": album,
+                        "tracknumber": track, "title": title}
+            elif (m := simple_pattern.search(file)):
+                tags = {"title": m.group(1).strip()}
+
+            if not tags:
+                print(f"{YELLOW}{BRIGHT}Skipping{RESET} {file}, does not match expected pattern")
+                continue
+
+            filepath = os.path.join(root, file)
+            is_flac = ext == ".flac"
+            if is_flac:
                 audio = FLAC(filepath)
-                audio["TITLE"] = track_title
-                audio.save()
-                print(f"{GREEN}{BRIGHT}Updated{RESET}: {file} -> Title: {track_title}")
+            else:
+                try:
+                    audio = EasyID3(filepath)
+                except ID3NoHeaderError:
+                    audio = mutagen.File(filepath, easy=True)
+                    audio.add_tags()
+
+            for canon, value in tags.items():
+                flac_key, id3_key = KEYMAP[canon]
+                audio[flac_key if is_flac else id3_key] = value
+            audio.save()
+
+            summary = ", ".join(f"{k}={v}" for k, v in tags.items())
+            print(f"{GREEN}{BRIGHT}Updated{RESET}: {file} -> {summary}")
 
 
 def update_audiobook_mp3_titles(directory):
@@ -666,18 +721,18 @@ def search_for_missing_properties(root_dir):
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    dir_custom = r"T:\ShuttFlix-Temp\Music\Pink Floyd\[needs work] 2001 - Echoes, The Best Of Pink Floyd\Disc 2"
+    dir_custom = r"G:\Music\MP3s_320\Ice Cube\(1992) THE PREDATOR"
 
-    rename_album(dir_custom, "The Wall")
-    rename_comment(dir_custom, '')
+    # rename_album(dir_custom, "The Wall")
+    # rename_comment(dir_custom, '')
 
-    set_part_of_set(dir_custom, disc_number=2)
+    # set_part_of_set(dir_custom, disc_number=2)
 
     # set_album_from_folder(dir_custom)
-    # set_artist_from_folder(dir_custom)
+    set_artist_from_folder(dir_custom)
     # set_year_from_folder(dir_custom)
     # set_track_numbers(dir_custom)
     # rename_artist(dir_custom, 'Buckethead')
     # clean_flac_titles(dir_custom)
-    # update_flac_titles_from_filename(dir_custom)
+    # update_titles_from_filename(dir_custom)
     # update_audiobook_mp3_titles(dir_custom)

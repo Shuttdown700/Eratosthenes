@@ -149,7 +149,7 @@ def process_directory(input_dir: str,
         item_tuple = (artist,album,title)
         if bypass_logged_missing and logged_missing_set and item_tuple in logged_missing_set:
             clear_comments(filepath)
-            # print(f"{YELLOW}{BRIGHT}Previously logged missing lyrics, skipping fetch:{RESET} {title}")
+            print(f"{YELLOW}{BRIGHT}Previously logged missing lyrics, skipping fetch:{RESET} {title}")
             num_no_lyrics += 1
             continue
 

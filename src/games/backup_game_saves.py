@@ -7,6 +7,11 @@ from colorama import Fore, Style, init
 init() # Initializes colorama so colors render properly on Windows
 
 
+# --- Versioning config ---
+KEEP_VERSIONS = 50                 # how many timestamped snapshots to retain per location
+VERSION_FMT = "%Y-%m-%d_%H-%M-%S"  # snapshot folder name; sorts lexically == chronologically
+
+
 # --- ADB / Odin 2 Portal config ---
 ADB = os.path.join(os.path.dirname(__file__), "..", "bin", "adb-platform-tools", "adb.exe")
 ODIN_ADDR = "10.0.0.25:5555"
@@ -89,16 +94,45 @@ def adb_pull_dir(addr, remote, local_dest):
     os.makedirs(local_dest, exist_ok=True)
     run_adb(["-s", addr, "pull", "-a", remote.rstrip("/") + "/.", local_dest])
 
-def run_backup(game_save_locations, odin_save_locations, backup_location):
-    print(f"Starting emulator save backup to {backup_location} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" + "="*50)
-    
+def prune_old_versions(backup_location, keep):
+    """Keep only the newest `keep` timestamped snapshot folders under
+    backup_location; delete older ones. Folders whose names don't match
+    VERSION_FMT are ignored, so unrelated content is never touched."""
+    if keep <= 0 or not os.path.isdir(backup_location):
+        return
+    snapshots = []
+    for name in os.listdir(backup_location):
+        if not os.path.isdir(os.path.join(backup_location, name)):
+            continue
+        try:
+            datetime.strptime(name, VERSION_FMT)  # only our snapshots parse cleanly
+        except ValueError:
+            continue
+        snapshots.append(name)
+    snapshots.sort()  # lexical == chronological for this zero-padded format
+    for old in snapshots[:-keep]:
+        old_path = os.path.join(backup_location, old)
+        try:
+            shutil.rmtree(old_path)
+            print(f"{Fore.CYAN}[PRUNE]{Style.RESET_ALL} Removed old version: {old}")
+        except Exception as e:
+            print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Could not remove {old}. Reason: {e}")
+
+def run_backup(game_save_locations, odin_save_locations, backup_location, keep_versions=KEEP_VERSIONS):
+    # Each run is its own timestamped snapshot under backup_location
+    ts = datetime.now().strftime(VERSION_FMT)
+    snapshot_root = os.path.join(backup_location, ts)
+    os.makedirs(snapshot_root, exist_ok=True)
+
+    print(f"Starting emulator save backup to {snapshot_root} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" + "="*50)
+
     success_count = 0
     fail_count = 0
 
     for emulator, source_dir in game_save_locations.items():
-        # Define the specific destination folder for this emulator
-        destination = os.path.join(backup_location, emulator)
-        
+        # Define the specific destination folder for this emulator (inside this snapshot)
+        destination = os.path.join(snapshot_root, emulator)
+
         # Intercept the Miyoo Mini Plus to verify network status first
         if emulator == "Miyoo Mini Plus":
             print("[INFO] Checking Miyoo Mini Plus network status...")
@@ -111,12 +145,12 @@ def run_backup(game_save_locations, odin_save_locations, backup_location):
             try:
                 if os.path.isdir(source_dir):
                     # dirs_exist_ok=True allows overwriting/updating existing backup folders
-                    shutil.copytree(source_dir, os.path.join(backup_location, emulator), dirs_exist_ok=True)
+                    shutil.copytree(source_dir, destination, dirs_exist_ok=True)
                 else:
                     # Fallback in case a specific path points to a file instead of a folder
-                    os.makedirs(os.path.dirname(os.path.join(backup_location, emulator)), exist_ok=True)
-                    shutil.copy2(source_dir, os.path.join(backup_location, emulator))
-                    
+                    os.makedirs(os.path.dirname(destination), exist_ok=True)
+                    shutil.copy2(source_dir, destination)
+
                 print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} Backed up: {emulator}")
                 success_count += 1
             except Exception as e:
@@ -146,7 +180,7 @@ def run_backup(game_save_locations, odin_save_locations, backup_location):
         else:
             print(f"{Fore.GREEN}[INFO]{Style.RESET_ALL} Odin 2 connected.")
             for name, remote in odin_save_locations.items():
-                destination = os.path.join(backup_location, name)
+                destination = os.path.join(snapshot_root, name)
                 if not adb_path_exists(ODIN_ADDR, remote):
                     print(f"{Fore.YELLOW}[WARNING]{Style.RESET_ALL} Path not found on Odin for {name}: {remote}. Skipping.")
                     fail_count += 1
@@ -158,6 +192,10 @@ def run_backup(game_save_locations, odin_save_locations, backup_location):
                 except Exception as e:
                     print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Failed to back up {name}. Reason: {e}")
                     fail_count += 1
+
+    # --- Prune old snapshots, keeping the newest `keep_versions` ---
+    print("-"*50)
+    prune_old_versions(backup_location, keep_versions)
 
     print("="*50)
     print(f"Backup complete. {success_count} succeeded, {fail_count} skipped/failed.")

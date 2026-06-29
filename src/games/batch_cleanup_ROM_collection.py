@@ -162,7 +162,7 @@ def main(directory, exclusions):
     all_files = [f for f in os.listdir(directory) if f.lower().endswith(tuple(extensions))]
     if not all_files:
         print(f"\n{Colors.RED}No files found in the {Colors.RESET}{os.path.basename(directory)}{Colors.RED} directory.{Colors.RESET}")
-        return
+        return 0
 
     roms = []
     for f in all_files:
@@ -231,8 +231,8 @@ def main(directory, exclusions):
                 delete_candidates.append((duplicate['filename'], reason))
 
     if not delete_candidates:
-        print(f"\n{Colors.GREEN}Directory for {Colors.RESET}{os.path.basename(directory)}{Colors.GREEN} is completely clean! No files need to be deleted.{Colors.RESET}")
-        return
+        print(f"\n{Colors.GREEN}Directory for {Colors.RESET}{os.path.basename(directory)}{Colors.GREEN} is already clean with {Colors.RESET}{len(roms):,} ROMs{Colors.GREEN}. No files need to be deleted.{Colors.RESET}")
+        return len(roms)
 
     print(f"\n{Colors.CYAN}--- DELETE CANDIDATES ROLLUP FOR {os.path.basename(directory).upper()} ---{Colors.RESET}")
     for filename, reason in delete_candidates:
@@ -252,9 +252,11 @@ def main(directory, exclusions):
                 print(f"{Colors.GREEN}Deleted:{Colors.RESET} {filename}")
             except Exception as e:
                 print(f"{Colors.RED}Error deleting {filename}:{Colors.RESET} {e}")
-        print(f"\n{Colors.GREEN}Cleanup complete! Enjoy your curated list.{Colors.RESET}")
+        print(f"\n{Colors.GREEN}Cleanup complete!.{Colors.RESET}")
+        return len(roms) - len(delete_candidates)
     else:
         print(f"\n{Colors.YELLOW}Operation cancelled. No files were deleted.{Colors.RESET}")
+        return len(roms)
 
 def batch_cleanup_rom_collection():
     # Set this to your directory path if running from elsewhere, e.g., "C:\\ROMs"
@@ -302,10 +304,13 @@ def batch_cleanup_rom_collection():
                   "Metal Wolf Chaos (Japan)",
                   "DoDonPachi (Japan)"]
 
+    total_num_ROMs = 0
     for directory in DIRECTORIES:
         # Add exactly matching filenames or partial strings here that you NEVER want deleted
-        main(directory, EXCLUSIONS)
+        num_ROMS = main(directory, EXCLUSIONS)
+        total_num_ROMs += num_ROMS
     print(f"\n{Colors.GREEN}All directories processed.{Colors.RESET}")
+    print(f"{Colors.GREEN}Total ROMs after cleanup: {Colors.RESET}{total_num_ROMs:,}")
 
 if __name__ == "__main__":
     batch_cleanup_rom_collection()

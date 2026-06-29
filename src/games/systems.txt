@@ -3,11 +3,11 @@
 
 ### 2nd Generation ###
 [X] Fairchild Channel F (1976)
-[X] Atari 2600
+[✓] Atari 2600 (1977)
 [X] Magnavox Odyssey 2 (1978)
 [X] Intellivision (1980)
 [X] ColecoVision (1982)
-[X] Atari 5200
+[X] Atari 5200 (1982)
 
 ### 3rd Generation ###
 [✓] Nintendo Entertainment System (1985)
@@ -16,10 +16,10 @@
 [X] Atari XEGS (1987)
 
 ### 4th Generation ###
-[X] NEC TurboGrafx-16 (1987)
+[✓] NEC TurboGrafx-16 (1987)
 [✓] Sega Genesis / Mega Drive (1989)
-[X] NEC TurboGrafx-CD (1989)
-[X] SNK Neo Geo (1990)
+[✓] NEC TurboGrafx-CD (1989)
+[X] SNK Neo Geo AES (1990)
 [✓] Super Nintendo Entertainment System (1991)
 [X] Phillips CD-i (1991)
 [X] Sega CD/Mega-CD (1992)
@@ -27,13 +27,12 @@
 
 ### 5th Generation ###
 [X] Panasonic 3DO (1993)
-[X] Atari Jaguar (1993)
+[✓] Atari Jaguar (1993)
 [X] Sega Saturn (1994)
 [X] Amiga CD32 (1994)
 [X] Sega 32X (1994)
-[X] Sega Saturn (1995)
 [✓] Sony Playstation (1995)
-[X] Atari Jaguar CD (1995)
+[✓] Atari Jaguar CD (1995)
 [✓] Nintendo 64 (1996)
 [X] Apple Pippin (1996)
 
@@ -44,7 +43,19 @@
 [✓] Microsoft Xbox (2001)
 
 ### 7th Generation ###
-[X] Nintendo Wii (2006)
+[X] Microsoft Xbox 360 (2005)
+[X] Sony Playstation 3 (2006)
+[✓] Nintendo Wii (2006)
 
 ### 8th Generation ###
+[X] Nintendo Wii U (2012)
+[X] Microsoft Xbox One (2013)
+[X] Sony Playstation 4 (2013)
 [X] Nintendo Switch (2017)
+
+### 9th Generation ###
+[X] Microsoft Xbox Series S/X (2020)
+[X] Sony Playstation 4 (2020)
+
+### 10th Generation ###
+[X] Nintendo Switch 2 (2025)
